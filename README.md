@@ -26,7 +26,9 @@ Puis activez le venv :
 ```
 
 5. Vérifier l’installation
+```bash
     python -c "import chess, serial, numpy; print('OK')"
+```
 Si ça affiche OK, tout est fonctionnel.
 
 8. Lancer le projet
