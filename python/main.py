@@ -1,6 +1,7 @@
-class CNChess:
-    def __init__(self):
-        pass
+# This file contains the mane logic to start the CNChess application and manage its components.
+from CNChess import CNChess
 
-    def start_game(self):
-        print("Starting a new game of CNChess!")
+
+if __name__ == "__main__":
+    game = CNChess()
+    game.start_game()
