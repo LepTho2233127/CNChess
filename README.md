@@ -11,21 +11,21 @@ Projet de S4
 
 [Instructions](https://learn.microsoft.com/en-us/windows/wsl/install)
 
-### 2. Install docker
+### 4. Install docker
 
 [Instructions](https://docs.docker.com/engine/install/ubuntu/)
 
-### 3. Build docker image
+### 5. Build docker image
 ```bash
 sudo docker compose build
 ```
 
-#### 4. Run code
+#### 6. Run code
 ```bash
 sudo docker compose run cnchess
 ```
 
-### 5. Close docker (or ctrl-c)
+### 7. Close docker (or ctrl-c)
 ```bash
 sudo docker compose down
 ```
