@@ -1,0 +1,4 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "CNChess")(type "KiCad")(uri "${KIPRJMOD}/CNChess.kicad_sym")(options "")(descr ""))
+)
