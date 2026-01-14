@@ -1,15 +1,14 @@
 # CNChess
 Projet de S4 
 
-### 1. Cloner le projet
+### 1. Clone projet
     git clone <URL_DU_REPO>
-    cd CNChess
 
 ### 2. Install Ubuntu WSL (only if on windows)
 
-### 3. Open WSL
-
 [Instructions](https://learn.microsoft.com/en-us/windows/wsl/install)
+
+### 3. Open WSL inside project folder
 
 ### 4. Install docker
 
