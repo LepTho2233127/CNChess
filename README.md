@@ -16,7 +16,9 @@ AVEC POWERSHELL
 
 PowerShell bloque les scripts par défaut.
 Si c’est la première fois que vous activez un venv, exécutez :
+```bash
     Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+```
 Puis activez le venv :
 ```bash
     venv\Scripts\Activate.ps1
