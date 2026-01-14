@@ -16,7 +16,7 @@ sudo docker compose build
 
 4. Run code
 ```bash
-sudo docker compose up
+sudo docker compose run cnchess
 ```
 
 5. Close docker (or ctrl-c)
