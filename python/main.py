@@ -1,4 +1,4 @@
-# This file contains the mane logic to start the CNChess application and manage its components.
+# This file contains the main logic to start the CNChess application and manage its components.
 import chess
 from CNChess import CNChess
 
