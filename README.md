@@ -21,7 +21,7 @@ Si c’est la première fois que vous activez un venv, exécutez :
 ```
 Puis activez le venv sur windows:
 ```bash
-    venv\Scripts\Activate.ps1
+    cnchess\Scripts\Activate.ps1
     pip install -r python\requirements.txt
 ```
 Sur linux:
