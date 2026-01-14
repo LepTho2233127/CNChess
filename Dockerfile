@@ -8,7 +8,7 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
 # 3. Set the working directory inside the container
-WORKDIR /app
+WORKDIR /python
 
 # 4. Install dependencies
 # Copy only requirements first to leverage Docker cache
@@ -21,6 +21,7 @@ RUN apt-get update && apt-get install -y \
     libsdl2-ttf-dev \
     libportmidi-dev \
     libfreetype6-dev \
+    stockfish \
     pkg-config
 
 
@@ -29,4 +30,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # 6. Define the command to run your app
 # Replace 'main.py' with your script's entry point
-CMD ["bash"]
+CMD ["python", "main.py"]

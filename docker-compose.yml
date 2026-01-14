@@ -3,7 +3,7 @@ services:
     build: .
     container_name: cnchess
     volumes:
-      - .:/python
+      - ./python:/python
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
     devices:
       - /dev/dri:/dev/dri

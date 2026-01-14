@@ -24,3 +24,7 @@ if __name__ == "__main__":
             game.make_move(game.get_computer_move())
         
         game.display_board()
+
+    game.display_board()
+    print("Game over!")
+    wait = input("Press Enter to exit...")
