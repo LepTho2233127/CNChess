@@ -9,9 +9,9 @@ AVEC POWERSHELL
 
 2. Créer l’environnement virtuel (venv)
 ```bash
-python -m venv venv
+python -m venv cnchess
 ```
-
+python -m 
 3. Activer l’environnement virtuel (PowerShell)
 
 PowerShell bloque les scripts par défaut.
@@ -19,9 +19,14 @@ Si c’est la première fois que vous activez un venv, exécutez :
 ```bash
     Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 ```
-Puis activez le venv :
+Puis activez le venv sur windows:
 ```bash
     venv\Scripts\Activate.ps1
+    pip install -r python\requirements.txt
+```
+Sur linux:
+```bash
+    source cnchess/bin/activate
     pip install -r python\requirements.txt
 ```
 
