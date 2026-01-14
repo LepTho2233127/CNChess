@@ -41,6 +41,6 @@ Toujours activer le venv avant d’exécuter le code :
     git add <fichier>
     # Commit
     git commit -m "Message clair"
-    Push
+    # Push
     git push
 ```
