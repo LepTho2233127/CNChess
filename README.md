@@ -9,11 +9,11 @@ Projet de S4
 
 ### 3. Open WSL
 
-(Instructions)[https://learn.microsoft.com/en-us/windows/wsl/install]
+[Instructions](https://learn.microsoft.com/en-us/windows/wsl/install)
 
 ### 2. Install docker
 
-(Instructions)[https://docs.docker.com/engine/install/ubuntu/]
+[Instructions](https://docs.docker.com/engine/install/ubuntu/)
 
 ### 3. Build docker image
 ```bash
