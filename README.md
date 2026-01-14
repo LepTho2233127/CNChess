@@ -22,7 +22,7 @@ Si c’est la première fois que vous activez un venv, exécutez :
 Puis activez le venv :
 ```bash
     venv\Scripts\Activate.ps1
-    pip install -r requirements.txt
+    pip install -r python\requirements.txt
 ```
 
 5. Vérifier l’installation
