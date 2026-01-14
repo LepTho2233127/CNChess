@@ -1,0 +1,16 @@
+services:
+  cnchess:
+    build: .
+    container_name: cnchess
+    volumes:
+      - .:/python
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    devices:
+      - /dev/dri:/dev/dri
+    environment:
+      - DISPLAY=${DISPLAY}
+    network_mode: host
+    stdin_open: true
+    tty: true
+
+    working_dir: /python

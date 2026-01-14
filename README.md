@@ -53,3 +53,8 @@ Toujours activer le venv avant d’exécuter le code :
     # Push
     git push
 ```
+10.Dockerfile
+```bash
+docker build -t CNChess .
+docker run CNChess
+```
