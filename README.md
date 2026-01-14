@@ -1,50 +1,30 @@
 # CNChess
 Projet de S4 
 
-AVEC POWERSHELL
-
-1. Cloner le projet
+### 1. Clone projet
     git clone <URL_DU_REPO>
-    cd CNChess
 
-2. Créer l’environnement virtuel (venv)
+### 2. Install Ubuntu WSL (only if on windows)
+
+[Instructions](https://learn.microsoft.com/en-us/windows/wsl/install)
+
+### 3. Open WSL inside project folder
+
+### 4. Install docker
+
+[Instructions](https://docs.docker.com/engine/install/ubuntu/)
+
+### 5. Build docker image
 ```bash
-python -m venv venv
+sudo docker compose build
 ```
 
-3. Activer l’environnement virtuel (PowerShell)
-
-PowerShell bloque les scripts par défaut.
-Si c’est la première fois que vous activez un venv, exécutez :
+#### 6. Run code
 ```bash
-    Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
-```
-Puis activez le venv :
-```bash
-    venv\Scripts\Activate.ps1
-    pip install -r python\requirements.txt
+sudo docker compose run cnchess
 ```
 
-5. Vérifier l’installation
+### 7. Close docker (or ctrl-c)
 ```bash
-    python -c "import chess, serial, numpy; print('OK')"
-```
-Si ça affiche OK, tout est fonctionnel.
-
-8. Lancer le projet
-Toujours activer le venv avant d’exécuter le code :
-```bash
-    powershell
-    venv\Scripts\Activate.ps1
-    python src/main.py
-```
-
-9. Workflow Git recommandé
-```bash
-    # Ajouter un fichier
-    git add <fichier>
-    # Commit
-    git commit -m "Message clair"
-    # Push
-    git push
+sudo docker compose down
 ```
