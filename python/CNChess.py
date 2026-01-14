@@ -11,7 +11,7 @@ class CNChess:
     next_player_move: chess.Move
 
     stockfish_path: str = "/usr/games/stockfish"  # Adjust path as necessary
-    stockfish_depth: int = 15
+    stockfish_depth: int = 10
     computer: stockfish.Stockfish
 
     def __init__(self):
