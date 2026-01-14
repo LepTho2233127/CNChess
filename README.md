@@ -8,9 +8,9 @@ AVEC POWERSHELL
     cd CNChess
 
 2. Créer l’environnement virtuel (venv)
-    ```bash
-    python -m venv venv
-    ```
+```bash
+python -m venv venv
+```
 
 3. Activer l’environnement virtuel (PowerShell)
 
