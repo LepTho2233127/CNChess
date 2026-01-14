@@ -7,54 +7,19 @@ AVEC POWERSHELL
     git clone <URL_DU_REPO>
     cd CNChess
 
-2. Créer l’environnement virtuel (venv)
-```bash
-python -m venv cnchess
-```
-python -m 
-3. Activer l’environnement virtuel (PowerShell)
+2. Install docker
 
-PowerShell bloque les scripts par défaut.
-Si c’est la première fois que vous activez un venv, exécutez :
+3. Build docker image
 ```bash
-    Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
-```
-Puis activez le venv sur windows:
-```bash
-    cnchess\Scripts\Activate.ps1
-    pip install -r python\requirements.txt
-```
-Sur linux:
-```bash
-    source cnchess/bin/activate
-    pip install -r python\requirements.txt
+sudo docker compose build
 ```
 
-5. Vérifier l’installation
+4. Run code
 ```bash
-    python -c "import chess, serial, numpy; print('OK')"
-```
-Si ça affiche OK, tout est fonctionnel.
-
-8. Lancer le projet
-Toujours activer le venv avant d’exécuter le code :
-```bash
-    powershell
-    venv\Scripts\Activate.ps1
-    python src/main.py
+sudo docker compose up
 ```
 
-9. Workflow Git recommandé
+5. Close docker (or ctrl-c)
 ```bash
-    # Ajouter un fichier
-    git add <fichier>
-    # Commit
-    git commit -m "Message clair"
-    # Push
-    git push
-```
-10.Dockerfile
-```bash
-docker build -t CNChess .
-docker run CNChess
+sudo docker compose down
 ```
