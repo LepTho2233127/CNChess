@@ -34,7 +34,6 @@ if __name__ == "__main__":
 
         
         game.display_board()
-        control.grid.print_grid()
 
     game.display_board()
     print("Game over!")
