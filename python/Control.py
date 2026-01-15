@@ -5,6 +5,7 @@
 import numpy as np
 import chess
 
+# Here is all the object for a* pathfinding algorithm
 class Position:
     x: float
     y: float
@@ -19,7 +20,7 @@ class Position:
     def __hash__(self):
         return hash((self.x, self.y))
 
-# Here is all the object for a* pathfinding algorithm
+
 class Node:
 
     position: Position
