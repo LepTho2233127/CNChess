@@ -7,8 +7,6 @@ services:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
     environment:
       - DISPLAY=${DISPLAY}
-    devices:
-      - /dev/dri:/dev/dri
     network_mode: host
     stdin_open: true
     tty: true
