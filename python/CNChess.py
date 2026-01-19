@@ -23,7 +23,6 @@ class CNChess:
         self.computer = stockfish.Stockfish(path=self.stockfish_path, depth=self.stockfish_depth)
         self.game_visual = display.start()
 
-
     def set_elo(self, elo: int):
         self.computer.set_elo_rating(elo)
 
