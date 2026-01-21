@@ -2,6 +2,7 @@
 
 # It will take a chess move and transform it into physical actions and send it via serial bus
 
+from time import time
 import numpy as np
 import chess
 import serial
@@ -194,12 +195,15 @@ class Control:
     mm_per_step: float
     circumference: float
     current_position: Position
+    ser: serial.Serial
 
     def __init__(self):
         self.circumference = np.pi * self.PULLEY_DIAMETER
         self.grid = Grid(8, 8)
         self.grid.initialize_links()
         self.current_position = Position(0, 0)  # Start at home position
+        self.ser = serial.Serial('COM3', 115200, timeout=1)
+        time.sleep(2) # attendre reset Arduino
     
     def update_board_state(self, boardState: str):
         self.grid.update_obstacles(boardState)
@@ -260,6 +264,7 @@ class Control:
     def go_to_position(self, pos:Position): 
 
         step_motors = self.convert_to_step(pos)
+        self.send_command(step_motors)
         
 
     def convert_to_step(self, pos:Position) -> tuple:
@@ -270,6 +275,21 @@ class Control:
         step_mot2 = rot_step2 / self.STEP_ANGLE_DEGREES
 
         return (step_mot1, step_mot2)
+
+    def send_command(self, steps: tuple):
+        self.ser.write(f"MOVE {int(steps[0])} {int(steps[1])}\n".encode('utf-8'))
+        start_time = time.time()
+        while self.ser.in_waiting == 0:
+            if time.time() - start_time > 30:
+                print("Error: No response from motor controller.")
+                return False
+            pass
+
+        response = self.ser.readline().decode('utf-8').strip()
+        if response != "DONE":
+            print("Error: Unexpected response from motor controller:", response)
+            return False
+        return True
 
     def print_trajectory(self, trajectory: list[tuple[float, float]]):
         for step in trajectory:
