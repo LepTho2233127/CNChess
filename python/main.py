@@ -31,7 +31,8 @@ if __name__ == "__main__":
             control.update_board_state(game.get_board_state())
             path = control.move_piece(game.get_computer_move())
             control.print_path(path)
-
+            traj = control.calculate_trajectory(path)
+            control.print_trajectory(traj)
         
         game.display_board()
 

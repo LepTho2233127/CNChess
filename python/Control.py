@@ -186,12 +186,19 @@ class Grid:
 
 
 class Control:
+    SQUARE_SIZE_MM = 50.8  # Size of a chess square in millimeters
+    STEP_ANGLE_DEGREES = 1.8  # Stepper motor step angle in degrees
+    PULLEY_DIAMETER = 12.0  # Pulley diameter in millimeters
     grid: Grid
+    mm_per_step: float
+    circumference: float
+    current_position: Position
 
     def __init__(self):
+        self.circumference = np.pi * self.PULLEY_DIAMETER
         self.grid = Grid(8, 8)
         self.grid.initialize_links()
-    
+        self.current_position = Position(0, 0)  # Start at home position
     
     def update_board_state(self, boardState: str):
         self.grid.update_obstacles(boardState)
@@ -221,4 +228,34 @@ class Control:
         for pos in path:
             print(f"({pos.x}, {pos.y})", end=" -> ")
         print("END")
+
+    def calculate_trajectory(self, path: list[Position]):
+        trajectory = []
+        for i in range(1, len(path)):
+            start = path[i - 1]
+            end = path[i]
+            delta_x = (end.x - start.x) * self.SQUARE_SIZE_MM
+            delta_y = (end.y - start.y) * self.SQUARE_SIZE_MM
+
+            rot_step1 = -360 * (delta_y + delta_x) / (self.circumference * np.sqrt(2))
+            rot_step2 = -((2*delta_x * 360/(self.circumference*np.sqrt(2))) + rot_step1)
+            step_mot1 = rot_step1 / self.STEP_ANGLE_DEGREES
+            step_mot2 = rot_step2 / self.STEP_ANGLE_DEGREES
+
+            trajectory.append((step_mot1, step_mot2))
+            self.current_position = end
+        return trajectory 
+
+    def goHome(self):
+        # Placeholder for homing procedure
+        pass
+
+    def goToPosition(self, position: Position):
+
+
+    def print_trajectory(self, trajectory: list[tuple[float, float]]):
+        for step in trajectory:
+            print(f"Motor1: {step[0]}, Motor2: {step[1]}")
+    
+    
     
