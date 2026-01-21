@@ -204,7 +204,7 @@ class Control:
     def update_board_state(self, boardState: str):
         self.grid.update_obstacles(boardState)
     
-    def move_piece(self, move: chess.Move) -> list[Position]:
+    def get_path(self, move: chess.Move) -> list[Position]:
         start_x = chess.square_file(move.from_square) + 1
         start_y = chess.square_rank(move.from_square) + 1
         end_x = chess.square_file(move.to_square) + 1
@@ -239,12 +239,9 @@ class Control:
             delta_x = (end.x - start.x) * self.SQUARE_SIZE_MM
             delta_y = (end.y - start.y) * self.SQUARE_SIZE_MM
 
-            rot_step1 = -360 * (delta_y + delta_x) / (self.circumference * np.sqrt(2))
-            rot_step2 = -((2*delta_x * 360/(self.circumference*np.sqrt(2))) + rot_step1)
-            step_mot1 = rot_step1 / self.STEP_ANGLE_DEGREES
-            step_mot2 = rot_step2 / self.STEP_ANGLE_DEGREES
+            pos = Position(delta_x, delta_y)
 
-            trajectory.append((step_mot1, step_mot2))
+            trajectory.append(pos)
             self.current_position = end
         return trajectory 
 
@@ -252,8 +249,27 @@ class Control:
         # Placeholder for homing procedure
         pass
 
-    def goToPosition(self, position: Position):    
+    def make_move(self, move:chess.Move):
 
+        path = self.get_path(move)
+        traj = self.calculate_trajectory(path)
+
+        for pos in traj : 
+            self.go_to_position(pos)
+            
+    def go_to_position(self, pos:Position): 
+
+        step_motors = self.convert_to_step(pos)
+        
+
+    def convert_to_step(self, pos:Position) -> tuple:
+
+        rot_step1 = -360 * (pos.x + pos.y) / (self.circumference * np.sqrt(2))
+        rot_step2 = -((2*pos.x * 360/(self.circumference*np.sqrt(2))) + rot_step1)
+        step_mot1 = rot_step1 / self.STEP_ANGLE_DEGREES
+        step_mot2 = rot_step2 / self.STEP_ANGLE_DEGREES
+
+        return (step_mot1, step_mot2)
 
     def print_trajectory(self, trajectory: list[tuple[float, float]]):
         for step in trajectory:
