@@ -232,6 +232,7 @@ class Control:
 
     def calculate_trajectory(self, path: list[Position]):
         trajectory = []
+        path.insert(0, self.current_position)  # Start from current position
         for i in range(1, len(path)):
             start = path[i - 1]
             end = path[i]
@@ -251,8 +252,7 @@ class Control:
         # Placeholder for homing procedure
         pass
 
-    def goToPosition(self, position: Position):
-
+    def goToPosition(self, position: Position):    
 
 
     def print_trajectory(self, trajectory: list[tuple[float, float]]):
