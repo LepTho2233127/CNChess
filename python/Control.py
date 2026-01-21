@@ -4,6 +4,7 @@
 
 import numpy as np
 import chess
+import serial
 
 # Here is all the object for a* pathfinding algorithm
 class Position:
@@ -251,6 +252,7 @@ class Control:
         pass
 
     def goToPosition(self, position: Position):
+
 
 
     def print_trajectory(self, trajectory: list[tuple[float, float]]):
