@@ -29,9 +29,10 @@ if __name__ == "__main__":
             game.set_computer_move(game.get_next_best_move())
             game.make_move(game.get_computer_move())
             control.update_board_state(game.get_board_state())
-            path = control.move_piece(game.get_computer_move())
+            path = control.get_path(game.get_computer_move())
             control.print_path(path)
-
+            traj = control.calculate_trajectory(path)
+            control.print_trajectory(traj)
         
         game.display_board()
 

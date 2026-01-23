@@ -2,8 +2,10 @@
 
 # It will take a chess move and transform it into physical actions and send it via serial bus
 
+from time import time
 import numpy as np
 import chess
+import serial
 
 # Here is all the object for a* pathfinding algorithm
 class Position:
@@ -186,17 +188,27 @@ class Grid:
 
 
 class Control:
+    SQUARE_SIZE_MM = 50.8  # Size of a chess square in millimeters
+    STEP_ANGLE_DEGREES = 1.8  # Stepper motor step angle in degrees
+    PULLEY_DIAMETER = 12.0  # Pulley diameter in millimeters
     grid: Grid
+    mm_per_step: float
+    circumference: float
+    current_position: Position
+    ser: serial.Serial
 
     def __init__(self):
+        self.circumference = np.pi * self.PULLEY_DIAMETER
         self.grid = Grid(8, 8)
         self.grid.initialize_links()
-    
+        self.current_position = Position(0, 0)  # Start at home position
+        self.ser = serial.Serial('COM3', 115200, timeout=1)
+        time.sleep(2) # attendre reset Arduino
     
     def update_board_state(self, boardState: str):
         self.grid.update_obstacles(boardState)
     
-    def move_piece(self, move: chess.Move) -> list[Position]:
+    def get_path(self, move: chess.Move) -> list[Position]:
         start_x = chess.square_file(move.from_square) + 1
         start_y = chess.square_rank(move.from_square) + 1
         end_x = chess.square_file(move.to_square) + 1
@@ -221,4 +233,67 @@ class Control:
         for pos in path:
             print(f"({pos.x}, {pos.y})", end=" -> ")
         print("END")
+
+    def calculate_trajectory(self, path: list[Position]):
+        trajectory = []
+        path.insert(0, self.current_position)  # Start from current position
+        for i in range(1, len(path)):
+            start = path[i - 1]
+            end = path[i]
+            delta_x = (end.x - start.x) * self.SQUARE_SIZE_MM
+            delta_y = (end.y - start.y) * self.SQUARE_SIZE_MM
+
+            pos = Position(delta_x, delta_y)
+
+            trajectory.append(pos)
+            self.current_position = end
+        return trajectory 
+
+    def goHome(self):
+        # Placeholder for homing procedure
+        pass
+
+    def make_move(self, move:chess.Move):
+
+        path = self.get_path(move)
+        traj = self.calculate_trajectory(path)
+
+        for pos in traj : 
+            self.go_to_position(pos)
+            
+    def go_to_position(self, pos:Position): 
+
+        step_motors = self.convert_to_step(pos)
+        self.send_command(step_motors)
+        
+
+    def convert_to_step(self, pos:Position) -> tuple:
+
+        rot_step1 = -360 * (pos.x + pos.y) / (self.circumference * np.sqrt(2))
+        rot_step2 = -((2*pos.x * 360/(self.circumference*np.sqrt(2))) + rot_step1)
+        step_mot1 = rot_step1 / self.STEP_ANGLE_DEGREES
+        step_mot2 = rot_step2 / self.STEP_ANGLE_DEGREES
+
+        return (step_mot1, step_mot2)
+
+    def send_command(self, steps: tuple):
+        self.ser.write(f"MOVE {int(steps[0])} {int(steps[1])}\n".encode('utf-8'))
+        start_time = time.time()
+        while self.ser.in_waiting == 0:
+            if time.time() - start_time > 30:
+                print("Error: No response from motor controller.")
+                return False
+            pass
+
+        response = self.ser.readline().decode('utf-8').strip()
+        if response != "DONE":
+            print("Error: Unexpected response from motor controller:", response)
+            return False
+        return True
+
+    def print_trajectory(self, trajectory: list[tuple[float, float]]):
+        for step in trajectory:
+            print(f"Motor1: {step[0]}, Motor2: {step[1]}")
+    
+    
     
