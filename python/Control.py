@@ -202,8 +202,8 @@ class Control:
         self.grid = Grid(8, 8)
         self.grid.initialize_links()
         self.current_position = Position(0, 0)  # Start at home position
-        self.ser = serial.Serial('COM3', 115200, timeout=1)
-        time.sleep(2) # attendre reset Arduino
+        # self.ser = serial.Serial('COM3', 115200, timeout=1)
+        # time.sleep(2) # attendre reset Arduino
     
     def update_board_state(self, boardState: str):
         self.grid.update_obstacles(boardState)

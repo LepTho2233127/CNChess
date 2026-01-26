@@ -1,6 +1,5 @@
 import chess
 import stockfish
-from chessboard import display
 
 class CNChess:
 
@@ -21,7 +20,7 @@ class CNChess:
         self.next_computer_move = None
         self.next_player_move = None
         self.computer = stockfish.Stockfish(path=self.stockfish_path, depth=self.stockfish_depth)
-        self.game_visual = display.start()
+
 
     def set_elo(self, elo: int):
         self.computer.set_elo_rating(elo)
@@ -76,5 +75,3 @@ class CNChess:
         return self.board.turn
 
     
-    def display_board(self):
-        display.update(self.get_board_state(), self.game_visual)

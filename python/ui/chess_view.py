@@ -1,11 +1,14 @@
 """Chess View - PyQt-based UI for displaying the chess board."""
 
 import os
+import sys
 from PyQt6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QPushButton, QHBoxLayout, QLabel
 from PyQt6.QtCore import Qt, pyqtSignal, QSize, QFile
 from PyQt6.QtGui import QPainter, QColor, QPixmap, QFont
 from PyQt6 import uic
-from chess_model import ChessModel
+
+# Add parent directory to path
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 
 class ChessBoardWidget(QWidget):
@@ -18,10 +21,11 @@ class ChessBoardWidget(QWidget):
     DARK_COLOR = QColor(181, 136, 99)
     HIGHLIGHT_COLOR = QColor(100, 200, 150, 120)
     
-    def __init__(self, model: ChessModel, parent=None):
+    def __init__(self, cn_chess, parent=None):
         """Initialize the chess board widget."""
         super().__init__(parent)
-        self.model = model
+        self.cn_chess = cn_chess
+        self.selected_piece = None
         self.board_size = 640
         self.square_size = self.board_size // 8
         
@@ -30,9 +34,6 @@ class ChessBoardWidget(QWidget):
         
         # Set widget size
         self.setFixedSize(self.board_size, self.board_size)
-        
-        # Attach this view as an observer to the model
-        self.model.attach_observer(self)
     
     def _load_piece_images(self):
         """Load piece images from assets directory."""
@@ -56,6 +57,23 @@ class ChessBoardWidget(QWidget):
                     images[piece_char] = pixmap
         
         return images
+    
+    def _fen_to_board_array(self, fen: str):
+        """Convert FEN string to 8x8 board array."""
+        board_str = fen.split(' ')[0]
+        rows = board_str.split('/')
+        board = []
+        
+        for row in rows:
+            board_row = []
+            for char in row:
+                if char.isdigit():
+                    board_row.extend(['_'] * int(char))
+                else:
+                    board_row.append(char)
+            board.append(board_row)
+        
+        return board
     
     def paintEvent(self, event):
         """Paint the chess board and pieces."""
@@ -86,7 +104,8 @@ class ChessBoardWidget(QWidget):
     
     def _draw_pieces(self, painter):
         """Draw all pieces on the board."""
-        board = self.model.get_board()
+        fen = self.cn_chess.get_board_state()
+        board = self._fen_to_board_array(fen)
         for row in range(8):
             for col in range(8):
                 piece = board[row][col]
@@ -105,9 +124,8 @@ class ChessBoardWidget(QWidget):
     
     def _draw_selection_highlight(self, painter):
         """Draw highlight on the selected piece."""
-        selected = self.model.get_selected_piece()
-        if selected:
-            row, col = selected
+        if self.selected_piece:
+            row, col = self.selected_piece
             x = col * self.square_size
             y = row * self.square_size
             painter.fillRect(x, y, self.square_size, self.square_size, self.HIGHLIGHT_COLOR)
@@ -122,18 +140,19 @@ class ChessBoardWidget(QWidget):
             if 0 <= row < 8 and 0 <= col < 8:
                 self.piece_clicked.emit(row, col)
     
-    def update(self):
-        """Called by model observer pattern when model changes."""
+    def on_board_changed(self, selected_piece):
+        """Called when board state changes."""
+        self.selected_piece = selected_piece
         self.repaint()
 
 
 class ChessView(QMainWindow):
     """Main window for the chess application."""
     
-    def __init__(self, model: ChessModel, controller=None):
+    def __init__(self, cn_chess, controller=None):
         """Initialize the main window from UI file."""
         super().__init__()
-        self.model = model
+        self.cn_chess = cn_chess
         self.controller = controller
         
         # Load UI from .ui file
@@ -156,7 +175,7 @@ class ChessView(QMainWindow):
         quit_button = self.findChild(QPushButton, 'quitButton')
         
         # Create chess board widget and add to container
-        self.board_widget = ChessBoardWidget(model)
+        self.board_widget = ChessBoardWidget(cn_chess)
         
         # Replace the placeholder container with actual board widget
         if board_container and board_container.parent():
@@ -171,9 +190,6 @@ class ChessView(QMainWindow):
             reset_button.clicked.connect(self.on_reset_clicked)
         if quit_button:
             quit_button.clicked.connect(self.close)
-        
-        # Attach model observer
-        model.attach_observer(self)
     
     def on_board_clicked(self, row, col):
         """Handle board click events."""
@@ -187,16 +203,33 @@ class ChessView(QMainWindow):
             self.controller.reset_board()
         self.update_status()
     
+    def on_board_changed(self, selected_piece):
+        """Called when board state changes from controller."""
+        self.board_widget.on_board_changed(selected_piece)
+        self.update_status()
+    
     def update_status(self):
         """Update the status label."""
-        selected = self.model.get_selected_piece()
-        if selected:
-            row, col = selected
-            self.status_label.setText(f'Selected: ({row}, {col})')
-        else:
-            self.status_label.setText('Ready')
-    
-    def update(self):
-        """Called by model observer pattern when model changes."""
-        self.update_status()
-        self.board_widget.update()
+        status_text = "Ready"
+        
+        # Add turn indicator
+        try:
+            turn = self.cn_chess.get_turn()
+            turn_text = "White's turn" if turn else "Black's turn"
+            status_text = turn_text
+        except Exception:
+            pass
+        
+        # Add selection info if piece is selected
+        if self.board_widget.selected_piece:
+            row, col = self.board_widget.selected_piece
+            status_text += f" | Selected: ({row}, {col})"
+        
+        # Add game over indicator
+        try:
+            if self.cn_chess.check_game_over():
+                status_text += " | Game Over"
+        except Exception:
+            pass
+        
+        self.status_label.setText(status_text)
