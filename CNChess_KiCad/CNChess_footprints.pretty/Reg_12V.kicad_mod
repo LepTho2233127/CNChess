@@ -1,0 +1,193 @@
+(footprint "Reg_12V"
+	(version 20241229)
+	(generator "pcbnew")
+	(generator_version "9.0")
+	(layer "F.Cu")
+	(property "Reference" "REF**"
+		(at -7.62 4.85 0)
+		(unlocked yes)
+		(layer "F.SilkS")
+		(uuid "f32ea0cf-3c4b-4dcb-9264-e006d7bf6be0")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.1)
+			)
+		)
+	)
+	(property "Value" "Reg_12V"
+		(at -7.62 6.35 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(uuid "aa3360ba-178d-4c49-a6f1-ffcac1958938")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Datasheet" ""
+		(at -7.62 5.35 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "6805fd49-96d4-4ac9-9139-f7c8f1e2d2ef")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Description" ""
+		(at -7.62 5.35 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "61bc68e5-08f7-4591-9f53-381856ad046d")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(attr through_hole)
+	(fp_line
+		(start -18.23 -1.92)
+		(end 1.27 -1.92)
+		(stroke
+			(width 0.1)
+			(type default)
+		)
+		(layer "F.SilkS")
+		(uuid "d67d605a-4083-4985-8b1f-557457e370db")
+	)
+	(fp_line
+		(start -18.23 12.08)
+		(end -18.23 -1.92)
+		(stroke
+			(width 0.1)
+			(type default)
+		)
+		(layer "F.SilkS")
+		(uuid "c8008b2d-d18a-449d-86e1-778bd65a4e2f")
+	)
+	(fp_line
+		(start 1.27 -1.92)
+		(end 1.27 12.08)
+		(stroke
+			(width 0.1)
+			(type default)
+		)
+		(layer "F.SilkS")
+		(uuid "00465db8-3f66-4092-be1d-9105ab2bb317")
+	)
+	(fp_line
+		(start 1.27 12.08)
+		(end -18.23 12.08)
+		(stroke
+			(width 0.1)
+			(type default)
+		)
+		(layer "F.SilkS")
+		(uuid "a3dcaa99-9c1e-4e83-9fec-d9fc5ba4f241")
+	)
+	(fp_text user "${REFERENCE}"
+		(at -7.62 7.85 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(uuid "ca6596e6-9fd8-49ab-b1af-ef22d89bc84f")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(pad "1" thru_hole rect
+		(at 0 0)
+		(size 1.524 1.524)
+		(drill 0.762)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "279a2d18-eb9e-4d29-bebd-955794921395")
+	)
+	(pad "2" thru_hole circle
+		(at 0 2.54)
+		(size 1.524 1.524)
+		(drill 0.762)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "66ac8171-ee85-491e-bb03-75cab21c167d")
+	)
+	(pad "3" thru_hole circle
+		(at 0 5.08)
+		(size 1.524 1.524)
+		(drill 0.762)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "830022d9-f410-45fe-ab15-dcd5d434762e")
+	)
+	(pad "4" thru_hole circle
+		(at 0 7.62)
+		(size 1.524 1.524)
+		(drill 0.762)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "e1d16ac3-ef16-4e40-be54-e325dc64c57a")
+	)
+	(pad "5" thru_hole circle
+		(at 0 10.16)
+		(size 1.524 1.524)
+		(drill 0.762)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "1d7a480b-7a99-4a7f-95ec-bfd4e1d893c7")
+	)
+	(zone
+		(net 0)
+		(net_name "")
+		(layer "F.SilkS")
+		(uuid "04509067-cd03-40a9-868e-781b83f33c25")
+		(hatch edge 0.5)
+		(connect_pads
+			(clearance 0)
+		)
+		(min_thickness 0.25)
+		(filled_areas_thickness no)
+		(keepout
+			(tracks allowed)
+			(vias allowed)
+			(pads not_allowed)
+			(copperpour allowed)
+			(footprints not_allowed)
+		)
+		(placement
+			(enabled no)
+			(sheetname "")
+		)
+		(fill
+			(thermal_gap 0.5)
+			(thermal_bridge_width 0.5)
+		)
+		(polygon
+			(pts
+				(xy -18.23 -1.92) (xy 1.27 -1.92) (xy 1.27 12.08) (xy -18.23 12.08)
+			)
+		)
+	)
+	(embedded_fonts no)
+	(model "C:/Users/celes/Downloads/F_reg_12v (1).step"
+		(offset
+			(xyz -8.5 -5 1.5)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz -90 -0 -0)
+		)
+	)
+)
