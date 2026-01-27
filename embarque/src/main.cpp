@@ -23,17 +23,6 @@ void setup() {
     pinMode(limit_switch_y, INPUT);
 }
 
-enum CommandType {
-    MOVE,
-    HOME,
-    STOP
-};
-
-CommandType parseCommand(String cmd) {
-    if (cmd == "MOVE") return MOVE;
-    if (cmd == "HOME") return HOME;
-    if (cmd == "STOP") return STOP;
-}
 
 void loop() {
     if (Serial.available() > 0) 
@@ -51,16 +40,16 @@ void loop() {
         // Utiliser commandType selon le besoin
 
         // Attendre que les steppers terminent leur mouvement
-        CommandType commandType = parseCommand(commandString);
-        switch (commandType) 
+        //CommandType commandType = parseCommand(commandString);
+        switch (commandString) 
         {
-            case MOVE:
+            case "MOVE":
                 long positions[] = {targetPos_stepper1, targetPos_stepper2};
                 steppers.moveTo(positions);
                 steppers.runSpeedToPosition();
                 break;
         
-            case HOME:
+            case "HOME":
                 while(digitalRead(limit_switch_x) == LOW)
                 {
                     stepper1.setSpeed(-200); // Move towards home
@@ -82,11 +71,11 @@ void loop() {
                 Serial.println("HOMED");
                 break;
 
-            case STOP:
+            case "STOP":
                 stepper1.stop();
                 stepper2.stop();
                 break;
-            
+       
         }
     }
 
