@@ -191,6 +191,7 @@ class Control:
     SQUARE_SIZE_MM = 50.8  # Size of a chess square in millimeters
     STEP_ANGLE_DEGREES = 1.8  # Stepper motor step angle in degrees
     PULLEY_DIAMETER = 12.0  # Pulley diameter in millimeters
+    SEND_COMMAND_TIMEOUT = 30  # Timeout for sending commands in seconds
     grid: Grid
     mm_per_step: float
     circumference: float
@@ -250,10 +251,9 @@ class Control:
         return trajectory 
 
     def goHome(self):
-        # Placeholder for homing procedure
-        pass
+        self.ser.write("HOME\n".encode('utf-8'))
 
-    def make_move(self, move:chess.Move):
+    def make_move(self, move:chess.Move): # Execute a chess move physically
 
         path = self.get_path(move)
         traj = self.calculate_trajectory(path)
@@ -278,18 +278,23 @@ class Control:
 
     def send_command(self, steps: tuple):
         self.ser.write(f"MOVE {int(steps[0])} {int(steps[1])}\n".encode('utf-8'))
+        if not self.validate_send_command(steps):
+            print("Error: Move command failed.")
+            return False
+        return True
+    
+    def validate_send_command(self, steps: tuple) -> bool:
         start_time = time.time()
         while self.ser.in_waiting == 0:
-            if time.time() - start_time > 30:
+            if time.time() - start_time > self.SEND_COMMAND_TIMEOUT:
                 print("Error: No response from motor controller.")
                 return False
             pass
 
         response = self.ser.readline().decode('utf-8').strip()
-        if response != "DONE":
+        if response != "DONE" | response != "HOMED":
             print("Error: Unexpected response from motor controller:", response)
             return False
-        return True
 
     def print_trajectory(self, trajectory: list[tuple[float, float]]):
         for step in trajectory:
