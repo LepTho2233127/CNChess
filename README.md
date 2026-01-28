@@ -21,7 +21,7 @@ sudo docker compose build
 
 ### 6. Give docker access to window 
 ```bash
-xhost -local:docker
+xhost +local:docker
 ```
 
 #### 7. Run code
