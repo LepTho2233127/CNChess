@@ -33,6 +33,9 @@ if __name__ == "__main__":
             control.print_path(path)
             traj = control.calculate_trajectory(path)
             control.print_trajectory(traj)
+            for step in traj:
+                control.go_to_position(step)
+            control.goHome()
         
         game.display_board()
 
