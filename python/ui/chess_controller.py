@@ -132,8 +132,11 @@ class ChessController:
             self.control.update_board_state(self.cn_chess.get_board_state())
             path = self.control.get_path(computer_move)
             trajectory = self.control.calculate_trajectory(path)
-            self.communication.send_command(trajectory)
-
+            
+            for pos in trajectory :
+                steps = self.control.convert_to_step(pos)
+                self.communication.send_command(steps)
+            
             self.control.print_path(path)
             self.cn_chess.make_move(computer_move)
             self.view.board_widget.set_trajectory(path)

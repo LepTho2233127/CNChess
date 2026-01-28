@@ -209,15 +209,15 @@ class Communication:
         return True
     
     def validate_send_command(self, steps: tuple) -> bool:
-        start_time = time.time()
+        start_time = time()
         while self.ser.in_waiting == 0:
-            if time.time() - start_time > self.SEND_COMMAND_TIMEOUT:
+            if time() - start_time > self.SEND_COMMAND_TIMEOUT:
                 print("Error: No response from motor controller.")
                 return False
             pass
 
         response = self.ser.readline().decode('utf-8').strip()
-        if response != "DONE" | response != "HOMED":
+        if response != "DONE" or response != "HOMED":
             print("Error: Unexpected response from motor controller:", response)
 
     def goHome(self):
@@ -312,7 +312,7 @@ class Control:
 
     def print_trajectory(self, trajectory: list[tuple[float, float]]):
         for step in trajectory:
-            print(f"Motor1: {step}, Motor2: {step}")
+            print(f"Motor1: {step[0]}, Motor2: {step[1]}")
     
     
     
