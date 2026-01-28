@@ -191,8 +191,8 @@ class Command:
     SEND_COMMAND_TIMEOUT = 30  # Timeout for sending commands in seconds
     ser: serial.Serial
     def __init__(self):
-        self.ser = serial.Serial('COM3', 115200, timeout=1)
-        time.sleep(2) # attendre reset Arduino
+        self.ser = serial.Serial("/dev/ttyACM0", 115200, timeout=1)
+        #time.sleep(2) # attendre reset Arduino
 
     def send_command(self, steps: tuple):
         self.ser.write(f"MOVE {int(steps[0])} {int(steps[1])}\n".encode('utf-8'))
@@ -303,7 +303,7 @@ class Control:
 
     def print_trajectory(self, trajectory: list[tuple[float, float]]):
         for step in trajectory:
-            print(f"Motor1: {step[0]}, Motor2: {step[1]}")
+            print(f"Motor1: {step}, Motor2: {step}")
     
     
     

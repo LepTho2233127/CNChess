@@ -7,6 +7,9 @@ services:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
     environment:
       - DISPLAY=${DISPLAY}
+    devices:
+      - "/dev/ttyACM0:/dev/ttyACM0"
+    privileged: true
     network_mode: host
     stdin_open: true
     tty: true
