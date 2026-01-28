@@ -94,6 +94,17 @@
 		(layer "F.SilkS")
 		(uuid "095f8a81-31a1-4293-84de-4fc646ee49d0")
 	)
+	(fp_rect
+		(start -1.4 -1.4)
+		(end 14.1 19.4)
+		(stroke
+			(width 0.05)
+			(type default)
+		)
+		(fill no)
+		(layer "F.CrtYd")
+		(uuid "2d651222-2d8f-4a48-9ff1-573e391c9a2c")
+	)
 	(fp_text user "A1"
 		(at 11.43 8.128 0)
 		(unlocked yes)
@@ -491,17 +502,6 @@
 		)
 	)
 	(embedded_fonts no)
-	(model "C:/Users/celes/Downloads/BTT TMC2208 TMC2209 UART Stepper Driver.step"
-		(offset
-			(xyz 6.35 -8.85 9.5)
-		)
-		(scale
-			(xyz 1 1 1)
-		)
-		(rotate
-			(xyz 0 0 90)
-		)
-	)
 	(model "${KICAD8_3DMODEL_DIR}/Connector_PinSocket_2.54mm.3dshapes/PinSocket_1x08_P2.54mm_Vertical.step"
 		(offset
 			(xyz 0 0 0)
@@ -533,6 +533,17 @@
 		)
 		(rotate
 			(xyz 0 0 -90)
+		)
+	)
+	(model "${KIPRJMOD}/3d_models/BTT TMC2208 TMC2209 UART Stepper Driver.step"
+		(offset
+			(xyz 6 -9 11)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz -0 -0 90)
 		)
 	)
 )

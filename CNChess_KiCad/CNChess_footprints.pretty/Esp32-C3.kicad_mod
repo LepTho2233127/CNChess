@@ -604,6 +604,17 @@
 		(layer "F.SilkS")
 		(uuid "3a73ebda-45a0-4b6f-a1fa-3fb2e3c227c7")
 	)
+	(fp_rect
+		(start -9 -10.6)
+		(end 9.1 10.6)
+		(stroke
+			(width 0.05)
+			(type default)
+		)
+		(fill no)
+		(layer "F.CrtYd")
+		(uuid "e253d5dc-943f-41f2-af6c-bf2c62d2e9c2")
+	)
 	(fp_text user "D3"
 		(at -6.604 0.508 0)
 		(unlocked yes)
@@ -962,17 +973,6 @@
 		)
 	)
 	(embedded_fonts no)
-	(model "C:/Users/celes/Downloads/Seeed Studio XIAO-ESP32-C3.step"
-		(offset
-			(xyz 6 -1.7 9.5)
-		)
-		(scale
-			(xyz 1 1 1)
-		)
-		(rotate
-			(xyz -90 0 -90)
-		)
-	)
 	(model "${KICAD8_3DMODEL_DIR}/Connector_PinSocket_2.54mm.3dshapes/PinSocket_1x07_P2.54mm_Vertical.step"
 		(offset
 			(xyz 7.6 7.6 0)
@@ -1015,6 +1015,17 @@
 		)
 		(rotate
 			(xyz 0 180 0)
+		)
+	)
+	(model "${KIPRJMOD}/3d_models/Seeed Studio XIAO-ESP32-C3.step"
+		(offset
+			(xyz 6 -1.5 9.5)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz -90 -0 -90)
 		)
 	)
 )

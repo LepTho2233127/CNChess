@@ -233,23 +233,12 @@
 		(uuid "a0f9fb10-fe5a-40ab-b8fa-7e8621bd810a")
 	)
 	(embedded_fonts no)
-	(model "C:/_UNIVERSITE/1 - Projets/3 - KiCad/K104K10X7RF5UH5_VIS.step"
-		(offset
-			(xyz 0.2 0 3)
-		)
-		(scale
-			(xyz 1 1 1)
-		)
-		(rotate
-			(xyz -0 -0 -0)
-		)
-	)
-	(model "C:/Users/celes/Downloads/K104K10X7RF5UH5_VIS.step"
+	(model "${KIPRJMOD}/3d_models/K104K10X7RF5UH5_VIS.step"
 		(offset
 			(xyz 0.5 0 2.5)
 		)
 		(scale
-			(xyz 0.9 0.9 0.9)
+			(xyz 0.9 1 1)
 		)
 		(rotate
 			(xyz -0 -0 -0)

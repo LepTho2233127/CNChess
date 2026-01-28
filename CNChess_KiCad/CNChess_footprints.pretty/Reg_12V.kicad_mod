@@ -94,6 +94,82 @@
 		(layer "F.SilkS")
 		(uuid "a3dcaa99-9c1e-4e83-9fec-d9fc5ba4f241")
 	)
+	(fp_rect
+		(start -18.4 -2.1)
+		(end 1.5 12.3)
+		(stroke
+			(width 0.05)
+			(type default)
+		)
+		(fill no)
+		(layer "F.CrtYd")
+		(uuid "1c549fd3-3665-4baa-a859-d9906dd37363")
+	)
+	(fp_text user "OUT+"
+		(at -5.2 10.7 0)
+		(unlocked yes)
+		(layer "F.SilkS")
+		(uuid "17efd324-f238-492b-a80a-97100c27c831")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.1)
+			)
+			(justify left bottom)
+		)
+	)
+	(fp_text user "IN-"
+		(at -3.9 5.6 0)
+		(unlocked yes)
+		(layer "F.SilkS")
+		(uuid "338929ad-355b-4375-a6fe-29bdd1a3b7db")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.1)
+			)
+			(justify left bottom)
+		)
+	)
+	(fp_text user "EN"
+		(at -3.3 0.6 0)
+		(unlocked yes)
+		(layer "F.SilkS")
+		(uuid "3633b666-ef13-403c-b98d-09c7191fc0ea")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.1)
+			)
+			(justify left bottom)
+		)
+	)
+	(fp_text user "OUT-"
+		(at -5.2 8.2 0)
+		(unlocked yes)
+		(layer "F.SilkS")
+		(uuid "57254b47-ec5d-48f0-ac6f-bb3021efc20d")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.1)
+			)
+			(justify left bottom)
+		)
+	)
+	(fp_text user "IN+"
+		(at -3.9 3.1 0)
+		(unlocked yes)
+		(layer "F.SilkS")
+		(uuid "d1d772ce-b17b-48bf-a62c-135f968d9bb8")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.1)
+			)
+			(justify left bottom)
+		)
+	)
 	(fp_text user "${REFERENCE}"
 		(at -7.62 7.85 0)
 		(unlocked yes)
@@ -179,15 +255,37 @@
 		)
 	)
 	(embedded_fonts no)
-	(model "C:/Users/celes/Downloads/F_reg_12v (1).step"
+	(model "${KIPRJMOD}/3d_models/F_reg_12v.step"
 		(offset
-			(xyz -8.5 -5 1.5)
+			(xyz -8.5 -5 11.5)
 		)
 		(scale
 			(xyz 1 1 1)
 		)
 		(rotate
 			(xyz -90 -0 -0)
+		)
+	)
+	(model "${KICAD9_3DMODEL_DIR}/Connector_PinSocket_2.54mm.3dshapes/PinSocket_1x05_P2.54mm_Vertical.step"
+		(offset
+			(xyz 0 0 0)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz 0 0 0)
+		)
+	)
+	(model "${KICAD9_3DMODEL_DIR}/Connector_PinHeader_2.54mm.3dshapes/PinHeader_1x05_P2.54mm_Vertical.step"
+		(offset
+			(xyz 0 0 11)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz -0 -180 -0)
 		)
 	)
 )
