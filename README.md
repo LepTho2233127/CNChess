@@ -19,12 +19,17 @@ Projet de S4
 sudo docker compose build
 ```
 
-#### 6. Run code
+### 6. Give docker access to window 
+```bash
+xhost +local:docker
+```
+
+#### 7. Run code
 ```bash
 sudo docker compose run cnchess
 ```
 
-### 7. Close docker (or ctrl-c)
+### 8. Close docker (or ctrl-c)
 ```bash
 sudo docker compose down
 ```

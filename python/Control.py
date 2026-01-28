@@ -22,6 +22,13 @@ class Position:
 
     def __hash__(self):
         return hash((self.x, self.y))
+    
+class Command:
+    position: Position
+    magnet_state: bool
+    def __init__(self, position: Position = Position(0.0, 0.0), magnet_state: bool = False):
+        self.position = position
+        self.magnet_state = magnet_state
 
 
 class Node:
@@ -56,7 +63,7 @@ class Grid:
     obstacle_remove_position: Position
 
     def __init__(self, width: int, height: int):
-        self.obstacle_remove_position = Position(4.5, 8.5)  # Position to remove obstacle for captured pieces
+        self.obstacle_remove_position = Position(8.5, 4.5)  # Position to remove obstacle for captured pieces
         self.width = width * 2 + 1
         self.height = height * 2 + 1
         # Use half-step coordinates so intermediate nodes land between board squares
@@ -159,10 +166,10 @@ class Grid:
         return []  # No path found
     
     def update_obstacles(self, boardState: str):
-        chess.Board(boardState)
+        board = chess.Board(boardState)
         for i in range(8):
             for j in range(8):
-                piece = chess.Board(boardState).piece_at(chess.square(i, j))
+                piece = board.piece_at(chess.square(i, j))
                 position = Position(i + 1, j + 1)
                 if piece is not None:
                     self.add_obstacle(position)
@@ -187,7 +194,7 @@ class Grid:
             return len(node.neighbors) == 0
         return False
 
-class Command:
+class Communication:
     SEND_COMMAND_TIMEOUT = 30  # Timeout for sending commands in seconds
     ser: serial.Serial
     def __init__(self):
@@ -224,19 +231,19 @@ class Control:
     mm_per_step: float
     circumference: float
     current_position: Position
-    command: Command
+
 
     def __init__(self):
         self.circumference = np.pi * self.PULLEY_DIAMETER
         self.grid = Grid(8, 8)
         self.grid.initialize_links()
         self.current_position = Position(0, 0)  # Start at home position
-        self.command = Command()
+
     
     def update_board_state(self, boardState: str):
         self.grid.update_obstacles(boardState)
     
-    def get_path(self, move: chess.Move) -> list[Position]:
+    def get_path(self, move: chess.Move) -> list[Command]:
         start_x = chess.square_file(move.from_square) + 1
         start_y = chess.square_rank(move.from_square) + 1
         end_x = chess.square_file(move.to_square) + 1
@@ -246,35 +253,50 @@ class Control:
         start_pos = Position(start_x, start_y)
         end_pos = Position(end_x, end_y)
 
+        self.grid.remove_obstacle(start_pos)  # Ensure start position is not an obstacle
+
         path_to_obstacle_removal = []
         if self.grid.is_obstacle(end_pos):
-            # If there's an obstacle at the end position, move to the obstacle removal position first
-            path_to_obstacle_removal = self.grid.a_star(end_pos, self.grid.obstacle_remove_position)
-            # Then remove the obstacle for the next move
+            print("Obstacle detected at end position, planning path to obstacle removal point.")
             self.grid.remove_obstacle(end_pos)
+            path_to_obstacle_removal = self.grid.a_star(end_pos, self.grid.obstacle_remove_position)
 
         path = self.grid.a_star(start_pos, end_pos)
         full_path = path_to_obstacle_removal + path
-        return full_path
+
+        # Convert path to commands with magnet states
+        commands = []
+        for i, pos in enumerate(full_path):
+            if i == 0:
+                # Turn magnet on at start position
+                commands.append(Command(pos, True))
+            elif i == len(path_to_obstacle_removal) - 1:
+                # Turn magnet off at end position
+                commands.append(Command(pos, False))
+            else:
+                # Keep magnet on during movement
+                commands.append(Command(pos, True))
+        return commands
     
-    def print_path(self, path: list[Position]):
-        for pos in path:
+    def print_path(self, path: list[Command]):
+        for cmd in path:
+            pos = cmd.position
             print(f"({pos.x}, {pos.y})", end=" -> ")
         print("END")
 
-    def calculate_trajectory(self, path: list[Position]):
+    def calculate_trajectory(self, path: list[Command]):
         trajectory = []
-        path.insert(0, self.current_position)  # Start from current position
+        path.insert(0, Command(self.current_position, False))  # Start from current position
         for i in range(1, len(path)):
             start = path[i - 1]
             end = path[i]
-            delta_x = (end.x - start.x) * self.SQUARE_SIZE_MM
-            delta_y = (end.y - start.y) * self.SQUARE_SIZE_MM
+            delta_x = (end.position.x - start.position.x) * self.SQUARE_SIZE_MM
+            delta_y = (end.position.y - start.position.y) * self.SQUARE_SIZE_MM
 
             pos = Position(delta_x, delta_y)
 
             trajectory.append(pos)
-            self.current_position = end
+            self.current_position = end.position
         return trajectory 
 
     def make_move(self, move:chess.Move): # Execute a chess move physically
