@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QPushButton, QHBo
 from PyQt6.QtCore import Qt, pyqtSignal, QSize, QFile
 from PyQt6.QtGui import QPainter, QColor, QPixmap, QFont, QPen
 from PyQt6 import uic
-from Control import Position
+from Control import Position, Command
 
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
@@ -159,11 +159,12 @@ class ChessBoardWidget(QWidget):
         painter.setPen(pen)
         
         for i in range(len(trajectory) - 1):
-            x1 = int(trajectory[i].x * self.square_size - self.square_size // 2)
-            y1 = int((9 - trajectory[i].y) * self.square_size - self.square_size // 2)
-            x2 = int(trajectory[i + 1].x * self.square_size - self.square_size // 2)
-            y2 = int((9 - trajectory[i + 1].y) * self.square_size - self.square_size // 2)
-            painter.drawLine(x1, y1, x2, y2)
+            x1 = int(trajectory[i].position.x * self.square_size - self.square_size // 2)
+            y1 = int((9 - trajectory[i].position.y) * self.square_size - self.square_size // 2)
+            x2 = int(trajectory[i + 1].position.x * self.square_size - self.square_size // 2)
+            y2 = int((9 - trajectory[i + 1].position.y) * self.square_size - self.square_size // 2)
+            if trajectory[i].magnet_state:
+                painter.drawLine(x1, y1, x2, y2)
 
     def set_computer_turn(self, is_computer_turn):
         """Set whether it's the computer's turn."""
