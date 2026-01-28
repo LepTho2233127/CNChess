@@ -55,7 +55,7 @@ class Grid:
     obstacle_remove_position: Position
 
     def __init__(self, width: int, height: int):
-        self.obstacle_remove_position = Position(4.5, 8.5)  # Position to remove obstacle for captured pieces
+        self.obstacle_remove_position = Position(8.5, 4.5)  # Position to remove obstacle for captured pieces
         self.width = width * 2 + 1
         self.height = height * 2 + 1
         # Use half-step coordinates so intermediate nodes land between board squares
@@ -158,10 +158,10 @@ class Grid:
         return []  # No path found
     
     def update_obstacles(self, boardState: str):
-        chess.Board(boardState)
+        board = chess.Board(boardState)
         for i in range(8):
             for j in range(8):
-                piece = chess.Board(boardState).piece_at(chess.square(i, j))
+                piece = board.piece_at(chess.square(i, j))
                 position = Position(i + 1, j + 1)
                 if piece is not None:
                     self.add_obstacle(position)
@@ -218,12 +218,15 @@ class Control:
         start_pos = Position(start_x, start_y)
         end_pos = Position(end_x, end_y)
 
+        self.grid.remove_obstacle(start_pos)  # Ensure start position is not an obstacle
+
         path_to_obstacle_removal = []
         if self.grid.is_obstacle(end_pos):
-            # If there's an obstacle at the end position, move to the obstacle removal position first
-            path_to_obstacle_removal = self.grid.a_star(end_pos, self.grid.obstacle_remove_position)
-            # Then remove the obstacle for the next move
+            print("Obstacle detected at end position, planning path to obstacle removal point.")
             self.grid.remove_obstacle(end_pos)
+            path_to_obstacle_removal = self.grid.a_star(end_pos, self.grid.obstacle_remove_position)
+            
+            print("Removal path:", path_to_obstacle_removal)
 
         path = self.grid.a_star(start_pos, end_pos)
         full_path = path_to_obstacle_removal + path
