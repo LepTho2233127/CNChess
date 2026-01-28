@@ -298,19 +298,6 @@ class Control:
             trajectory.append(pos)
             self.current_position = end.position
         return trajectory 
-
-    def make_move(self, move:chess.Move): # Execute a chess move physically
-
-        path = self.get_path(move)
-        traj = self.calculate_trajectory(path)
-
-        for pos in traj : 
-            self.go_to_position(pos)
-            
-    def go_to_position(self, pos:Position): 
-
-        step_motors = self.convert_to_step(pos)
-        self.command.send_command(step_motors)
         
 
     def convert_to_step(self, pos:Position) -> tuple:
