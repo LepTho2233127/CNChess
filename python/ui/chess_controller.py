@@ -1,6 +1,7 @@
 """Chess Controller - Handles user interactions with CNChess."""
 
 import chess
+from Control import Control
 from PyQt6.QtCore import QTimer
 
 
@@ -15,7 +16,8 @@ class ChessController:
         self.computer_timer = QTimer()
         self.computer_timer.timeout.connect(self.handle_computer_move)
         self.cn_chess.set_player_color(chess.WHITE)
-    
+        self.control = Control()
+        self.control.update_board_state(self.cn_chess.get_board_state())
     def set_view(self, view):
         """Set the view after initialization."""
         self.view = view
@@ -105,6 +107,8 @@ class ChessController:
         except Exception:
             pass
         
+        self.control.update_board_state(self.cn_chess.get_board_state())
+
         return False
     
     
@@ -125,9 +129,13 @@ class ChessController:
 
         if computer_move and self.cn_chess.validate_move(computer_move):
             self.cn_chess.make_move(computer_move)
-            
+            self.control.update_board_state(self.cn_chess.get_board_state())
+            path = self.control.get_path(computer_move)
+            self.view.board_widget.set_trajectory(path)
+            self.view.board_widget.set_computer_turn(True)
             # Update the view
             self._update_view()
+            self.view.board_widget.set_computer_turn(False)
             
             # Check if now it's player's turn again
             if self.cn_chess.get_turn() == self.cn_chess.player_color:

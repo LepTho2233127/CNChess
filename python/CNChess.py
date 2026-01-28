@@ -71,7 +71,7 @@ class CNChess:
         self.board.reset()
 
     def get_turn(self):
-        print("Current turn:", "White" if self.board.turn == chess.WHITE else "Black")
+        # print("Current turn:", "White" if self.board.turn == chess.WHITE else "Black")
         return self.board.turn
 
     

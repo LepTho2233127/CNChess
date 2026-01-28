@@ -4,8 +4,9 @@ import os
 import sys
 from PyQt6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QPushButton, QHBoxLayout, QLabel
 from PyQt6.QtCore import Qt, pyqtSignal, QSize, QFile
-from PyQt6.QtGui import QPainter, QColor, QPixmap, QFont
+from PyQt6.QtGui import QPainter, QColor, QPixmap, QFont, QPen
 from PyQt6 import uic
+from Control import Position
 
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
@@ -28,12 +29,15 @@ class ChessBoardWidget(QWidget):
         self.selected_piece = None
         self.board_size = 640
         self.square_size = self.board_size // 8
+        self.computer_turn = False
+        self.trajectory = []
         
         # Load piece images
         self.piece_images = self._load_piece_images()
         
         # Set widget size
         self.setFixedSize(self.board_size, self.board_size)
+        
     
     def _load_piece_images(self):
         """Load piece images from assets directory."""
@@ -94,6 +98,9 @@ class ChessBoardWidget(QWidget):
         
         # Draw selection highlight
         self._draw_selection_highlight(painter)
+
+        if self.computer_turn:
+            self.draw_trajectory(self.trajectory, painter)
     
     def _get_square_rect(self, row, col):
         """Get the rectangle for a square at the given row and column."""
@@ -144,6 +151,27 @@ class ChessBoardWidget(QWidget):
         """Called when board state changes."""
         self.selected_piece = selected_piece
         self.repaint()
+
+    def draw_trajectory(self, trajectory, painter):
+        """Draw trajectory on the board (not implemented)."""
+        pen = QPen(QColor(255, 0, 0), 3, Qt.PenStyle.SolidLine)
+
+        painter.setPen(pen)
+        
+        for i in range(len(trajectory) - 1):
+            x1 = int(trajectory[i].x * self.square_size - self.square_size // 2)
+            y1 = int((9 - trajectory[i].y) * self.square_size - self.square_size // 2)
+            x2 = int(trajectory[i + 1].x * self.square_size - self.square_size // 2)
+            y2 = int((9 - trajectory[i + 1].y) * self.square_size - self.square_size // 2)
+            painter.drawLine(x1, y1, x2, y2)
+
+    def set_computer_turn(self, is_computer_turn):
+        """Set whether it's the computer's turn."""
+        self.computer_turn = is_computer_turn
+
+    def set_trajectory(self, trajectory):
+        """Set the trajectory to be drawn."""
+        self.trajectory = trajectory
 
 
 class ChessView(QMainWindow):
