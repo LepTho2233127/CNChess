@@ -5,10 +5,12 @@ services:
     volumes:
       - ./python:/python
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ${HOME}/.Xauthority:/root/.Xauthority:rw
     environment:
       - DISPLAY=${DISPLAY}
+      - QT_QPA_PLATFORM_PLUGIN_PATH=/usr/lib/x86_64-linux-gnu/qt6/plugins
+      - QT_DEBUG_PLUGINS=0
     network_mode: host
     stdin_open: true
     tty: true
-
     working_dir: /python

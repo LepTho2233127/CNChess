@@ -1,1 +1,0 @@
-# This file contains the logic of the User Interface for the CNChess application.
