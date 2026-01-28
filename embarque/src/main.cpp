@@ -10,6 +10,7 @@ long targetPos_stepper2 = 0;
 
 int limit_switch_x = 8; // Pin for limit switch of stepper 1
 int limit_switch_y = 9; // Pin for limit switch of stepper 2
+long positions[2] = {0, 0}; 
 
 void setup() {
     Serial.begin(115200);
@@ -23,6 +24,19 @@ void setup() {
     pinMode(limit_switch_y, INPUT);
 }
 
+enum CommandType {
+    MOVE,
+    HOME,
+    STOP
+};
+
+CommandType parseCommand(String cmd) {
+    if (cmd == "MOVE") return MOVE;
+    if (cmd == "HOME") return HOME;
+    if (cmd == "STOP") return STOP;
+
+    return STOP;
+}
 
 void loop() {
     if (Serial.available() > 0) 
@@ -37,19 +51,21 @@ void loop() {
         targetPos_stepper1 = input.substring(firstSpace + 1, secondSpace).toInt();
         targetPos_stepper2 = input.substring(secondSpace + 1).toInt();
         
+        positions[0] = targetPos_stepper1;
+        positions[1] = targetPos_stepper2;
         // Utiliser commandType selon le besoin
 
         // Attendre que les steppers terminent leur mouvement
-        //CommandType commandType = parseCommand(commandString);
-        switch (commandString) 
+        CommandType commandType = parseCommand(commandString);
+
+        switch (commandType) 
         {
-            case "MOVE":
-                long positions[] = {targetPos_stepper1, targetPos_stepper2};
+            case CommandType::MOVE: 
                 steppers.moveTo(positions);
                 steppers.runSpeedToPosition();
                 break;
         
-            case "HOME":
+            case CommandType::HOME:
                 while(digitalRead(limit_switch_x) == LOW)
                 {
                     stepper1.setSpeed(-200); // Move towards home
@@ -71,11 +87,11 @@ void loop() {
                 Serial.println("HOMED");
                 break;
 
-            case "STOP":
+            case CommandType::STOP:
                 stepper1.stop();
                 stepper2.stop();
                 break;
-       
+            
         }
     }
 
@@ -86,6 +102,5 @@ void loop() {
         Serial.println("DONE");
     }
 }
-
 
 
