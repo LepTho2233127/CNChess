@@ -14,6 +14,7 @@
 #define DIR_PIN_1 D1
 #define STEP_PIN_2 D2
 #define DIR_PIN_2 D3
+#define switch_pin D5
 
 
 AccelStepper stepper1(AccelStepper::DRIVER, STEP_PIN_1, DIR_PIN_1); // step, dir pins
@@ -28,6 +29,10 @@ int limit_switch_y = 9; // Pin for limit switch of stepper 2
 struct Position{
     float x;
     float y;
+};
+struct Data{
+    Position pos;
+    bool active_magnet;
 };
 
 Position current_position;
@@ -48,18 +53,20 @@ void setup() {
     pinMode(limit_switch_y, INPUT);
     current_position = {0.0, 0.0};
     
-    struct Position position1 = {0.0, 10.0};
-    go_to_position(position1);
-    // Serial.println("Reached Position 1");
-    // struct Position position2 = {0.0, 1000};
-    // go_to_position(position2);
-    // Serial.println("Reached Position 2");
-    // struct Position position3 = {1000, 0.0};
-    // go_to_position(position3);
-    // Serial.println("Reached Position 3");
-    // struct Position position4 = {0.0, -1000};
-    // go_to_position(position4);
-    // Serial.println("Reached Position 4");
+    //struct Position position1 = {0.0, -150.0};
+    // go_to_position(current_position);
+
+    Serial.println("Reached Position 1");
+    struct Position position2 = {0.0, 100};
+    go_to_position(position2);
+    Serial.println("Reached Position 2");
+    struct Position position3 = {100, 100};
+    go_to_position(position3);
+    Serial.println("Reached Position 3");
+    struct Position position4 = {100, -100};
+    go_to_position(position4);
+    Serial.println("Reached Position 4");
+    go_to_position({0.0, 0.0});
 
    
 
@@ -135,7 +142,18 @@ void loop() {
             
     //     }
     // }
-
+    // if (digitalRead(switch_pin) == HIGH)
+    // {
+        
+    //     go_to_position({100, 200});
+    //     delay(2000);
+    //     go_to_position({0.0, -100.0});
+    //     delay(2000);
+    //     go_to_position({-100, 0.0});
+    //     delay(2000);
+    //     go_to_position({0.0, 100.0});    
+    //     delay(2000);
+    // }   
   
 }
 
@@ -149,8 +167,8 @@ std::pair<float, float> get_steps(Position pos) {
 
     float rot_step1 = -360.0 * (delta_x + delta_y) / (CIRCUMFERENCE * sqrt(2));
     float rot_step2 = -((2*delta_x * 360/(CIRCUMFERENCE * sqrt(2))) + rot_step1);
-    float step_mot1 = rot_step1 / (STEP_ANGLE_DEGREES/MICROSTEPPING);
-    float step_mot2 = rot_step2 / (STEP_ANGLE_DEGREES/MICROSTEPPING);
+    float step_mot1 = rot_step1 / (STEP_ANGLE_DEGREES/(MICROSTEPPING * 1.333));
+    float step_mot2 = rot_step2 / (STEP_ANGLE_DEGREES/(MICROSTEPPING * 1.333));
 
     return std::make_pair(step_mot1, step_mot2);
 }
@@ -158,19 +176,21 @@ std::pair<float, float> get_steps(Position pos) {
 void go_to_position (Position pos) {
     std::pair<float, float> steps = get_steps(pos);
     long positions[2];
-    positions[0] = static_cast<long>(steps.first);
-    positions[1] = static_cast<long>(steps.second);
+    positions[0] = static_cast<long>(steps.first) + stepper1.currentPosition();
+    positions[1] = static_cast<long>(steps.second) + stepper2.currentPosition();
     Serial.print("Moving to X: ");
     Serial.print(pos.x);
     Serial.print(" Y: ");
     Serial.print(pos.y);
     steppers.moveTo(positions);
+    //stepper1.move(positions[0]);
+    //stepper2.move(positions[1]);
     steppers.runSpeedToPosition();
     current_position = pos;
 
-    while (stepper1.distanceToGo() != 0 || stepper2.distanceToGo() != 0) {
+   /* while (stepper1.distanceToGo() != 0 || stepper2.distanceToGo() != 0) {
         stepper1.run();
         stepper2.run();
-    }
+    }*/
 }
 
