@@ -56,17 +56,7 @@ void setup() {
     //struct Position position1 = {0.0, -150.0};
     // go_to_position(current_position);
 
-    Serial.println("Reached Position 1");
-    struct Position position2 = {0.0, 100};
-    go_to_position(position2);
-    Serial.println("Reached Position 2");
-    struct Position position3 = {100, 100};
-    go_to_position(position3);
-    Serial.println("Reached Position 3");
-    struct Position position4 = {100, -100};
-    go_to_position(position4);
-    Serial.println("Reached Position 4");
-    go_to_position({0.0, 0.0});
+    
 
    
 
@@ -142,19 +132,21 @@ void loop() {
             
     //     }
     // }
-    // if (digitalRead(switch_pin) == HIGH)
-    // {
-        
-    //     go_to_position({100, 200});
-    //     delay(2000);
-    //     go_to_position({0.0, -100.0});
-    //     delay(2000);
-    //     go_to_position({-100, 0.0});
-    //     delay(2000);
-    //     go_to_position({0.0, 100.0});    
-    //     delay(2000);
-    // }   
-  
+
+    go_to_position({0.0, 100});
+    delay(250);
+    go_to_position({100, 100});
+    delay(250);
+    go_to_position({100, -100});
+    delay(250);
+    go_to_position({-100, -100});
+    delay(250);
+    go_to_position({-100, 100});
+    delay(250);
+    go_to_position({0, 100});
+    delay(250);
+    go_to_position({0.0, 0.0});
+    delay(250);
 }
 
 std::pair<float, float> get_steps(Position pos) {
