@@ -198,31 +198,77 @@ class Communication:
     SEND_COMMAND_TIMEOUT = 30  # Timeout for sending commands in seconds
     ser: serial.Serial
     def __init__(self):
-        self.ser = serial.Serial("/dev/ttyACM0", 115200, timeout=1)
-        #time.sleep(2) # attendre reset Arduino
+        try:
+            self.ser = serial.Serial("/dev/ttyACM0", 115200, timeout=1)
+        except Exception as e:
+            print("Warning: could not open serial port /dev/ttyACM0:", e)
+            self.ser = None
+        # time.sleep(2) # attendre reset Arduino
 
-    def send_command(self, steps: tuple):
-        self.ser.write(f"MOVE {int(steps[0])} {int(steps[1])}\n".encode('utf-8'))
-        if not self.validate_send_command(steps):
+    def send_command(self, command: Command):
+        if self.ser is None:
+            print("Error: serial port not available")
+            return False
+
+        try:
+            self.ser.write(f"MOVE {command.position.x} {command.position.y} {command.magnet_state} \n".encode('utf-8'))
+        except Exception as e:
+            print("Error writing to serial port:", e)
+            return False
+
+        if not self.validate_send_command():
             print("Error: Move command failed.")
             return False
         return True
     
-    def validate_send_command(self, steps: tuple) -> bool:
+    def validate_send_command(self, expected_responses=("DONE", "HOMED")) -> bool:
+        """
+        Wait for a line from serial and check whether it matches one of expected_responses.
+        Returns True on match, False on timeout or unexpected response.
+        """
+        if self.ser is None:
+            print("Error: serial port not available for validation")
+            return False
+
         start_time = time()
-        while self.ser.in_waiting == 0:
+        # Wait for data or timeout
+        while True:
+            try:
+                if self.ser.in_waiting > 0:
+                    break
+            except Exception as e:
+                print("Error reading serial in_waiting:", e)
+                return False
+
             if time() - start_time > self.SEND_COMMAND_TIMEOUT:
                 print("Error: No response from motor controller.")
                 return False
-            pass
 
-        response = self.ser.readline().decode('utf-8').strip()
-        if response != "DONE" or response != "HOMED":
+        try:
+            response = self.ser.readline().decode('utf-8').strip()
+        except Exception as e:
+            print("Error reading response from serial:", e)
+            return False
+
+        if response in expected_responses:
+            return True
+        else:
             print("Error: Unexpected response from motor controller:", response)
+            return False
 
     def goHome(self):
-        self.ser.write("HOME\n".encode('utf-8'))
-        return False
+        if self.ser is None:
+            print("Error: serial port not available")
+            return False
+
+        try:
+            self.ser.write("HOME\n".encode('utf-8'))
+        except Exception as e:
+            print("Error writing HOME to serial:", e)
+            return False
+
+        # Expect the controller to reply with HOMED
+        return self.validate_send_command(expected_responses=("HOMED",))
 class Control:
     SQUARE_SIZE_MM = 50.8  # Size of a chess square in millimeters
     STEP_ANGLE_DEGREES = 1.8  # Stepper motor step angle in degrees

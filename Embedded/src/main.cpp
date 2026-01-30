@@ -14,14 +14,13 @@
 #define DIR_PIN_1 D1
 #define STEP_PIN_2 D2
 #define DIR_PIN_2 D3
-#define switch_pin D5
 
+#define LIMIT_SWITCH_1 D4
+#define LIMIT_SWITCH_2 D5
 
 AccelStepper stepper1(AccelStepper::DRIVER, STEP_PIN_1, DIR_PIN_1); // step, dir pins
 AccelStepper stepper2(AccelStepper::DRIVER, STEP_PIN_2, DIR_PIN_2); // step, dir pins
 MultiStepper steppers;
-long targetPos_stepper1 = 0;
-long targetPos_stepper2 = 0;
 
 int limit_switch_x = 8; // Pin for limit switch of stepper 1
 int limit_switch_y = 9; // Pin for limit switch of stepper 2
@@ -41,6 +40,8 @@ std::pair<float, float> get_steps(Position pos);
 
 void go_to_position (Position pos);
 
+void goHome();
+
 void setup() {
     Serial.begin(115200);
     stepper1.setMaxSpeed(2500);
@@ -49,16 +50,13 @@ void setup() {
     stepper2.setAcceleration(500);
     steppers.addStepper(stepper1);
     steppers.addStepper(stepper2);
-    pinMode(limit_switch_x, INPUT);
-    pinMode(limit_switch_y, INPUT);
+    pinMode(LIMIT_SWITCH_1, INPUT);
+    pinMode(LIMIT_SWITCH_2, INPUT);
+    goHome();
     current_position = {0.0, 0.0};
     
     //struct Position position1 = {0.0, -150.0};
     // go_to_position(current_position);
-
-    
-
-   
 
 }
 
@@ -77,76 +75,63 @@ CommandType parseCommand(String cmd) {
 }
 
 void loop() {
-    // if (Serial.available() > 0) 
-    // {
-    //     String input = Serial.readStringUntil('\n');
-        
-    //     // Parse format: "MOVE x y"
-    //     int firstSpace = input.indexOf(' ');
-    //     int secondSpace = input.indexOf(' ', firstSpace + 1);
-        
-    //     String commandString = input.substring(0, firstSpace);
-    //     targetPos_stepper1 = input.substring(firstSpace + 1, secondSpace).toInt();
-    //     targetPos_stepper2 = input.substring(secondSpace + 1).toInt();
-        
-    //     positions[0] = targetPos_stepper1;
-    //     positions[1] = targetPos_stepper2;
-    //     // Utiliser commandType selon le besoin
+    if (Serial.available() > 0) 
+    {
 
-    //     // Attendre que les steppers terminent leur mouvement
-    //     CommandType commandType = parseCommand(commandString);
-
-    //     switch (commandType) 
-    //     {
-    //         case CommandType::MOVE: 
-    //             steppers.moveTo(positions);
-    //             steppers.runSpeedToPosition();
-    //             break;
+        String input = Serial.readStringUntil('\n');
         
-    //         case CommandType::HOME:
-    //             while(digitalRead(limit_switch_x) == LOW)
-    //             {
-    //                 stepper1.setSpeed(-200); // Move towards home
-    //                 stepper2.setSpeed(-200); // Move towards home
-    //                 stepper1.run();
-    //                 stepper2.run();
-    //             }
-    //             while(digitalRead(limit_switch_y) == LOW)
-    //             {
-    //                 stepper1.setSpeed(-200); // Move towards home
-    //                 stepper2.setSpeed(200); // Move towards home
-    //                 stepper1.run();
-    //                 stepper2.run();
-    //             }
-    //             stepper1.stop();
-    //             stepper2.stop();
-    //             stepper1.setCurrentPosition(0);
-    //             stepper2.setCurrentPosition(0);
-    //             Serial.println("HOMED");
-    //             break;
+        // Parse format: "MOVE x y magnet_state"
+        int firstSpace = input.indexOf(' ');
+        int secondSpace = input.indexOf(' ', firstSpace + 1);
+        int thirdSpace = input.indexOf(' ', secondSpace + 1);
+        
+        String commandString = input.substring(0, firstSpace);
+        float posX = input.substring(firstSpace + 1, secondSpace).toFloat() * SQUARE_SIZE_MM;
+        float posY = input.substring(secondSpace + 1).toFloat() * SQUARE_SIZE_MM; 
+        bool magnetState = false;
 
-    //         case CommandType::STOP:
-    //             stepper1.stop();
-    //             stepper2.stop();
-    //             break;
+
+        if (thirdSpace != -1) {
+            magnetState = input.substring(secondSpace + 1, thirdSpace).toInt() == 1;
+        }
+
+        
+        CommandType commandType = parseCommand(commandString);
+
+        switch (commandType) 
+        {
+            case CommandType::MOVE: 
+                go_to_position({posX, posY});
+                Serial.print("DONE");
+                break;
+        
+            case CommandType::HOME:
+                goHome();
+                Serial.print("HOMED");
+                break;
+
+            case CommandType::STOP:
+                stepper1.stop();
+                stepper2.stop();
+                break;
             
-    //     }
-    // }
+        }
+    }
 
-    go_to_position({0.0, 100});
-    delay(250);
-    go_to_position({100, 100});
-    delay(250);
-    go_to_position({100, -100});
-    delay(250);
-    go_to_position({-100, -100});
-    delay(250);
-    go_to_position({-100, 100});
-    delay(250);
-    go_to_position({0, 100});
-    delay(250);
-    go_to_position({0.0, 0.0});
-    delay(250);
+//     go_to_position({0.0, 100});
+//     delay(250);
+//     go_to_position({100, 100});
+//     delay(250);
+//     go_to_position({100, -100});
+//     delay(250);
+//     go_to_position({-100, -100});
+//     delay(250);
+//     go_to_position({-100, 100});
+//     delay(250);
+//     go_to_position({0, 100});
+//     delay(250);
+//     go_to_position({0.0, 0.0});
+//     delay(250);
 }
 
 std::pair<float, float> get_steps(Position pos) {
@@ -155,12 +140,10 @@ std::pair<float, float> get_steps(Position pos) {
     float delta_x = pos.x - current_position.x;
     float delta_y = pos.y - current_position.y;
 
-    Serial.println("Delta X: " + String(delta_x) + " Delta Y: " + String(delta_y));
-
     float rot_step1 = -360.0 * (delta_x + delta_y) / (CIRCUMFERENCE * sqrt(2));
     float rot_step2 = -((2*delta_x * 360/(CIRCUMFERENCE * sqrt(2))) + rot_step1);
-    float step_mot1 = rot_step1 / (STEP_ANGLE_DEGREES/(MICROSTEPPING * 1.333));
-    float step_mot2 = rot_step2 / (STEP_ANGLE_DEGREES/(MICROSTEPPING * 1.333));
+    float step_mot1 = (rot_step1 * MICROSTEPPING * 1.333) / (STEP_ANGLE_DEGREES);
+    float step_mot2 = (rot_step2 * MICROSTEPPING * 1.333)/ (STEP_ANGLE_DEGREES);
 
     return std::make_pair(step_mot1, step_mot2);
 }
@@ -170,19 +153,41 @@ void go_to_position (Position pos) {
     long positions[2];
     positions[0] = static_cast<long>(steps.first) + stepper1.currentPosition();
     positions[1] = static_cast<long>(steps.second) + stepper2.currentPosition();
-    Serial.print("Moving to X: ");
-    Serial.print(pos.x);
-    Serial.print(" Y: ");
-    Serial.print(pos.y);
     steppers.moveTo(positions);
-    //stepper1.move(positions[0]);
-    //stepper2.move(positions[1]);
     steppers.runSpeedToPosition();
-    current_position = pos;
+    current_position = pos; 
+}
 
-   /* while (stepper1.distanceToGo() != 0 || stepper2.distanceToGo() != 0) {
+void goHome(){
+
+    bool first_direction = true;
+
+    while(digitalRead(LIMIT_SWITCH_2) == LOW && first_direction)
+    {
+        stepper1.setSpeed(-500); // Move towards home
+        stepper2.setSpeed(500); // Move towards home
         stepper1.run();
         stepper2.run();
-    }*/
+    }
+
+    if (digitalRead(LIMIT_SWITCH_2) == HIGH)
+    {
+        stepper1.stop();
+        stepper2.stop();
+        first_direction = false;
+    }
+    
+    while(digitalRead(LIMIT_SWITCH_1) == LOW)
+    {
+        stepper1.setSpeed(-500); // Move towards home
+        stepper2.setSpeed(-500); // Move towards home
+        stepper1.run();
+        stepper2.run();
+    }
+
+    stepper1.stop();
+    stepper2.stop();
+    stepper1.setCurrentPosition(0);
+    stepper2.setCurrentPosition(0);
 }
 
