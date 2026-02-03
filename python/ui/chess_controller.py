@@ -8,7 +8,7 @@ from PyQt6.QtCore import QTimer
 class ChessController:
     """Controller for managing chess game logic and user interactions."""
     
-    def __init__(self, cn_chess, view=None):
+    def __init__(self, cn_chess, control, view=None):
         """Initialize the controller with CNChess instance and optional view."""
         self.cn_chess = cn_chess
         self.view = view
@@ -16,7 +16,7 @@ class ChessController:
         self.computer_timer = QTimer()
         self.computer_timer.timeout.connect(self.handle_computer_move)
         self.cn_chess.set_player_color(chess.WHITE)
-        self.control = Control()
+        self.control = control
         self.control.update_board_state(self.cn_chess.get_board_state())
     def set_view(self, view):
         """Set the view after initialization."""
