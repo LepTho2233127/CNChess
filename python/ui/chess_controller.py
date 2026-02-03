@@ -1,7 +1,7 @@
 """Chess Controller - Handles user interactions with CNChess."""
 
 import chess
-from Control import Control
+from Control import Control, Communication
 from PyQt6.QtCore import QTimer
 
 
@@ -18,6 +18,7 @@ class ChessController:
         self.cn_chess.set_player_color(chess.WHITE)
         self.control = control
         self.control.update_board_state(self.cn_chess.get_board_state())
+        self.communication = Communication()
     def set_view(self, view):
         """Set the view after initialization."""
         self.view = view
@@ -130,6 +131,10 @@ class ChessController:
         if computer_move and self.cn_chess.validate_move(computer_move):
             self.control.update_board_state(self.cn_chess.get_board_state())
             path = self.control.get_path(computer_move)
+    
+            for cmd in path :
+                self.communication.send_command(cmd)
+            
             self.control.print_path(path)
             self.cn_chess.make_move(computer_move)
             self.view.board_widget.set_trajectory(path)

@@ -6,6 +6,7 @@ from time import time
 import numpy as np
 import chess
 import serial
+import os
 
 # Here is all the object for a* pathfinding algorithm
 class Position:
@@ -193,7 +194,81 @@ class Grid:
             return len(node.neighbors) == 0
         return False
 
+class Communication:
+    SEND_COMMAND_TIMEOUT = 30  # Timeout for sending commands in seconds
+    ser: serial.Serial
+    def __init__(self):
+        try:
+            self.ser = serial.Serial("/dev/ttyACM0", 115200, timeout=1)
+        except Exception as e:
+            print("Warning: could not open serial port /dev/ttyACM0:", e)
+            self.ser = None
+        # time.sleep(2) # attendre reset Arduino
 
+    def send_command(self, command: Command):
+        if self.ser is None:
+            print("Error: serial port not available")
+            return False
+
+        try:
+            self.ser.write(f"MOVE {command.position.x} {command.position.y} {command.magnet_state} \n".encode('utf-8'))
+        except Exception as e:
+            print("Error writing to serial port:", e)
+            return False
+
+        if not self.validate_send_command():
+            print("Error: Move command failed.")
+            return False
+        return True
+    
+    def validate_send_command(self, expected_responses=("DONE", "HOMED")) -> bool:
+        """
+        Wait for a line from serial and check whether it matches one of expected_responses.
+        Returns True on match, False on timeout or unexpected response.
+        """
+        if self.ser is None:
+            print("Error: serial port not available for validation")
+            return False
+
+        start_time = time()
+        # Wait for data or timeout
+        while True:
+            try:
+                if self.ser.in_waiting > 0:
+                    break
+            except Exception as e:
+                print("Error reading serial in_waiting:", e)
+                return False
+
+            if time() - start_time > self.SEND_COMMAND_TIMEOUT:
+                print("Error: No response from motor controller.")
+                return False
+
+        try:
+            response = self.ser.readline().decode('utf-8').strip()
+        except Exception as e:
+            print("Error reading response from serial:", e)
+            return False
+
+        if response in expected_responses:
+            return True
+        else:
+            print("Error: Unexpected response from motor controller:", response)
+            return False
+
+    def goHome(self):
+        if self.ser is None:
+            print("Error: serial port not available")
+            return False
+
+        try:
+            self.ser.write("HOME\n".encode('utf-8'))
+        except Exception as e:
+            print("Error writing HOME to serial:", e)
+            return False
+
+        # Expect the controller to reply with HOMED
+        return self.validate_send_command(expected_responses=("HOMED",))
 class Control:
     SQUARE_SIZE_MM = 50.8  # Size of a chess square in millimeters
     STEP_ANGLE_DEGREES = 1.8  # Stepper motor step angle in degrees
@@ -202,15 +277,14 @@ class Control:
     mm_per_step: float
     circumference: float
     current_position: Position
-    ser: serial.Serial
+
 
     def __init__(self):
         self.circumference = np.pi * self.PULLEY_DIAMETER
         self.grid = Grid(8, 8)
         self.grid.initialize_links()
         self.current_position = Position(0, 0)  # Start at home position
-        # self.ser = serial.Serial('COM3', 115200, timeout=1)
-        # time.sleep(2) # attendre reset Arduino
+
     
     def update_board_state(self, boardState: str):
         self.grid.update_obstacles(boardState)
@@ -270,23 +344,6 @@ class Control:
             trajectory.append(pos)
             self.current_position = end.position
         return trajectory 
-
-    def goHome(self):
-        # Placeholder for homing procedure
-        pass
-
-    def make_move(self, move:chess.Move):
-
-        path = self.get_path(move)
-        traj = self.calculate_trajectory(path)
-
-        for pos in traj : 
-            self.go_to_position(pos)
-            
-    def go_to_position(self, pos:Position): 
-
-        step_motors = self.convert_to_step(pos)
-        self.send_command(step_motors)
         
 
     def convert_to_step(self, pos:Position) -> tuple:
@@ -298,20 +355,6 @@ class Control:
 
         return (step_mot1, step_mot2)
 
-    def send_command(self, steps: tuple):
-        self.ser.write(f"MOVE {int(steps[0])} {int(steps[1])}\n".encode('utf-8'))
-        start_time = time.time()
-        while self.ser.in_waiting == 0:
-            if time.time() - start_time > 30:
-                print("Error: No response from motor controller.")
-                return False
-            pass
-
-        response = self.ser.readline().decode('utf-8').strip()
-        if response != "DONE":
-            print("Error: Unexpected response from motor controller:", response)
-            return False
-        return True
 
     def print_trajectory(self, trajectory: list[tuple[float, float]]):
         for step in trajectory:
