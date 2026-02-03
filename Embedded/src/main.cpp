@@ -179,7 +179,7 @@ std::pair<float, float> get_steps(float delta_x, float delta_y) {
     float step_mot1 = (rot_step1 * MICROSTEPPING * 1.333) / (STEP_ANGLE_DEGREES);
     float step_mot2 = (rot_step2 * MICROSTEPPING * 1.333)/ (STEP_ANGLE_DEGREES);
     
-    return std::make_pair(step_mot1, step_mot2);
+    return std::make_pair(-step_mot1, -step_mot2);
 }
 
 /*
@@ -221,7 +221,7 @@ void goHome(bool isFastHome) {
 
 // Move Y axis towards home first
     if (isFastHome){
-        move_distance(0.0, (-current_position.y + 100.0)); // Move towards home quickly
+        move_distance(0.0, (current_position.y - 100.0)); // Move towards home quickly
     }
     while(digitalRead(LIMIT_SWITCH_2) == LOW) 
     {
@@ -234,11 +234,11 @@ void goHome(bool isFastHome) {
     stepper1.stop();
     stepper2.stop();
     reset_position();
-    move_distance(0.0, -5.0); // Move away from limit switches
+    move_distance(0.0, 2.0); // Move away from limit switches
 
 // Move X axis towards home
     if (isFastHome){
-        move_distance((-current_position.x + 100.0), 0.0); // Move towards home quickly
+        move_distance((current_position.x - 100.0), 0.0); // Move towards home quickly
     }
     while(digitalRead(LIMIT_SWITCH_1) == LOW)
     {
@@ -250,7 +250,7 @@ void goHome(bool isFastHome) {
     stepper1.stop();
     stepper2.stop();
     reset_position();   
-    move_distance(-5.0, 0.0); // Move away from limit switches
+    move_distance(2.0, 0.0); // Move away from limit switches
     reset_position();
 
 }
