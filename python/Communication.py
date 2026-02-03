@@ -28,8 +28,30 @@ class Communication:
             return False
 
         try:
-            self.ser.write(f"CHESSMOVE {command.position.x} {command.position.y} {int(command.magnet_state)} \n".encode('utf-8'))
-            print(int(command.magnet_state))
+            self.ser.write(f"CHESSMOVE|{command.position.x}|{command.position.y}|{int(command.magnet_state)};\n".encode('utf-8'))
+        except Exception as e:
+            print("Error writing to serial port:", e)
+            return False
+
+        if not self.validate_send_command():
+            print("Error: Move command failed.")
+            return False
+        return True
+    
+    def send_path(self, path: list[Command]):
+        """
+        Function that sends a list of commands to ESP-32 via serial port
+        """
+        
+        if self.ser is None:
+            print("Error: serial port not available")
+            return False
+
+        try:
+            self.ser.write(f"PATH".encode('utf-8'))
+            for command in path:
+                self.ser.write(f"|{command.position.x},{command.position.y},{int(command.magnet_state)}".encode('utf-8'))
+            self.ser.write(";\n".encode('utf-8'))
         except Exception as e:
             print("Error writing to serial port:", e)
             return False
@@ -46,7 +68,7 @@ class Communication:
         """
         
         try:
-            self.ser.write(f"MOVE {pos.x} {pos.y} \n".encode('utf-8'))
+            self.ser.write(f"MOVE|{pos.x}|{pos.y};\n".encode('utf-8'))
         except Exception as e:
             print("Error writing to serial port:", e)
             return False
@@ -97,7 +119,7 @@ class Communication:
             return False
 
         try:
-            self.ser.write("HOME\n".encode('utf-8'))
+            self.ser.write("HOME;\n".encode('utf-8'))
         except Exception as e:
             print("Error writing HOME to serial:", e)
             return False
@@ -111,13 +133,12 @@ class Communication:
         "Send stop command to ESP-32"
 
         try:
-            self.ser.write("HOME\n".encode('utf-8'))
+            self.ser.write("STOP;\n".encode('utf-8'))
         except Exception as e:
-            print("Error writing HOME to serial:", e)
+            print("Error writing STOP to serial:", e)
             return False
         
-        return self.validate_send_command(expected_responses=("STOPPED"))
+        return self.validate_send_command(expected_responses=("STOPPED",))
         
-
 
         
