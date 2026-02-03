@@ -1,34 +1,5 @@
-"""CoreXY control widget and worker skeleton for CNChess.
-
-This file provides a self-contained, non-invasive PyQt6 widget that
-can be added to the application as a tab or separate window. It emits
-signals for move/jog/home/stop requests and contains a `CoreXYWorker`
-skeleton intended to be moved to a `QThread` and connected to a real
-communication/controller object.
-
-Usage (example):
-
-    widget = CoreXYControl()
-    thread = QThread()
-    worker = CoreXYWorker(communication=comm)
-    worker.moveToThread(thread)
-    thread.start()
-
-    widget.moveRequested.connect(worker.move_to)
-    widget.jogRequested.connect(worker.jog)
-    widget.homeRequested.connect(worker.home)
-    widget.stopRequested.connect(worker.stop)
-
-    worker.positionUpdated.connect(widget.update_position)
-    worker.status.connect(widget.set_status)
-
-Note: the worker does not block the GUI thread; all serial/hardware I/O
-should run inside the worker. The widget performs basic validation and
-visual preview only.
-"""
-
 from typing import Optional
-from Control import Position, Command
+from Control import Position, Command, Communication
 from PyQt6.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -81,7 +52,7 @@ class CoreXYControl(QWidget):
 
         self.scene = QGraphicsScene(0, 0, self.width_mm, self.height_mm)
         self.view = CanvasView(self.scene)
-        # Use QPainter RenderHint enum for antialiasing
+        
         self.view.setRenderHint(QPainter.RenderHint.Antialiasing)
         self.view.setFixedSize(int(self.width_mm) + 2, int(self.height_mm) + 2)
 
@@ -194,7 +165,7 @@ class CoreXYWorker(QObject):
     error = pyqtSignal(str)
     finished = pyqtSignal()
 
-    def __init__(self, communication: Optional[object] = None):
+    def __init__(self, communication: Communication):
         super().__init__()
         self.comm = communication
         self._running = True
@@ -205,17 +176,14 @@ class CoreXYWorker(QObject):
     def move_to(self, x: float, y: float):
         try:
             self.status.emit(f'Moving to {x:.1f}, {y:.1f} mm')
-         
-            # If your communication expects a Command object, create/convert here
-            # Prefer send_command(Command(Position, magnet_state))
-           
-                
+                        
             cmd = Command(Position(x, y), False)
-            ok = self.comm.send_command(cmd)
-            # Some implementations return True/False, others None
+            success = self.comm.send_command(cmd)
+    
             self._last_x = x; self._last_y = y
             self.positionUpdated.emit(x, y)
-            if ok is False:
+
+            if success is False:
                 self.status.emit('Move failed')
             else:
                 self.status.emit('Move complete')
@@ -254,14 +222,7 @@ class CoreXYWorker(QObject):
     def home(self):
         try:
             self.status.emit('Homing')
-            if self.comm is None:
-                self.positionUpdated.emit(0.0, 0.0)
-                self.status.emit('Simulated homed')
-                return
-            if hasattr(self.comm, 'goHome'):
-                self.comm.goHome()
-            elif hasattr(self.comm, 'home'):
-                self.comm.home()
+            self.comm.goHome()
             self._last_x = 0.0; self._last_y = 0.0
             self.positionUpdated.emit(0.0, 0.0)
             self.status.emit('Homed')

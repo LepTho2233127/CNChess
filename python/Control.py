@@ -195,6 +195,7 @@ class Grid:
         return False
 
 class Communication:
+    
     SEND_COMMAND_TIMEOUT = 30  # Timeout for sending commands in seconds
     ser: serial.Serial
     def __init__(self):
@@ -269,6 +270,7 @@ class Communication:
 
         # Expect the controller to reply with HOMED
         return self.validate_send_command(expected_responses=("HOMED",))
+
 class Control:
     SQUARE_SIZE_MM = 50.8  # Size of a chess square in millimeters
     STEP_ANGLE_DEGREES = 1.8  # Stepper motor step angle in degrees
