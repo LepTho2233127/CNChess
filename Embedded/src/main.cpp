@@ -10,6 +10,7 @@
 #define PULLEY_DIAMETER 12.0  // Pulley diameter in millimeters
 #define CIRCUMFERENCE (PULLEY_DIAMETER * PI)
 #define MICROSTEPPING 8.0
+#define DEADZONE_MM 25.4  // Deadzone in millimeters for movement commands
 
 #define STEP_PIN_1 D0
 #define DIR_PIN_1 D1
@@ -78,6 +79,7 @@ enum CommandType {
     CHESSMOVE,
     MOVE,
     HOME,
+    JOG,
     STOP
 };
 
@@ -86,6 +88,7 @@ CommandType parseCommand(String cmd) {
     if (cmd == "MOVE") return MOVE;
     if (cmd == "HOME") return HOME;
     if (cmd == "STOP") return STOP;
+    if (cmd == "JOG")  return JOG;
 
     return STOP;
 }
@@ -126,6 +129,11 @@ void loop() {
                 go_to_position({posX, posY});
                 Serial.print("DONE");
                 break;    
+
+            case CommandType::JOG:
+                move_distance(posX, posY);
+                Serial.print("DONE");
+                break;
         
             case CommandType::HOME:
                 grab_piece(false);
