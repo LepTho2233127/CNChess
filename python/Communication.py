@@ -18,17 +18,39 @@ class Communication:
         # time.sleep(2) # attendre reset Arduino
 
     def send_command(self, command: Command):
+        """
+        Function responsible to send command object to esp-32. Command comes from get_path function that returns 
+        chess board square and the magnet state (ex : MOVE 1 2 True)
+        """
+
         if self.ser is None:
             print("Error: serial port not available")
             return False
 
         try:
-            self.ser.write(f"MOVE {command.position.x} {command.position.y} {command.magnet_state} \n".encode('utf-8'))
+            self.ser.write(f"CHESSMOVE {command.position.x} {command.position.y} {command.magnet_state} \n".encode('utf-8'))
         except Exception as e:
             print("Error writing to serial port:", e)
             return False
 
         if not self.validate_send_command():
+            print("Error: Move command failed.")
+            return False
+        return True
+    
+    def send_position(self, pos:Position):
+        """
+        Function that sends a position to ESP-32 via serial port 
+        ex: MOVE POSX POSY
+        """
+        
+        try:
+            self.ser.write(f"MOVE {pos.x} {pos.y} \n".encode('utf-8'))
+        except Exception as e:
+            print("Error writing to serial port:", e)
+            return False
+        
+        if not self.validate_send_command(expected_responses=("DONE")):
             print("Error: Move command failed.")
             return False
         return True
@@ -81,3 +103,20 @@ class Communication:
 
         # Expect the controller to reply with HOMED
         return self.validate_send_command(expected_responses=("HOMED",))
+    
+
+    
+    def stop(self):
+        "Send stop command to ESP-32"
+
+        try:
+            self.ser.write("HOME\n".encode('utf-8'))
+        except Exception as e:
+            print("Error writing HOME to serial:", e)
+            return False
+        
+        return self.validate_send_command(expected_responses=("STOPPED"))
+        
+
+
+        

@@ -75,12 +75,14 @@ void setup() {
 }
 
 enum CommandType {
+    CHESSMOVE,
     MOVE,
     HOME,
     STOP
 };
 
 CommandType parseCommand(String cmd) {
+    if (cmd == "CHESSMOVE") return CHESSMOVE;
     if (cmd == "MOVE") return MOVE;
     if (cmd == "HOME") return HOME;
     if (cmd == "STOP") return STOP;
@@ -100,8 +102,8 @@ void loop() {
         int thirdSpace = input.indexOf(' ', secondSpace + 1);
         
         String commandString = input.substring(0, firstSpace);
-        float posX = input.substring(firstSpace + 1, secondSpace).toFloat() * SQUARE_SIZE_MM;
-        float posY = input.substring(secondSpace + 1).toFloat() * SQUARE_SIZE_MM; 
+        float posX = input.substring(firstSpace + 1, secondSpace).toFloat();
+        float posY = input.substring(secondSpace + 1).toFloat(); 
         bool magnetState = input.substring(secondSpace + 1, thirdSpace).toInt() == 1;
         
         
@@ -109,7 +111,9 @@ void loop() {
 
         switch (commandType) 
         {
-            case CommandType::MOVE: 
+            case CommandType::CHESSMOVE: 
+                posX = posX * SQUARE_SIZE_MM;
+                posY = posY * SQUARE_SIZE_MM;
                 go_to_position({posX, posY});
                 grab_piece(magnetState);
                 if (!isFastHome){
@@ -117,6 +121,11 @@ void loop() {
                 }
                 Serial.print("DONE");
                 break;
+
+            case CommandType::MOVE:
+                go_to_position({posX, posY});
+                Serial.print("DONE");
+                break;    
         
             case CommandType::HOME:
                 grab_piece(false);
@@ -131,6 +140,7 @@ void loop() {
                 grab_piece(false);
                 stepper1.stop();
                 stepper2.stop();
+                Serial.print("STOPPED");
                 break;
             
         }
