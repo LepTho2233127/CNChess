@@ -220,7 +220,7 @@ void goHome(bool isFastHome) {
 
 // Move X axis towards home
     if (isFastHome){
-        move_distance((-current_position.x + 50.0), 0.0); // Move towards home quickly
+        move_distance((-current_position.x + 100.0), 0.0); // Move towards home quickly
     }
     while(digitalRead(LIMIT_SWITCH_1) == LOW)
     {
