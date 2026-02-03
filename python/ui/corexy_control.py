@@ -1,5 +1,6 @@
 from typing import Optional
-from Control import Position, Command, Communication
+from Control import Position, Command
+from Communication import Communication
 from PyQt6.QtWidgets import (
     QWidget,
     QVBoxLayout,
