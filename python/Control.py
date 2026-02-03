@@ -71,9 +71,13 @@ class Grid:
     
     def get_neighbors(self, node: Node) -> list[Node]:
         neighbors = []
-        # direction with diagonals
-        directions = [(-0.5, 0), (0.5, 0), (0, -0.5), (0, 0.5),
-                      (-0.5, -0.5), (-0.5, 0.5), (0.5, -0.5), (0.5, 0.5)]
+        if (node.position.x % 1 == 0 and node.position.y % 1 != 0) or (node.position.x % 1 != 0 and node.position.y % 1 == 0):
+            # direction without diagonals
+            directions = [(-0.5, 0), (0.5, 0), (0, -0.5), (0, 0.5)]
+        else:
+            # direction with diagonals
+            directions = [(-0.5, 0), (0.5, 0), (0, -0.5), (0, 0.5),
+                        (-0.5, -0.5), (-0.5, 0.5), (0.5, -0.5), (0.5, 0.5)]
 
         for direction in directions:
             neighbor_x = node.position.x + direction[0]
