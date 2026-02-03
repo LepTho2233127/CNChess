@@ -58,7 +58,7 @@ class Grid:
     obstacle_remove_position: Position
 
     def __init__(self, width: int, height: int):
-        self.obstacle_remove_position = Position(0.0, 3.5)  # Position to remove obstacle for captured pieces
+        self.obstacle_remove_position = Position(0.5, 4.5)  # Position to remove obstacle for captured pieces
         self.width = width * 2 + 1
         self.height = height * 2 + 1
         # Use half-step coordinates so intermediate nodes land between board squares
@@ -217,8 +217,31 @@ class Control:
             else:
                 # Keep magnet on during movement
                 commands.append(Command(pos, True))
-        return commands
+
+        output = self.optimize_path(commands)
+        return output
     
+
+    def optimize_path(self, path: list[Command]) -> list[Command]:
+        if not path:
+            return []
+        
+        optimized_path = [path[0]]
+        for i in range(1, len(path) - 1):
+            prev_cmd = optimized_path[-1]
+            curr_cmd = path[i]
+            next_cmd = path[i + 1]
+
+            vec1 = (curr_cmd.position.x - prev_cmd.position.x, curr_cmd.position.y - prev_cmd.position.y)
+            vec2 = (next_cmd.position.x - curr_cmd.position.x, next_cmd.position.y - curr_cmd.position.y)
+
+            # Check if the direction is the same (collinear)
+            if vec1[0] * vec2[1] != vec1[1] * vec2[0] or curr_cmd.magnet_state != prev_cmd.magnet_state:
+                optimized_path.append(curr_cmd)
+
+        optimized_path.append(path[-1])  # Always include the last command
+        return optimized_path
+
     def print_path(self, path: list[Command]):
         for cmd in path:
             pos = cmd.position
