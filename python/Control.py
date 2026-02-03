@@ -2,11 +2,8 @@
 
 # It will take a chess move and transform it into physical actions and send it via serial bus
 
-from time import time
 import numpy as np
 import chess
-import serial
-import os
 
 # Here is all the object for a* pathfinding algorithm
 class Position:
@@ -29,7 +26,6 @@ class Command:
     def __init__(self, position: Position = Position(0.0, 0.0), magnet_state: bool = False):
         self.position = position
         self.magnet_state = magnet_state
-
 
 class Node:
 
@@ -54,7 +50,6 @@ class Node:
     def __hash__(self):
         # Hash by position so Nodes can live in sets/dicts during pathfinding
         return hash(self.position)
-
 
 class Grid:   
     nodes: list[list[Node]]
@@ -88,9 +83,6 @@ class Grid:
                 neighbors.append(neighbor_node)
 
         return neighbors
-    
-    def add_link(self, from_node: Node, to_node: Node):
-        from_node.neighbors.append(to_node)
 
     def initialize_links(self):
         for i in range(self.height):
@@ -176,116 +168,19 @@ class Grid:
                 else:
                     self.remove_obstacle(position)
 
-    def print_grid(self):
-        # inverted y-axis for printing
-        for i in range(self.height-1, -1, -1):
-            row = ""
-            for j in range(self.width):
-                node = self.nodes[i][j]
-                if len(node.neighbors) == 0:
-                    row += " X "
-                else:
-                    row += " . "
-            print(row)
-
     def is_obstacle(self, position: Position) -> bool:
         node = self.get_node(position)
         if node:
             return len(node.neighbors) == 0
         return False
 
-class Communication:
-    SEND_COMMAND_TIMEOUT = 30  # Timeout for sending commands in seconds
-    ser: serial.Serial
-    def __init__(self):
-        try:
-            self.ser = serial.Serial("/dev/ttyACM0", 115200, timeout=1)
-        except Exception as e:
-            print("Warning: could not open serial port /dev/ttyACM0:", e)
-            self.ser = None
-        # time.sleep(2) # attendre reset Arduino
-
-    def send_command(self, command: Command):
-        if self.ser is None:
-            print("Error: serial port not available")
-            return False
-
-        try:
-            self.ser.write(f"MOVE {command.position.x} {command.position.y} {command.magnet_state} \n".encode('utf-8'))
-        except Exception as e:
-            print("Error writing to serial port:", e)
-            return False
-
-        if not self.validate_send_command():
-            print("Error: Move command failed.")
-            return False
-        return True
-    
-    def validate_send_command(self, expected_responses=("DONE", "HOMED")) -> bool:
-        """
-        Wait for a line from serial and check whether it matches one of expected_responses.
-        Returns True on match, False on timeout or unexpected response.
-        """
-        if self.ser is None:
-            print("Error: serial port not available for validation")
-            return False
-
-        start_time = time()
-        # Wait for data or timeout
-        while True:
-            try:
-                if self.ser.in_waiting > 0:
-                    break
-            except Exception as e:
-                print("Error reading serial in_waiting:", e)
-                return False
-
-            if time() - start_time > self.SEND_COMMAND_TIMEOUT:
-                print("Error: No response from motor controller.")
-                return False
-
-        try:
-            response = self.ser.readline().decode('utf-8').strip()
-        except Exception as e:
-            print("Error reading response from serial:", e)
-            return False
-
-        if response in expected_responses:
-            return True
-        else:
-            print("Error: Unexpected response from motor controller:", response)
-            return False
-
-    def goHome(self):
-        if self.ser is None:
-            print("Error: serial port not available")
-            return False
-
-        try:
-            self.ser.write("HOME\n".encode('utf-8'))
-        except Exception as e:
-            print("Error writing HOME to serial:", e)
-            return False
-
-        # Expect the controller to reply with HOMED
-        return self.validate_send_command(expected_responses=("HOMED",))
 class Control:
-    SQUARE_SIZE_MM = 50.8  # Size of a chess square in millimeters
-    STEP_ANGLE_DEGREES = 1.8  # Stepper motor step angle in degrees
-    PULLEY_DIAMETER = 12.0  # Pulley diameter in millimeters
     grid: Grid
-    mm_per_step: float
-    circumference: float
-    current_position: Position
-
 
     def __init__(self):
-        self.circumference = np.pi * self.PULLEY_DIAMETER
         self.grid = Grid(8, 8)
         self.grid.initialize_links()
-        self.current_position = Position(0, 0)  # Start at home position
 
-    
     def update_board_state(self, boardState: str):
         self.grid.update_obstacles(boardState)
     
@@ -328,37 +223,5 @@ class Control:
         for cmd in path:
             pos = cmd.position
             print(f"({pos.x}, {pos.y})", end=" -> ")
-        print("END")
-
-    def calculate_trajectory(self, path: list[Command]):
-        trajectory = []
-        path.insert(0, Command(self.current_position, False))  # Start from current position
-        for i in range(1, len(path)):
-            start = path[i - 1]
-            end = path[i]
-            delta_x = (end.position.x - start.position.x) * self.SQUARE_SIZE_MM
-            delta_y = (end.position.y - start.position.y) * self.SQUARE_SIZE_MM
-
-            pos = Position(delta_x, delta_y)
-
-            trajectory.append(pos)
-            self.current_position = end.position
-        return trajectory 
-        
-
-    def convert_to_step(self, pos:Position) -> tuple:
-
-        rot_step1 = -360 * (pos.x + pos.y) / (self.circumference * np.sqrt(2))
-        rot_step2 = -((2*pos.x * 360/(self.circumference*np.sqrt(2))) + rot_step1)
-        step_mot1 = rot_step1 / self.STEP_ANGLE_DEGREES
-        step_mot2 = rot_step2 / self.STEP_ANGLE_DEGREES
-
-        return (step_mot1, step_mot2)
-
-
-    def print_trajectory(self, trajectory: list[tuple[float, float]]):
-        for step in trajectory:
-            print(f"Motor1: {step[0]}, Motor2: {step[1]}")
-    
-    
+        print("END")    
     
