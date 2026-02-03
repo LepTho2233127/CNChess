@@ -56,6 +56,20 @@
         </property>
        </widget>
       </item>
+    <item>
+     <widget class="QPushButton" name="goHomeButton">
+      <property name="text">
+       <string>Go Home</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="corexyButton">
+      <property name="text">
+       <string>CoreXY</string>
+      </property>
+     </widget>
+    </item>
       <item>
        <widget class="QPushButton" name="quitButton">
         <property name="text">

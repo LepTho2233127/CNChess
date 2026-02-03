@@ -10,6 +10,7 @@
 #define PULLEY_DIAMETER 12.0  // Pulley diameter in millimeters
 #define CIRCUMFERENCE (PULLEY_DIAMETER * PI)
 #define MICROSTEPPING 8.0
+#define DEADZONE_MM 25.4  // Deadzone in millimeters for movement commands
 
 #define STEP_PIN_1 D0
 #define DIR_PIN_1 D1
@@ -47,6 +48,7 @@ void goHome(bool isFastHome);
 void reset_position();
 void grab_piece(bool state);
 void release_piece(bool state);
+void move_distance(float delta_x, float delta_y);
 
 Servo myServo;
 
@@ -75,15 +77,19 @@ void setup() {
 }
 
 enum CommandType {
+    CHESSMOVE,
     MOVE,
     HOME,
+    JOG,
     STOP
 };
 
 CommandType parseCommand(String cmd) {
+    if (cmd == "CHESSMOVE") return CHESSMOVE;
     if (cmd == "MOVE") return MOVE;
     if (cmd == "HOME") return HOME;
     if (cmd == "STOP") return STOP;
+    if (cmd == "JOG")  return JOG;
 
     return STOP;
 }
@@ -100,8 +106,8 @@ void loop() {
         int thirdSpace = input.indexOf(' ', secondSpace + 1);
         
         String commandString = input.substring(0, firstSpace);
-        float posX = input.substring(firstSpace + 1, secondSpace).toFloat() * SQUARE_SIZE_MM;
-        float posY = input.substring(secondSpace + 1).toFloat() * SQUARE_SIZE_MM; 
+        float posX = input.substring(firstSpace + 1, secondSpace).toFloat();
+        float posY = input.substring(secondSpace + 1).toFloat(); 
         bool magnetState = input.substring(secondSpace + 1, thirdSpace).toInt() == 1;
         
         
@@ -109,12 +115,24 @@ void loop() {
 
         switch (commandType) 
         {
-            case CommandType::MOVE: 
-                go_to_position({-posX, -posY});
+            case CommandType::CHESSMOVE: 
+                posX = posX * SQUARE_SIZE_MM;
+                posY = posY * SQUARE_SIZE_MM;
+                go_to_position({posX, posY});
                 grab_piece(magnetState);
                 if (!isFastHome){
                     isFastHome = true;
                 }
+                Serial.print("DONE");
+                break;
+
+            case CommandType::MOVE:
+                go_to_position({posX, posY});
+                Serial.print("DONE");
+                break;    
+
+            case CommandType::JOG:
+                move_distance(posX, posY);
                 Serial.print("DONE");
                 break;
         
@@ -131,6 +149,7 @@ void loop() {
                 grab_piece(false);
                 stepper1.stop();
                 stepper2.stop();
+                Serial.print("STOPPED");
                 break;
             
         }
@@ -161,7 +180,7 @@ std::pair<float, float> get_steps(float delta_x, float delta_y) {
     float step_mot1 = (rot_step1 * MICROSTEPPING * 1.333) / (STEP_ANGLE_DEGREES);
     float step_mot2 = (rot_step2 * MICROSTEPPING * 1.333)/ (STEP_ANGLE_DEGREES);
     
-    return std::make_pair(step_mot1, step_mot2);
+    return std::make_pair(-step_mot1, -step_mot2);
 }
 
 /*
@@ -203,7 +222,7 @@ void goHome(bool isFastHome) {
 
 // Move Y axis towards home first
     if (isFastHome){
-        move_distance(0.0, (-current_position.y + 100.0)); // Move towards home quickly
+        move_distance(0.0, (current_position.y - 100.0)); // Move towards home quickly
     }
     while(digitalRead(LIMIT_SWITCH_2) == LOW) 
     {
@@ -216,11 +235,11 @@ void goHome(bool isFastHome) {
     stepper1.stop();
     stepper2.stop();
     reset_position();
-    move_distance(0.0, -5.0); // Move away from limit switches
+    move_distance(0.0, 2.0); // Move away from limit switches
 
 // Move X axis towards home
     if (isFastHome){
-        move_distance((-current_position.x + 100.0), 0.0); // Move towards home quickly
+        move_distance((current_position.x - 100.0), 0.0); // Move towards home quickly
     }
     while(digitalRead(LIMIT_SWITCH_1) == LOW)
     {
@@ -232,7 +251,7 @@ void goHome(bool isFastHome) {
     stepper1.stop();
     stepper2.stop();
     reset_position();   
-    move_distance(-5.0, 0.0); // Move away from limit switches
+    move_distance(2.0, 0.0); // Move away from limit switches
     reset_position();
 
 }
