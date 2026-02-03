@@ -22,6 +22,8 @@
 #define LIMIT_SWITCH_1 D4
 #define LIMIT_SWITCH_2 D5
 
+#define HOME_SPEED 4000  // Speed for homing in steps per second
+
 AccelStepper stepper1(AccelStepper::DRIVER, STEP_PIN_1, DIR_PIN_1); // step, dir pins
 AccelStepper stepper2(AccelStepper::DRIVER, STEP_PIN_2, DIR_PIN_2); // step, dir pins
 MultiStepper steppers;
@@ -44,7 +46,7 @@ Position current_position;
 std::pair<float, float> get_steps(float delta_x, float delta_y);
 
 void go_to_position (Position pos);
-void goHome(bool isFastHome);
+void goHome();
 void reset_position();
 void grab_piece(bool state);
 void release_piece(bool state);
@@ -68,7 +70,7 @@ void setup() {
 
     myServo.attach(SERVO_PIN);
     //myServo.write(servoGrabPosition); // Ensure servo is in release position
-    goHome(0);
+    goHome();
     //myServo.write(servoReleasePosition); // Ensure servo is in release position
     reset_position();
     //struct Position position1 = {0.0, -150.0};
@@ -120,9 +122,6 @@ void loop() {
                 posY = posY * SQUARE_SIZE_MM;
                 go_to_position({posX, posY});
                 grab_piece(magnetState);
-                if (!isFastHome){
-                    isFastHome = true;
-                }
                 Serial.print("DONE");
                 break;
 
@@ -138,10 +137,7 @@ void loop() {
         
             case CommandType::HOME:
                 grab_piece(false);
-                goHome(isFastHome);
-                if (isFastHome){
-                    isFastHome = false;
-                }
+                goHome();
                 Serial.print("HOMED");
                 break;
 
@@ -218,16 +214,13 @@ void move_distance(float delta_x, float delta_y) {
 }
 
 
-void goHome(bool isFastHome) {
+void goHome() {
 
-// Move Y axis towards home first
-    if (isFastHome){
-        move_distance(0.0, (current_position.y - 100.0)); // Move towards home quickly
-    }
+//
     while(digitalRead(LIMIT_SWITCH_2) == LOW) 
     {
-        stepper1.setSpeed(-500); // Move towards home
-        stepper2.setSpeed(500); // Move towards home
+        stepper1.setSpeed(-HOME_SPEED); // Move towards home
+        stepper2.setSpeed(HOME_SPEED); // Move towards home
         stepper1.run();
         stepper2.run();
     }
@@ -237,14 +230,10 @@ void goHome(bool isFastHome) {
     reset_position();
     move_distance(0.0, 2.0); // Move away from limit switches
 
-// Move X axis towards home
-    if (isFastHome){
-        move_distance((current_position.x - 100.0), 0.0); // Move towards home quickly
-    }
     while(digitalRead(LIMIT_SWITCH_1) == LOW)
     {
-        stepper1.setSpeed(-500); // Move towards home
-        stepper2.setSpeed(-500); // Move towards home
+        stepper1.setSpeed(-HOME_SPEED); // Move towards home
+        stepper2.setSpeed(-HOME_SPEED); // Move towards home
         stepper1.run();
         stepper2.run();
     }
