@@ -28,7 +28,8 @@ class Communication:
             return False
 
         try:
-            self.ser.write(f"CHESSMOVE {command.position.x} {command.position.y} {command.magnet_state} \n".encode('utf-8'))
+            self.ser.write(f"CHESSMOVE {command.position.x} {command.position.y} {int(command.magnet_state)} \n".encode('utf-8'))
+            print(int(command.magnet_state))
         except Exception as e:
             print("Error writing to serial port:", e)
             return False

@@ -141,8 +141,6 @@ class ChessController:
             for cmd in path :
                 self.communication.send_command(cmd)
 
-            self.communication.goHome()
-            
             # Check if now it's player's turn again
             if self.cn_chess.get_turn() == self.cn_chess.player_color:
                 self.selected_piece = None

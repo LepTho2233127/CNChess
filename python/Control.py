@@ -211,7 +211,7 @@ class Control:
             if i == 0:
                 # Turn magnet on at start position
                 commands.append(Command(pos, True))
-            elif i == len(path_to_obstacle_removal) - 1:
+            elif i == len(path_to_obstacle_removal) - 1 or i == len(full_path) - 1:
                 # Turn magnet off at end position
                 commands.append(Command(pos, False))
             else:

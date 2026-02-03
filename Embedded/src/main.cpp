@@ -19,10 +19,13 @@
 
 #define SERVO_PIN D6
 
+#define LED_PIN D8
+
 #define LIMIT_SWITCH_1 D4
 #define LIMIT_SWITCH_2 D5
 
-#define HOME_SPEED 4000  // Speed for homing in steps per second
+#define HOME_SPEED 4000
+#define MOVE_SPEED 4000  // Speed for homing in steps per second
 
 AccelStepper stepper1(AccelStepper::DRIVER, STEP_PIN_1, DIR_PIN_1); // step, dir pins
 AccelStepper stepper2(AccelStepper::DRIVER, STEP_PIN_2, DIR_PIN_2); // step, dir pins
@@ -59,22 +62,20 @@ void setup() {
 
     pinMode(LIMIT_SWITCH_1, INPUT);
     pinMode(LIMIT_SWITCH_2, INPUT);
+    pinMode(LED_PIN, OUTPUT);
     pinMode(SERVO_PIN, OUTPUT);
     
-    stepper1.setMaxSpeed(2500);
+    stepper1.setMaxSpeed(MOVE_SPEED);
     stepper1.setAcceleration(500);
-    stepper2.setMaxSpeed(2500);
+    stepper2.setMaxSpeed(MOVE_SPEED);
     stepper2.setAcceleration(500);
     steppers.addStepper(stepper1);
     steppers.addStepper(stepper2);
 
     myServo.attach(SERVO_PIN);
-    //myServo.write(servoGrabPosition); // Ensure servo is in release position
     goHome();
-    //myServo.write(servoReleasePosition); // Ensure servo is in release position
+    myServo.write(servoReleasePosition); // Ensure servo is in release position
     reset_position();
-    //struct Position position1 = {0.0, -150.0};
-    // go_to_position(current_position);
 
 }
 
@@ -106,11 +107,12 @@ void loop() {
         int firstSpace = input.indexOf(' ');
         int secondSpace = input.indexOf(' ', firstSpace + 1);
         int thirdSpace = input.indexOf(' ', secondSpace + 1);
+
         
         String commandString = input.substring(0, firstSpace);
         float posX = input.substring(firstSpace + 1, secondSpace).toFloat();
-        float posY = input.substring(secondSpace + 1).toFloat(); 
-        bool magnetState = input.substring(secondSpace + 1, thirdSpace).toInt() == 1;
+        float posY = input.substring(secondSpace + 1, thirdSpace).toFloat(); 
+        bool magnetState = input.substring(thirdSpace).toInt();
         
         
         CommandType commandType = parseCommand(commandString);
@@ -122,6 +124,7 @@ void loop() {
                 posY = posY * SQUARE_SIZE_MM;
                 go_to_position({posX, posY});
                 grab_piece(magnetState);
+                digitalWrite(LED_PIN, magnetState);
                 Serial.print("DONE");
                 break;
 
@@ -216,7 +219,7 @@ void move_distance(float delta_x, float delta_y) {
 
 void goHome() {
 
-//
+    myServo.write(servoReleasePosition); // Ensure servo is in release position
     while(digitalRead(LIMIT_SWITCH_2) == LOW) 
     {
         stepper1.setSpeed(-HOME_SPEED); // Move towards home
@@ -240,8 +243,9 @@ void goHome() {
     stepper1.stop();
     stepper2.stop();
     reset_position();   
-    move_distance(2.0, 0.0); // Move away from limit switches
+    move_distance((SQUARE_SIZE_MM/2), 0.0); // Move away from limit switches
     reset_position();
+    
 
 }
 
