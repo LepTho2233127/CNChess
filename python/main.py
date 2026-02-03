@@ -24,7 +24,7 @@ if __name__ == "__main__":
     app = QApplication(sys.argv) 
     # Create view and controller
     view = ChessView(game)
-    controller = ChessController(game, view)
+    controller = ChessController(game, control, view)
     
     # Set the controller in the view
     view.controller = controller
