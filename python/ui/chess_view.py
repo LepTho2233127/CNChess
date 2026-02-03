@@ -271,9 +271,7 @@ class ChessView(QMainWindow):
 
         # Create worker + thread and connect to controller.communication
         self._corexy_thread = QThread()
-        comm = None
-        if self.controller and hasattr(self.controller, 'communication'):
-            comm = self.controller.communication
+        comm = self.controller.communication
 
         self._corexy_worker = CoreXYWorker(communication=comm)
         self._corexy_worker.moveToThread(self._corexy_thread)

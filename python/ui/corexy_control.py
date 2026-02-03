@@ -205,42 +205,22 @@ class CoreXYWorker(QObject):
     def move_to(self, x: float, y: float):
         try:
             self.status.emit(f'Moving to {x:.1f}, {y:.1f} mm')
-            # Attempt to use a few likely interfaces; adapt to your project
-            if self.comm is None:
-                # Simulation mode: just emit position
-                self._last_x = x; self._last_y = y
-                self.positionUpdated.emit(x, y)
-                self.status.emit('Simulated move done')
-                return
-
+         
             # If your communication expects a Command object, create/convert here
             # Prefer send_command(Command(Position, magnet_state))
-            if hasattr(self.comm, 'send_command'):
-                try:
-                    cmd = Command(Position(x, y), False)
-                    ok = self.comm.send_command(cmd)
-                    # Some implementations return True/False, others None
-                    self._last_x = x; self._last_y = y
-                    self.positionUpdated.emit(x, y)
-                    if ok is False:
-                        self.status.emit('Move failed')
-                    else:
-                        self.status.emit('Move complete')
-                    return
-                except Exception:
-                    # fallthrough to other interfaces
-                    pass
-
-            # Fallback: call move_to if available
-            if hasattr(self.comm, 'move_to'):
-                self.comm.move_to(x, y)
-                self._last_x = x; self._last_y = y
-                self.positionUpdated.emit(x, y)
+           
+                
+            cmd = Command(Position(x, y), False)
+            ok = self.comm.send_command(cmd)
+            # Some implementations return True/False, others None
+            self._last_x = x; self._last_y = y
+            self.positionUpdated.emit(x, y)
+            if ok is False:
+                self.status.emit('Move failed')
+            else:
                 self.status.emit('Move complete')
-                return
-
-            # If no supported interface, emit error
-            self.error.emit('No supported move interface on communication')
+            return
+        
         except Exception as e:
             self.error.emit(str(e))
 
