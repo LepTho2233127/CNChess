@@ -141,8 +141,7 @@ class ChessController:
             # Update the view
             self._update_view()
 
-            for cmd in path :
-                self.communication.send_command(cmd)
+            self.communication.send_path(path)
             
             # Check if now it's player's turn again
             if self.cn_chess.get_turn() == self.cn_chess.player_color:
