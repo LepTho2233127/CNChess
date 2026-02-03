@@ -110,7 +110,7 @@ void loop() {
         switch (commandType) 
         {
             case CommandType::MOVE: 
-                go_to_position({posX, posY});
+                go_to_position({-posX, -posY});
                 grab_piece(magnetState);
                 if (!isFastHome){
                     isFastHome = true;
