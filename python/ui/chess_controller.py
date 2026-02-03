@@ -146,3 +146,7 @@ class ChessController:
             # Check if now it's player's turn again
             if self.cn_chess.get_turn() == self.cn_chess.player_color:
                 self.selected_piece = None
+
+    def handle_go_home(self):
+
+        self.communication.goHome()

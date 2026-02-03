@@ -3,10 +3,11 @@
 import os
 import sys
 from PyQt6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QPushButton, QHBoxLayout, QLabel
-from PyQt6.QtCore import Qt, pyqtSignal, QSize, QFile
+from PyQt6.QtCore import Qt, pyqtSignal, QSize, QFile, QThread
 from PyQt6.QtGui import QPainter, QColor, QPixmap, QFont, QPen
 from PyQt6 import uic
 from Control import Position, Command
+from ui.corexy_control import CoreXYControl, CoreXYWorker
 
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
@@ -202,6 +203,8 @@ class ChessView(QMainWindow):
         self.status_label = self.findChild(QLabel, 'statusLabel')
         reset_button = self.findChild(QPushButton, 'resetButton')
         quit_button = self.findChild(QPushButton, 'quitButton')
+        go_home_button = self.findChild(QPushButton, 'goHomeButton')
+        corexy_button = self.findChild(QPushButton, 'corexyButton')
         
         # Create chess board widget and add to container
         self.board_widget = ChessBoardWidget(cn_chess)
@@ -217,8 +220,17 @@ class ChessView(QMainWindow):
         self.board_widget.piece_clicked.connect(self.on_board_clicked)
         if reset_button:
             reset_button.clicked.connect(self.on_reset_clicked)
+        if go_home_button:
+            go_home_button.clicked.connect(self.on_go_home_clicked)
+        if corexy_button:
+            corexy_button.clicked.connect(self.open_corexy_control)
         if quit_button:
             quit_button.clicked.connect(self.close)
+
+        # corexy runtime state
+        self._corexy_thread = None
+        self._corexy_worker = None
+        self._corexy_window = None
     
     def on_board_clicked(self, row, col):
         """Handle board click events."""
@@ -231,6 +243,69 @@ class ChessView(QMainWindow):
         if self.controller:
             self.controller.reset_board()
         self.update_status()
+
+    def on_go_home_clicked(self):
+        """Handle Go Home button click and call controller go-home method if available."""
+        if not self.controller:
+            print("Warning: no controller available to perform Go Home")
+            return
+
+        # prefer controller wrapper
+        if hasattr(self.controller, 'handle_go_home'):
+            self.controller.handle_go_home()
+        elif hasattr(self.controller, 'communication') and hasattr(self.controller.communication, 'goHome'):
+            self.controller.communication.goHome()
+        else:
+            print("Warning: controller or communication has no goHome method")
+
+        self.update_status()
+
+    def open_corexy_control(self):
+        """Open the CoreXY control view and wire it to the controller's communication in a worker thread."""
+        if self._corexy_window is not None:
+            self._corexy_window.raise_()
+            return
+
+        # Create widget
+        self._corexy_window = CoreXYControl()
+
+        # Create worker + thread and connect to controller.communication
+        self._corexy_thread = QThread()
+        comm = None
+        if self.controller and hasattr(self.controller, 'communication'):
+            comm = self.controller.communication
+
+        self._corexy_worker = CoreXYWorker(communication=comm)
+        self._corexy_worker.moveToThread(self._corexy_thread)
+
+        # Wire widget -> worker
+        self._corexy_window.moveRequested.connect(self._corexy_worker.move_to)
+        self._corexy_window.jogRequested.connect(self._corexy_worker.jog)
+        self._corexy_window.homeRequested.connect(self._corexy_worker.home)
+        self._corexy_window.stopRequested.connect(self._corexy_worker.stop)
+
+        # Wire worker -> widget
+        self._corexy_worker.positionUpdated.connect(self._corexy_window.update_position)
+        self._corexy_worker.status.connect(self._corexy_window.set_status)
+        self._corexy_worker.error.connect(lambda e: self._corexy_window.set_status(f'Error: {e}'))
+
+        # Clean up when the window is closed
+        self._corexy_window.destroyed.connect(self._teardown_corexy)
+
+        self._corexy_thread.start()
+        # Show window as independent widget
+        self._corexy_window.show()
+
+    def _teardown_corexy(self):
+        try:
+            if self._corexy_thread:
+                self._corexy_thread.quit()
+                self._corexy_thread.wait(2000)
+        except Exception:
+            pass
+        self._corexy_thread = None
+        self._corexy_worker = None
+        self._corexy_window = None
     
     def on_board_changed(self, selected_piece):
         """Called when board state changes from controller."""
