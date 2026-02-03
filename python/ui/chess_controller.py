@@ -131,8 +131,6 @@ class ChessController:
             self.control.update_board_state(self.cn_chess.get_board_state())
             path = self.control.get_path(computer_move)
     
-            
-        
             self.control.print_path(path)
             self.cn_chess.make_move(computer_move)
             self.view.board_widget.set_trajectory(path)
@@ -142,6 +140,8 @@ class ChessController:
 
             for cmd in path :
                 self.communication.send_command(cmd)
+
+            self.communication.goHome()
             
             # Check if now it's player's turn again
             if self.cn_chess.get_turn() == self.cn_chess.player_color:
