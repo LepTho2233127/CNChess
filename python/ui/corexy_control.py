@@ -177,17 +177,18 @@ class CoreXYWorker(QObject):
     def move_to(self, x: float, y: float):
         try:
             self.status.emit(f'Moving to {x:.1f}, {y:.1f} mm')
-                        
-            cmd = Command(Position(x, y), False)
-            success = self.comm.send_command(cmd)
+
+            pos = Position(x,y)
+    
+            hasMove = self.comm.send_position(pos)
     
             self._last_x = x; self._last_y = y
             self.positionUpdated.emit(x, y)
 
-            if success is False:
-                self.status.emit('Move failed')
-            else:
+            if hasMove:
                 self.status.emit('Move complete')
+            else:
+                self.status.emit('Move failed')
             return
         
         except Exception as e:
@@ -197,25 +198,13 @@ class CoreXYWorker(QObject):
     def jog(self, dx: float, dy: float):
         try:
             self.status.emit(f'Jog {dx:.1f}, {dy:.1f} mm')
-            if hasattr(self.comm, 'jog'):
-                self.comm.jog(dx, dy)
-                # if jog doesn't report position, update last-known
-                self._last_x += dx; self._last_y += dy
-                self.positionUpdated.emit(self._last_x, self._last_y)
-                self.status.emit('Jog complete')
-                return
-
-            # fallback: use move_to with current known position
-            x = self._last_x
-            y = self._last_y
-            if hasattr(self.comm, 'get_position'):
-                try:
-                    x, y = self.comm.get_position()
-                except Exception:
-                    pass
-            x += dx; y += dy
-            self.move_to(x, y)
+            
+            self.comm.jog(dx, dy)
+            
+            self._last_x += dx; self._last_y += dy
+            self.positionUpdated.emit(self._last_x, self._last_y)
             self.status.emit('Jog complete')
+            
         except Exception as e:
             self.error.emit(str(e))
 
@@ -234,8 +223,7 @@ class CoreXYWorker(QObject):
     def stop(self):
         try:
             self.status.emit('Stop requested')
-            if self.comm and hasattr(self.comm, 'stop'):
-                self.comm.stop()
+            self.comm.stop()
             self.status.emit('Stopped')
         except Exception as e:
             self.error.emit(str(e))
