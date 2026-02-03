@@ -1,9 +1,12 @@
-#include <AccelStepper.h>
-#include <MultiStepper.h>
+#include "AccelStepper.h"
+#include "MultiStepper.h"
 #include <Arduino.h>
 #include <math.h>
 #include <utility>
 #include <Servo.h>
+#include <string>
+#include <vector>
+#include <sstream>
 
 #define SQUARE_SIZE_MM 50.8  // Size of a chess square in millimeters
 #define STEP_ANGLE_DEGREES 1.8  // Stepper motor step angle in degrees
@@ -84,7 +87,8 @@ enum CommandType {
     MOVE,
     HOME,
     JOG,
-    STOP
+    STOP,
+    PATH
 };
 
 CommandType parseCommand(String cmd) {
@@ -93,40 +97,115 @@ CommandType parseCommand(String cmd) {
     if (cmd == "HOME") return HOME;
     if (cmd == "STOP") return STOP;
     if (cmd == "JOG")  return JOG;
+    if (cmd == "PATH")  return PATH;
 
     return STOP;
+}
+
+// Helper function to extract command (uppercase letters at start)
+String extractCommand(String input) {
+    String cmd = "";
+    for (int i = 0; i < input.length(); i++) {
+        char c = input[i];
+        if (c >= 'A' && c <= 'Z') {
+            cmd += c;
+        } else {
+            break;
+        }
+    }
+    return cmd;
+}
+
+// Helper function to parse coordinate data from pipe-separated format
+// Format: "|x,y,magnet" or "x,y,magnet"
+bool parseCoordinates(String data, float& x, float& y, bool& magnet) {
+    // Remove leading '|' if present
+    if (data[0] == '|') {
+        data = data.substring(1);
+    }
+    
+    int firstComma = data.indexOf(',');
+    int secondComma = data.indexOf(',', firstComma + 1);
+    
+    if (firstComma == -1 || secondComma == -1) {
+        return false;
+    }
+    
+    x = data.substring(0, firstComma).toFloat();
+    y = data.substring(firstComma + 1, secondComma).toFloat();
+    magnet = data.substring(secondComma + 1).toInt() != 0;
+    
+    return true;
+}
+
+// Helper function to parse PATH command with multiple coordinate sets
+std::vector<std::string> splitByPipe(String input) {
+    std::vector<std::string> result;
+    int start = 0;
+    
+    for (int i = 0; i <= input.length(); i++) {
+        if (i == input.length() || input[i] == '|') {
+            if (i > start) {
+                String segment = input.substring(start, i);
+                result.push_back(std::string(segment.c_str()));
+            }
+            start = i + 1;
+        }
+    }
+    
+    return result;
 }
 
 void loop() {
     if (Serial.available() > 0) 
     {
-
         String input = Serial.readStringUntil('\n');
-        
-        // Parse format: "MOVE x y magnet_state"
-        int firstSpace = input.indexOf(' ');
-        int secondSpace = input.indexOf(' ', firstSpace + 1);
-        int thirdSpace = input.indexOf(' ', secondSpace + 1);
+        input.trim();
 
-        
-        String commandString = input.substring(0, firstSpace);
-        float posX = input.substring(firstSpace + 1, secondSpace).toFloat();
-        float posY = input.substring(secondSpace + 1, thirdSpace).toFloat(); 
-        bool magnetState = input.substring(thirdSpace).toInt();
-        
-        
+        // Extract command (uppercase letters at start)
+        String commandString = extractCommand(input);
         CommandType commandType = parseCommand(commandString);
+
+        float posX = current_position.x;
+        float posY = current_position.y;
+        bool magnetState = false;
 
         switch (commandType) 
         {
-            case CommandType::CHESSMOVE: 
-                posX = posX * SQUARE_SIZE_MM;
-                posY = posY * SQUARE_SIZE_MM;
-                go_to_position({posX, posY});
-                grab_piece(magnetState);
-                digitalWrite(LED_PIN, magnetState);
+            case CommandType::PATH: {
+                // Parse format: "PATH|x,y,magnet|x,y,magnet|..."
+                std::vector<std::string> segments = splitByPipe(input.substring(4)); // Skip "PATH"
+                
+                for (const auto& segment : segments) {
+                    if (segment.empty()) continue;
+                    
+
+                    String segStr(segment.c_str());
+                    if (parseCoordinates(segStr, posX, posY, magnetState)) {
+                        posX = posX * SQUARE_SIZE_MM;
+                        posY = posY * SQUARE_SIZE_MM;
+                        go_to_position({posX, posY});
+                        grab_piece(magnetState);
+                        digitalWrite(LED_PIN, magnetState);
+                    }
+                }
                 Serial.print("DONE");
                 break;
+            }
+            
+            case CommandType::CHESSMOVE: {
+                // Parse format: "CHESSMOVE x,y,magnet"
+                String dataStr = input.substring(9); // Skip "CHESSMOVE"
+                if (parseCoordinates(dataStr, posX, posY, magnetState)) {
+                    posX = posX * SQUARE_SIZE_MM;
+                    posY = posY * SQUARE_SIZE_MM;
+                    go_to_position({posX, posY});
+                    grab_piece(magnetState);
+                    digitalWrite(LED_PIN, magnetState);
+                }
+                Serial.print("DONE");
+                break;
+            }
 
             case CommandType::MOVE:
                 go_to_position({posX, posY});
@@ -164,11 +243,15 @@ void reset_position() {
 
 void grab_piece(bool state) {
     // Activate magnet to grab piece
+    static bool last_state = false;
+    if (state == last_state) return;
+    last_state = state;
     if (state) {
         myServo.write(servoGrabPosition);
     } else {
         myServo.write(servoReleasePosition);
     }
+    delay(250); // Small delay to ensure magnet state change
 }
 
 std::pair<float, float> get_steps(float delta_x, float delta_y) {
