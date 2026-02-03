@@ -48,6 +48,7 @@ void goHome(bool isFastHome);
 void reset_position();
 void grab_piece(bool state);
 void release_piece(bool state);
+void move_distance(float delta_x, float delta_y);
 
 Servo myServo;
 
