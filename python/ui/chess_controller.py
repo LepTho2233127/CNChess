@@ -2,22 +2,23 @@
 
 import chess
 from Control import Control
+from Communication import Communication
 from PyQt6.QtCore import QTimer
 
 
 class ChessController:
     """Controller for managing chess game logic and user interactions."""
     
-    def __init__(self, cn_chess, view=None):
+    def __init__(self, cn_chess, control, view=None):
         """Initialize the controller with CNChess instance and optional view."""
         self.cn_chess = cn_chess
         self.view = view
         self.selected_piece = None
-        self.computer_timer = QTimer()
-        self.computer_timer.timeout.connect(self.handle_computer_move)
         self.cn_chess.set_player_color(chess.WHITE)
-        self.control = Control()
+        self.control = control
         self.control.update_board_state(self.cn_chess.get_board_state())
+        self.communication = Communication()
+
     def set_view(self, view):
         """Set the view after initialization."""
         self.view = view
@@ -95,7 +96,7 @@ class ChessController:
             if self.cn_chess.validate_move(move):
                 self.cn_chess.make_move(move)
                 if self.cn_chess.get_turn() == self.cn_chess.computer_color:
-                    self.computer_timer.start(1000)
+                    self.handle_computer_move()
                 return True
             else:
                 # Try as promotion move for pawns
@@ -119,7 +120,6 @@ class ChessController:
 
     def handle_computer_move(self):
         """Handle the computer's move."""
-        self.computer_timer.stop()
 
         if self.cn_chess.check_game_over():
             return
@@ -130,14 +130,21 @@ class ChessController:
         if computer_move and self.cn_chess.validate_move(computer_move):
             self.control.update_board_state(self.cn_chess.get_board_state())
             path = self.control.get_path(computer_move)
+    
             self.control.print_path(path)
             self.cn_chess.make_move(computer_move)
             self.view.board_widget.set_trajectory(path)
             self.view.board_widget.set_computer_turn(True)
             # Update the view
             self._update_view()
-            self.view.board_widget.set_computer_turn(False)
-            
+
+            for cmd in path :
+                self.communication.send_command(cmd)
+
             # Check if now it's player's turn again
             if self.cn_chess.get_turn() == self.cn_chess.player_color:
                 self.selected_piece = None
+
+    def handle_go_home(self):
+
+        self.communication.goHome()

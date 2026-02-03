@@ -2,10 +2,8 @@
 
 # It will take a chess move and transform it into physical actions and send it via serial bus
 
-from time import time
 import numpy as np
 import chess
-import serial
 
 # Here is all the object for a* pathfinding algorithm
 class Position:
@@ -28,7 +26,6 @@ class Command:
     def __init__(self, position: Position = Position(0.0, 0.0), magnet_state: bool = False):
         self.position = position
         self.magnet_state = magnet_state
-
 
 class Node:
 
@@ -54,7 +51,6 @@ class Node:
         # Hash by position so Nodes can live in sets/dicts during pathfinding
         return hash(self.position)
 
-
 class Grid:   
     nodes: list[list[Node]]
     width: int
@@ -62,7 +58,7 @@ class Grid:
     obstacle_remove_position: Position
 
     def __init__(self, width: int, height: int):
-        self.obstacle_remove_position = Position(8.5, 4.5)  # Position to remove obstacle for captured pieces
+        self.obstacle_remove_position = Position(0.5, 4.5)  # Position to remove obstacle for captured pieces
         self.width = width * 2 + 1
         self.height = height * 2 + 1
         # Use half-step coordinates so intermediate nodes land between board squares
@@ -87,9 +83,6 @@ class Grid:
                 neighbors.append(neighbor_node)
 
         return neighbors
-    
-    def add_link(self, from_node: Node, to_node: Node):
-        from_node.neighbors.append(to_node)
 
     def initialize_links(self):
         for i in range(self.height):
@@ -175,43 +168,19 @@ class Grid:
                 else:
                     self.remove_obstacle(position)
 
-    def print_grid(self):
-        # inverted y-axis for printing
-        for i in range(self.height-1, -1, -1):
-            row = ""
-            for j in range(self.width):
-                node = self.nodes[i][j]
-                if len(node.neighbors) == 0:
-                    row += " X "
-                else:
-                    row += " . "
-            print(row)
-
     def is_obstacle(self, position: Position) -> bool:
         node = self.get_node(position)
         if node:
             return len(node.neighbors) == 0
         return False
 
-
 class Control:
-    SQUARE_SIZE_MM = 50.8  # Size of a chess square in millimeters
-    STEP_ANGLE_DEGREES = 1.8  # Stepper motor step angle in degrees
-    PULLEY_DIAMETER = 12.0  # Pulley diameter in millimeters
     grid: Grid
-    mm_per_step: float
-    circumference: float
-    current_position: Position
-    ser: serial.Serial
 
     def __init__(self):
-        self.circumference = np.pi * self.PULLEY_DIAMETER
         self.grid = Grid(8, 8)
         self.grid.initialize_links()
-        self.current_position = Position(0, 0)  # Start at home position
-        # self.ser = serial.Serial('COM3', 115200, timeout=1)
-        # time.sleep(2) # attendre reset Arduino
-    
+
     def update_board_state(self, boardState: str):
         self.grid.update_obstacles(boardState)
     
@@ -242,80 +211,40 @@ class Control:
             if i == 0:
                 # Turn magnet on at start position
                 commands.append(Command(pos, True))
-            elif i == len(path_to_obstacle_removal) - 1:
+            elif i == len(path_to_obstacle_removal) - 1 or i == len(full_path) - 1:
                 # Turn magnet off at end position
                 commands.append(Command(pos, False))
             else:
                 # Keep magnet on during movement
                 commands.append(Command(pos, True))
-        return commands
+
+        output = self.optimize_path(commands)
+        return output
     
+
+    def optimize_path(self, path: list[Command]) -> list[Command]:
+        if not path:
+            return []
+        
+        optimized_path = [path[0]]
+        for i in range(1, len(path) - 1):
+            prev_cmd = optimized_path[-1]
+            curr_cmd = path[i]
+            next_cmd = path[i + 1]
+
+            vec1 = (curr_cmd.position.x - prev_cmd.position.x, curr_cmd.position.y - prev_cmd.position.y)
+            vec2 = (next_cmd.position.x - curr_cmd.position.x, next_cmd.position.y - curr_cmd.position.y)
+
+            # Check if the direction is the same (collinear)
+            if vec1[0] * vec2[1] != vec1[1] * vec2[0] or curr_cmd.magnet_state != prev_cmd.magnet_state:
+                optimized_path.append(curr_cmd)
+
+        optimized_path.append(path[-1])  # Always include the last command
+        return optimized_path
+
     def print_path(self, path: list[Command]):
         for cmd in path:
             pos = cmd.position
             print(f"({pos.x}, {pos.y})", end=" -> ")
-        print("END")
-
-    def calculate_trajectory(self, path: list[Command]):
-        trajectory = []
-        path.insert(0, Command(self.current_position, False))  # Start from current position
-        for i in range(1, len(path)):
-            start = path[i - 1]
-            end = path[i]
-            delta_x = (end.position.x - start.position.x) * self.SQUARE_SIZE_MM
-            delta_y = (end.position.y - start.position.y) * self.SQUARE_SIZE_MM
-
-            pos = Position(delta_x, delta_y)
-
-            trajectory.append(pos)
-            self.current_position = end.position
-        return trajectory 
-
-    def goHome(self):
-        # Placeholder for homing procedure
-        pass
-
-    def make_move(self, move:chess.Move):
-
-        path = self.get_path(move)
-        traj = self.calculate_trajectory(path)
-
-        for pos in traj : 
-            self.go_to_position(pos)
-            
-    def go_to_position(self, pos:Position): 
-
-        step_motors = self.convert_to_step(pos)
-        self.send_command(step_motors)
-        
-
-    def convert_to_step(self, pos:Position) -> tuple:
-
-        rot_step1 = -360 * (pos.x + pos.y) / (self.circumference * np.sqrt(2))
-        rot_step2 = -((2*pos.x * 360/(self.circumference*np.sqrt(2))) + rot_step1)
-        step_mot1 = rot_step1 / self.STEP_ANGLE_DEGREES
-        step_mot2 = rot_step2 / self.STEP_ANGLE_DEGREES
-
-        return (step_mot1, step_mot2)
-
-    def send_command(self, steps: tuple):
-        self.ser.write(f"MOVE {int(steps[0])} {int(steps[1])}\n".encode('utf-8'))
-        start_time = time.time()
-        while self.ser.in_waiting == 0:
-            if time.time() - start_time > 30:
-                print("Error: No response from motor controller.")
-                return False
-            pass
-
-        response = self.ser.readline().decode('utf-8').strip()
-        if response != "DONE":
-            print("Error: Unexpected response from motor controller:", response)
-            return False
-        return True
-
-    def print_trajectory(self, trajectory: list[tuple[float, float]]):
-        for step in trajectory:
-            print(f"Motor1: {step[0]}, Motor2: {step[1]}")
-    
-    
+        print("END")    
     

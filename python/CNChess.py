@@ -45,7 +45,6 @@ class CNChess:
         return self.next_computer_move
     
     def get_next_best_move(self):
-        print("Calculating next best move...")
         self.computer.set_fen_position(self.board.fen())
         best_move_uci = self.computer.get_best_move()
         if best_move_uci:
@@ -54,7 +53,6 @@ class CNChess:
             return chess.Move.null()
 
     def make_move(self, move):
-        print(f"Executing move: {move}")
         self.board.push(move)
     
     def get_board_state(self):
@@ -71,7 +69,6 @@ class CNChess:
         self.board.reset()
 
     def get_turn(self):
-        # print("Current turn:", "White" if self.board.turn == chess.WHITE else "Black")
         return self.board.turn
 
     
