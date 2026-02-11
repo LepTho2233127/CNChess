@@ -44,7 +44,10 @@ class ChessBoardWidget(QWidget):
         """Load piece images from assets directory."""
         images = {}
         # Navigate up to python folder, then to chess_assets
-        assets_dir = os.path.join(os.path.dirname(__file__), '..', 'chess_assets')
+        assets_dir = os.path.join(os.path.dirname(__file__), 'assets')
+        assets_dir = os.path.join(assets_dir, 'chess_assets')
+
+        print("assets_dir:", assets_dir)
         
         piece_names = {
             'K': 'white-king', 'Q': 'white-queen', 'R': 'white-rook',
