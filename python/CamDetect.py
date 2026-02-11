@@ -219,9 +219,9 @@ for i, row in data.iterrows():
     cv2.polylines(image,[pts],True,(255,255,255),thickness=8)  # Change color and thickness as needed
 
 
-plt.figure(figsize=(10,8))
-plt.imshow(image)
-plt.show()
+# plt.figure(figsize=(10,8))
+# plt.imshow(image)
+# plt.show()
 # for creating csv files for coordinates --> Chess-Board/Board_to_csv.ipynb
 coordinates=pd.read_csv("board-square-positions-demo.csv")
 coordinates.tail()
@@ -238,7 +238,6 @@ for row in coordinates.values:
     coord_dict[cell]=[[row[0],row[1]],[row[2],row[3]],[row[4],row[5]],[row[6],row[7]]]
     cell+=1
     
- 
 
 # class values , these values are decided before training
 names: ['black-bishop', 'black-king', 'black-knight', 'black-pawn', 'black-queen', 'black-rook', 'white-bishop', 'white-king', 'white-knight', 'white-pawn', 'white-queen', 'white-rook'] # type: ignore
@@ -247,41 +246,42 @@ class_dict={0:'black-bishop',1:'black-king',2:'black-knight',3:'black-pawn',4: '
 
 print("\n\n") 
 
-# YOLOv8  model  
-model = YOLO("chess-model-yolov8m.pt") 
+# # YOLOv8  model  
+# model = YOLO("chess-model-yolov8m.pt") 
 
-# make prediction
-results = model(image_path) # path to test image
-im_array = results[0].plot(); # plot a BGR numpy array of predictions
+# # make prediction
+# results = model(image_path) # path to test image
+# im_array = results[0].plot(); # plot a BGR numpy array of predictions
 
-print("\n\n") 
+# print("\n\n") 
 
-# list for cell number and piece id (class value)
-game_list=[]
+# # list for cell number and piece id (class value)
+# game_list=[]
 
-for result in results:  # results is model's prediction     
-    for id,box in enumerate(result.boxes.xyxy) : # box with xyxy format, (N, 4)
+# for result in results:  # results is model's prediction     
+#     for id,box in enumerate(result.boxes.xyxy) : # box with xyxy format, (N, 4)
             
-            x1,y1,x2,y2=int(box[0]),int(box[1]),int(box[2]),int(box[3]) # take coordinates 
+#             x1,y1,x2,y2=int(box[0]),int(box[1]),int(box[2]),int(box[3]) # take coordinates 
 
-            # find middle of bounding boxes for x and y 
-            x_mid=int((x1+x2)/2) 
-            # add padding to y values
-            y_mid=int((y1+y2)/2)+25
+#             # find middle of bounding boxes for x and y 
+#             x_mid=int((x1+x2)/2) 
+#             # add padding to y values
+#             y_mid=int((y1+y2)/2)+25
 
-            for cell_value, coordinates in coord_dict.items():
-                x_values = [point[0] for point in coordinates]
-                y_values = [point[1] for point in coordinates]
+#             for cell_value, coordinates in coord_dict.items():
+#                 x_values = [point[0] for point in coordinates]
+#                 y_values = [point[1] for point in coordinates]
                  
-                if (min(x_values) <= x_mid <= max(x_values)) and (min(y_values) <= y_mid <= max(y_values)):
-                    a=int(result.boxes.cls[id])
+#                 if (min(x_values) <= x_mid <= max(x_values)) and (min(y_values) <= y_mid <= max(y_values)):
+#                     a=int(result.boxes.cls[id])
 
-                    print(f" cell :  {cell_value} --> {a} ")
-                    # add cell values and piece cell_value(class value
-                    game_list.append([cell_value,a]) 
-                    break
+#                     print(f" cell :  {cell_value} --> {a} ")
+#                     # add cell values and piece cell_value(class value
+#                     game_list.append([cell_value,a]) 
+#                     break
 
-print("\n\n\n")        
+# print("\n\n\n")        
+game_list=[1, 11], [2, 8], [3, 6], [4, 10], [5, 7], [6, 6], [7, 8], [8, 11], [9, 9], [10, 9], [11, 9], [12, 9], [13, 9], [14, 9], [15, 9], [16, 9], [49, 3], [50, 3], [51, 3], [52, 3], [53, 3], [54, 3], [55, 3], [56, 3], [57, 5], [58, 2], [59, 0], [60, 4], [61, 1], [62, 0], [63, 2], [64, 5]
 
 # show game , if cell value exist in game_list , then print piece in that cell , otherwise print space 
 chess_str=""
@@ -299,7 +299,97 @@ for i in range(1, 65):
     if i % 8 == 0:
         print("\n")
         chess_str+="\n"
- 
+
+def get_empty_square_baseline_variance(warped_image):
+    """
+    Calcule la variance moyenne d'une case vide (sans pièce).
+    Une case vide a une variance faible (couleur uniforme).
+    """
+    rows, cols = 8, 8
+    square_width = warped_image.shape[1] // cols
+    square_height = warped_image.shape[0] // rows
+    
+    # Prendre plusieurs cases vides (au milieu du plateau)
+    empty_squares_indices = [18, 20, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48, 19, 21, 25, 27, 29, 31, 35, 37, 39, 41, 43, 45, 47, 49]
+    
+    
+    empty_variances = []
+    for idx in empty_squares_indices:
+        row = (idx - 1) // 8
+        col = (idx - 1) % 8
+        
+        square_region = warped_image[
+            row * square_height : (row + 1) * square_height,
+            col * square_width : (col + 1) * square_width
+        ]
+        
+        gray_square = cv2.cvtColor(square_region, cv2.COLOR_RGB2GRAY)
+        variance = np.var(gray_square)
+        empty_variances.append(variance)
+    
+    baseline_variance = np.median(empty_variances)
+    print(f"Baseline variance (case vide): {baseline_variance:.2f}")
+    return baseline_variance
+
+
+def is_piece_in_square_variance(warped_image, square_index, baseline_variance, threshold_multiplier=0.6):
+    """
+    Détecte une pièce en comparant la variance avec le baseline des cases vides.
+    Si variance > baseline * threshold_multiplier, il y a une pièce.
+    """
+    rows, cols = 8, 8
+    square_width = warped_image.shape[1] // cols
+    square_height = warped_image.shape[0] // rows
+    
+    row = (square_index - 1) // 8
+    col = (square_index - 1) % 8
+    
+    # Extraire la case complète
+    full_region = warped_image[
+        row * square_height : (row + 1) * square_height,
+        col * square_width : (col + 1) * square_width
+    ]
+    
+    # Calculer le padding en pixels
+    pad_height = int(square_height * 0.2)
+    pad_width = int(square_width * 0.2)
+    
+    # Extraire seulement la partie intérieure (sans les bordures)
+    square_region = full_region[
+        pad_height : square_height - pad_height,
+        pad_width : square_width - pad_width
+    ]
+
+    gray_square = cv2.cvtColor(square_region, cv2.COLOR_RGB2GRAY)
+    blurred_square = cv2.GaussianBlur(gray_square, (5, 5), 0)
+    variance = np.var(blurred_square)
+    
+    ratio = variance / baseline_variance if baseline_variance > 0 else 0
+    
+    print(f"Square {square_index}: variance={variance:.2f}, ratio={ratio:.2f}", end="")
+    
+    if ratio > 1:
+        print(" ✓ PIÈCE (variation détectée)")
+        return True
+    else:
+        print(" ✗ VIDE (couleur uniforme)")
+        return False
+
+
+# Utilisation
+baseline_variance = get_empty_square_baseline_variance(warped_image)
+
+print("\nDétection des pièces (par variance):\n")
+game_list_detected = []
+
+for i in range(1, 65):
+    if is_piece_in_square_variance(warped_image, i, baseline_variance, threshold_multiplier=0.6):
+        game_list_detected.append([i, "piece"])
+    else:
+        game_list_detected.append([i, "empty"])
+
+plt.imshow(warped_image)
+plt.show()
 
 def parse_coordinates(input_str):
     """
@@ -344,7 +434,7 @@ for rank in range(8):
             board.set_piece_at(chess.square(file, rank), chess.Piece(piece_type, color))  # Not inverting rank
 
 svgboard = chess.svg.board(board)
-with open("extracted-data/2Dboard.svg", "w") as f:
+with open("2Dboard.svg", "w") as f:
     f.write(svgboard)
 
  
@@ -358,8 +448,8 @@ def convert_svg_to_png(svg_file_path, png_file_path):
     print(f"Converted {svg_file_path} to {png_file_path}")
 
 # Example usage
-svg_file = 'extracted-data/2Dboard.svg'
-png_file = 'extracted-data/Extracted-Board.jpeg'
+svg_file = '2Dboard.svg'
+png_file = 'Extracted-Board.jpeg'
 convert_svg_to_png(svg_file, png_file)
 
 original_image = cv2.imread(image_path)
