@@ -96,8 +96,8 @@ class ChessController:
             if self.cn_chess.validate_move(move):
                 self.make_move(move)
                 
-                # if self.cn_chess.get_turn() == self.cn_chess.computer_color:
-                #     self.handle_computer_move()
+                if self.cn_chess.get_turn() == self.cn_chess.computer_color:
+                    self.handle_computer_move()
                 return True
             else:
                 # Try as promotion move for pawns
