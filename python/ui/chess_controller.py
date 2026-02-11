@@ -94,16 +94,16 @@ class ChessController:
             
             # Validate move with promotion if needed
             if self.cn_chess.validate_move(move):
-                self.cn_chess.make_move(move)
-                if self.cn_chess.get_turn() == self.cn_chess.computer_color:
-                    self.handle_computer_move()
+                self.make_move(move)
+                
+                # if self.cn_chess.get_turn() == self.cn_chess.computer_color:
+                #     self.handle_computer_move()
                 return True
             else:
                 # Try as promotion move for pawns
                 for promotion in [chess.QUEEN, chess.ROOK, chess.BISHOP, chess.KNIGHT]:
                     move = chess.Move(from_square, to_square, promotion=promotion)
                     if self.cn_chess.validate_move(move):
-                        self.cn_chess.make_move(move)
                         self.handle_computer_move()
                         return True
         except Exception:
@@ -129,15 +129,8 @@ class ChessController:
         computer_move = self.cn_chess.get_next_best_move()
 
         if computer_move and self.cn_chess.validate_move(computer_move):
-            self.control.update_board_state(self.cn_chess.get_board_state())
-            path = self.control.get_path(computer_move)
-    
             
-        
-            self.control.print_path(path)
-            self.cn_chess.make_move(computer_move)
-            self.view.board_widget.set_trajectory(path)
-            self.view.board_widget.set_computer_turn(True)
+            path = self.make_move(computer_move)
             # Update the view
             self._update_view()
 
@@ -146,3 +139,15 @@ class ChessController:
             # Check if now it's player's turn again
             if self.cn_chess.get_turn() == self.cn_chess.player_color:
                 self.selected_piece = None
+
+
+    def make_move(self, move):
+        self.control.update_board_state(self.cn_chess.get_board_state())
+        path = self.control.get_path(move, self.cn_chess.get_board())
+
+        self.control.print_path(path)
+        self.cn_chess.make_move(move)
+        self.view.board_widget.set_trajectory(path)
+        self.view.board_widget.set_computer_turn(True)
+
+        return path
