@@ -3,6 +3,10 @@ from PyQt6.QtCore import Qt
 import sys
 
 class SettingsView(QWidget):
+
+    width_mm = 431.8
+    height_mm = 406.4
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.init_ui()
