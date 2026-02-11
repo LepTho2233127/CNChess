@@ -97,18 +97,26 @@ def remap_index(r_disp, c_disp, cam_rot):
     return r_std, c_std
 
 # === Buka kamera ===
-cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
-if not cap.isOpened():
-    exit()
+# cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+# if not cap.isOpened():
+#     exit()
+image_path = r"image.png"
 
+
+
+# read image and convert it to different color spaces 
+image = cv2.imread(image_path)
 cv2.namedWindow("Kalibrasi Papan")
 cv2.setMouseCallback("Kalibrasi Papan", mouse_click)
 
 
 while True:
-    ret, frame = cap.read()
-    if not ret:
-        continue
+    #ret, frame = cap.read()
+    #ret, 
+    frame = image
+
+    # if not ret:
+    #     continue
 
     vis = frame.copy()
 
