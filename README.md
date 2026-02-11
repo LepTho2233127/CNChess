@@ -10,8 +10,6 @@ Projet de S4
 
 ### 3. Open WSL inside project folder
 
-
-
 ### 4. Install docker
 
 ```bash
