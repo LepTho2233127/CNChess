@@ -221,8 +221,27 @@ class Control:
             else:
                 # Keep magnet on during movement
                 commands.append(Command(pos, True))
+        
+        if move == chess.Move.from_uci("e1g1") or \
+            move == chess.Move.from_uci("e1c1") or \
+            move == chess.Move.from_uci("e8g8") or \
+            move == chess.Move.from_uci("e8c8"):
+
+            # TODO: Update obstacle before calculating rook path to ensure it accounts for king's new position
+            self.grid.add_obstacle(end_pos)  # Temporarily add obstacle back to calculate rook path correctly
+
+            # Handle castling by moving the king first, then the rook
+            if move == chess.Move.from_uci("e1g1"):
+                commands = commands + self.get_path(chess.Move.from_uci("h1f1"))
+            elif move == chess.Move.from_uci("e1c1"):
+                commands = commands + self.get_path(chess.Move.from_uci("a1d1"))
+            elif move == chess.Move.from_uci("e8g8"):
+                commands = commands + self.get_path(chess.Move.from_uci("h8f8"))
+            elif move == chess.Move.from_uci("e8c8"):
+                commands = commands + self.get_path(chess.Move.from_uci("a8d8"))
 
         output = self.optimize_path(commands)
+
         return output
     
 
