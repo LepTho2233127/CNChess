@@ -35,7 +35,7 @@ AccelStepper stepper2(AccelStepper::DRIVER, STEP_PIN_2, DIR_PIN_2); // step, dir
 MultiStepper steppers;
 
 int servoGrabPosition = 0; // Servo position to grab piece0
-int servoReleasePosition = 170; // Servo position to release piece170
+int servoReleasePosition = 95; // Servo position to release piece170
 static bool isFastHome = false;
 
 struct Position{
@@ -48,6 +48,7 @@ struct Data{
 };
 
 Position current_position;
+Position drop_position = {0.5, 4.5};
 
 std::pair<float, float> get_steps(float delta_x, float delta_y);
 
@@ -57,6 +58,7 @@ void reset_position();
 void grab_piece(bool state);
 void release_piece(bool state);
 void move_distance(float delta_x, float delta_y);
+void drop_piece();
 
 Servo myServo;
 
@@ -185,6 +187,9 @@ void loop() {
                         posX = posX * SQUARE_SIZE_MM;
                         posY = posY * SQUARE_SIZE_MM;
                         go_to_position({posX, posY});
+                        if ((abs(posX - drop_position.x*SQUARE_SIZE_MM)) < 0.01 && (abs(posY - drop_position.y*SQUARE_SIZE_MM)) < 0.01) {
+                            drop_piece();
+                        }
                         grab_piece(magnetState);
                         digitalWrite(LED_PIN, magnetState);
                     }
@@ -199,7 +204,11 @@ void loop() {
                 if (parseCoordinates(dataStr, posX, posY, magnetState)) {
                     posX = posX * SQUARE_SIZE_MM;
                     posY = posY * SQUARE_SIZE_MM;
+
                     go_to_position({posX, posY});
+                    if ((posX == drop_position.x*SQUARE_SIZE_MM) && (posY == drop_position.y*SQUARE_SIZE_MM)) {
+                        drop_piece();
+                    }
                     grab_piece(magnetState);
                     digitalWrite(LED_PIN, magnetState);
                 }
@@ -330,5 +339,11 @@ void goHome() {
     reset_position();
     
 
+}
+
+void drop_piece() {
+    go_to_position({0, SQUARE_SIZE_MM*5});
+    go_to_position({-DEADZONE_MM, SQUARE_SIZE_MM*5});
+    go_to_position({-DEADZONE_MM, SQUARE_SIZE_MM*2});
 }
 
