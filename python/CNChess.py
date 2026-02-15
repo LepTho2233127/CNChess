@@ -20,10 +20,31 @@ class CNChess:
         self.next_computer_move = None
         self.next_player_move = None
         self.computer = stockfish.Stockfish(path=self.stockfish_path, depth=self.stockfish_depth)
+        self.EASY_ELO = 1350
+        self.EASY_DEPTH = 5
+        self.MEDIUM_ELO = 1350
+        self.MEDIUM_DEPTH = 10
+        self.HARD_ELO = 1700
+        self.HARD_DEPTH = 10
 
 
     def set_elo(self, elo: int):
         self.computer.set_elo_rating(elo)
+
+    def set_depth(self, depth: int):
+        self.computer.set_depth(depth)
+
+    def set_difficulty(self, difficulty: str):
+        """Set the difficulty level of the computer opponent. Valid values are 'easy', 'medium', and 'hard'."""
+
+        if difficulty not in ["easy", "medium", "hard"]:
+            raise ValueError("Invalid difficulty level. Must be 'easy', 'medium', or 'hard'.")
+
+        elo = self.EASY_ELO if difficulty == "easy" else self.MEDIUM_ELO if difficulty == "medium" else self.HARD_ELO
+        depth = self.EASY_DEPTH if difficulty == "easy" else self.MEDIUM_DEPTH if difficulty == "medium" else self.HARD_DEPTH    
+
+        self.set_elo(elo)
+        self.set_depth(depth)
 
     def set_player_color(self, color: chess.Color):
         self.player_color = color

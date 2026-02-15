@@ -8,6 +8,7 @@ from Control import Control
 
 from ui.chess_view import ChessView
 from ui.chess_controller import ChessController
+from ui.home_page import HomeView, HomePageController
 
 if __name__ == "__main__":
 
