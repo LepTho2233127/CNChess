@@ -2,7 +2,7 @@
 
 import os
 import sys
-from PyQt6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QPushButton, QHBoxLayout, QLabel
+from PyQt6.QtWidgets import QMainWindow, QWidget, QPushButton, QLabel
 from PyQt6.QtCore import Qt, pyqtSignal, QSize, QFile, QThread
 from PyQt6.QtGui import QPainter, QColor, QPixmap, QFont, QPen
 from PyQt6 import uic

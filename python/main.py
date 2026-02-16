@@ -24,11 +24,12 @@ if __name__ == "__main__":
       # Create the Qt application
     app = QApplication(sys.argv) 
     # Create view and controller
-    view = ChessView(game)
-    controller = ChessController(game, control, view)
+    # view = ChessView(game)
+    view = HomeView(game, HomePageController(game))
+    # controller = ChessController(game, control, view)
     
     # Set the controller in the view
-    view.controller = controller
+    # view.controller = controller
     
     # Show the window
     view.show()
