@@ -6,9 +6,7 @@ from PyQt6.QtWidgets import QApplication
 from CNChess import CNChess
 from Control import Control
 
-from ui.chess_view import ChessView
-from ui.chess_controller import ChessController
-from ui.home_page import HomeView, HomePageController
+from ui.main_ui import MainUI
 
 if __name__ == "__main__":
 
@@ -23,16 +21,11 @@ if __name__ == "__main__":
 
       # Create the Qt application
     app = QApplication(sys.argv) 
-    # Create view and controller
-    # view = ChessView(game)
-    view = HomeView(game, HomePageController(game))
-    # controller = ChessController(game, control, view)
     
-    # Set the controller in the view
-    # view.controller = controller
+    ui = MainUI(game)
     
     # Show the window
-    view.show()
+    ui.show()
     
     # Run the application event loop
     sys.exit(app.exec())

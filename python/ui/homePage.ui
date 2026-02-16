@@ -237,7 +237,7 @@
     </layout>
    </item>
    <item>
-    <widget class="QPushButton" name="btn_StartGame">
+    <widget class="QPushButton" name="startButton">
      <property name="enabled">
       <bool>true</bool>
      </property>
@@ -261,7 +261,7 @@
  <resources/>
  <connections/>
  <buttongroups>
-  <buttongroup name="difficultyButtonGroup"/>
   <buttongroup name="colorButtonGroup"/>
+  <buttongroup name="difficultyButtonGroup"/>
  </buttongroups>
 </ui>

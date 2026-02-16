@@ -15,13 +15,13 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout_GameMain" stretch="0,1">
+    <layout class="QHBoxLayout" name="horizontalLayout_GameMain" stretch="0,0">
      <item>
       <layout class="QVBoxLayout" name="layout_Left">
        <item>
         <widget class="QLabel" name="labelHistory">
          <property name="text">
-          <string>Historique</string>
+          <string>History</string>
          </property>
         </widget>
        </item>
@@ -41,21 +41,27 @@
           <string>background-color: #F44336; color: white;</string>
          </property>
          <property name="text">
-          <string>Quitter la partie</string>
+          <string>Quit game</string>
          </property>
         </widget>
        </item>
       </layout>
      </item>
      <item>
-      <layout class="QVBoxLayout" name="layout_Right" stretch="0,1">
+      <layout class="QVBoxLayout" name="layout_Right" stretch="0,0,0">
        <item>
-        <layout class="QHBoxLayout" name="layout_Timers">
+        <layout class="QHBoxLayout" name="layout_Timers" stretch="0,1,0,0">
+         <property name="spacing">
+          <number>15</number>
+         </property>
+         <property name="leftMargin">
+          <number>25</number>
+         </property>
          <item>
           <widget class="QLCDNumber" name="timeWhite"/>
          </item>
          <item>
-          <widget class="QLabel" name="lbl_Turn">
+          <widget class="QLabel" name="labelTurn">
            <property name="font">
             <font>
              <pointsize>12</pointsize>
@@ -64,7 +70,7 @@
             </font>
            </property>
            <property name="text">
-            <string>Tour : Blancs</string>
+            <string>Turn indicator</string>
            </property>
            <property name="alignment">
             <set>Qt::AlignCenter</set>
@@ -81,6 +87,17 @@
            </property>
           </widget>
          </item>
+         <item>
+          <widget class="QPushButton" name="settingsButton">
+           <property name="text">
+            <string/>
+           </property>
+           <property name="icon">
+            <iconset>
+             <normaloff>../../../../../../Downloads/gear_icon.png</normaloff>../../../../../../Downloads/gear_icon.png</iconset>
+           </property>
+          </widget>
+         </item>
         </layout>
        </item>
        <item>
@@ -93,6 +110,31 @@
          </property>
          <layout class="QGridLayout" name="gridLayout_Board"/>
         </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_3">
+         <item>
+          <widget class="QPushButton" name="backwardMoveButton">
+           <property name="text">
+            <string>&lt;</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="forwardMoveButton">
+           <property name="text">
+            <string>&gt;</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="resignButton">
+           <property name="text">
+            <string>Resign</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
        </item>
       </layout>
      </item>
