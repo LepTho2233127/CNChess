@@ -48,7 +48,7 @@
       </layout>
      </item>
      <item>
-      <layout class="QVBoxLayout" name="layout_Right" stretch="0,0,0">
+      <layout class="QVBoxLayout" name="rightLayout" stretch="0,0,0">
        <item>
         <layout class="QHBoxLayout" name="layout_Timers" stretch="0,1,0,0">
          <property name="spacing">
@@ -104,7 +104,7 @@
         <layout class="QGridLayout" name="gridBoard"/>
        </item>
        <item>
-        <layout class="QHBoxLayout" name="horizontalLayout_3">
+        <layout class="QHBoxLayout" name="buttonBoardLayout">
          <item>
           <widget class="QPushButton" name="backwardMoveButton">
            <property name="text">

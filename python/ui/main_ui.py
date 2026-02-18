@@ -11,6 +11,7 @@ from ui.settings_view import SettingsView
 class MainUI(QMainWindow):
 
     def __init__(self, chess_model):
+
         super().__init__()
         self.chess_model = chess_model
 
