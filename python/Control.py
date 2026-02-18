@@ -58,7 +58,7 @@ class Grid:
     obstacle_remove_position: Position
 
     def __init__(self, width: int, height: int):
-        self.obstacle_remove_position = Position(0.5, 4.5)  # Position to remove obstacle for captured pieces
+        self.obstacle_remove_position = Position(0.5, 5.5)  # Position to remove obstacle for captured pieces
         self.width = width * 2 + 1
         self.height = height * 2 + 1
         # Use half-step coordinates so intermediate nodes land between board squares
