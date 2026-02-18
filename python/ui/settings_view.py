@@ -1,19 +1,38 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QSlider, QPushButton, QDoubleSpinBox, QApplication, QGraphicsView
-from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
+                             QLabel, QSlider, QPushButton, QDoubleSpinBox, QApplication,
+                             QStyleOption, QStyle)
+from PyQt6.QtCore import Qt, QRect
+from PyQt6.QtGui import QPainter
 import sys
 
 class SettingsView(QWidget):
-
-    width_mm = 431.8
-    height_mm = 406.4
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.init_ui()
 
     def init_ui(self):
-        layout = self.build_speed()
-        self.setLayout(layout)
+        grid = self.build_grid()
+        layout_coord = self.build_coord()
+        layout_remoteXY = self.build_remoteXY()
+        layout_controls = self.build_controls()
+        layout_speed = self.build_speed()
+
+        coord_layout = QVBoxLayout()
+        coord_layout.addWidget(grid)
+        coord_layout.addLayout(layout_coord)
+        coord_layout.addLayout(layout_remoteXY)
+        coord_layout.addLayout(layout_controls)
+        left_layout = QHBoxLayout()
+        left_layout.addLayout(coord_layout)
+        left_layout.addLayout(layout_speed)
+        camera_layout = self.build_camera()
+        
+        main_layout = QHBoxLayout()
+        main_layout.addLayout(left_layout)
+        main_layout.addLayout(camera_layout)
+
+        self.setLayout(main_layout)
 
     def build_remoteXY(self):
 
@@ -75,34 +94,45 @@ class SettingsView(QWidget):
         go_button = QPushButton("GO", self)
         go_button.clicked.connect(self.go)
 
-        controls_layout = self.build_controls()
-
         layout = QHBoxLayout()
         layout.addWidget(X_spinner)
         layout.addWidget(y_spinner)
         layout.addWidget(go_button)
-        layout.addLayout(controls_layout)
 
         return layout
     
     def build_speed(self):
 
-        speed_label = QLabel("Speed", self)
+        speed_label = QLabel("Speed : 50%", self)
 
         speed_slider = QSlider(self)
         speed_slider.setOrientation(Qt.Orientation.Vertical)
         speed_slider.setRange(0, 100)
         speed_slider.setValue(50)
+        speed_slider.valueChanged.connect(lambda value: speed_label.setText(f"Speed : {value}%"))
 
         layout = QVBoxLayout()
-        layout.addWidget(speed_label)
-        layout.addWidget(speed_slider)
+        layout.addWidget(speed_label, alignment=Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(speed_slider, alignment=Qt.AlignmentFlag.AlignHCenter)
 
         return layout
     
     def build_grid(self):
-        pass
-        # canvas = GridView()
+        grid = GridView()
+        return grid
+
+    def build_camera(self):
+        footage = QPushButton("Camera Footage", self)
+        footage.setFixedSize(400, 300)
+
+        pic_button = QPushButton("Take Picture", self)
+        pic_button.clicked.connect(self.take_picture)
+
+        layout = QVBoxLayout()
+        layout.addWidget(footage)
+        layout.addWidget(pic_button)
+
+        return layout
 
     def go(self):
         print("go")
@@ -125,7 +155,40 @@ class SettingsView(QWidget):
     def move_right(self):
         print("move right")
 
-# class GridView(QGraphicsView):
+    def take_picture(self):
+        print("take picture")
+
+class GridView(QWidget):
+
+    grid_width_mm = 431.8
+    grid_height_mm = 406.4
+    x = 0
+    y = 0
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.init()
+
+    def init(self):
+        self.setFixedSize(int(self.grid_width_mm), int(self.grid_height_mm))
+        self.setStyleSheet("background-color: white; border: 1px solid black;")
+    
+    def paintEvent(self, event):
+        opt = QStyleOption()
+        opt.initFrom(self)
+        p = QPainter(self)
+        self.style().drawPrimitive(QStyle.PrimitiveElement.PE_Widget, opt, p, self)
+        p.end()
+        
+    def mousePressEvent(self, event):
+        self.x = int(event.position().x())
+        self.y = int(event.position().y())
+
+        print(f"Clicked at: ({self.x}, {self.y})")
+    
+    def get_coord(self):
+        return self.x, self.y
+
 
 if __name__ == "__main__":
 
