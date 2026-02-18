@@ -5,6 +5,7 @@ from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QPainter, QPen, QPixmap
 import sys
 import os
+import settings_controller
 
 class SettingsView(QWidget):
 
@@ -14,13 +15,14 @@ class SettingsView(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._updating_spinners = False
+        self.controller = settings_controller.SettingsController(self)
         self.init_ui()
 
     def init_ui(self):
         back_button = QPushButton("Back", self)
-        layout_speed = self.build_speed()
-        back_button.clicked.connect(self.quit)
+        back_button.clicked.connect(self.controller.quit)
         back_button.setFixedSize(80, 30)
+        layout_speed = self.build_speed()
         grid = self.build_grid()
         layout_coord = self.build_coord()
         layout_remoteXY = self.build_remoteXY()
@@ -67,9 +69,9 @@ class SettingsView(QWidget):
         self.step_spinner.setSuffix(" mm")
 
         z_up_button = QPushButton("+Z", self)
-        z_up_button.clicked.connect(self.z_move_up)
+        z_up_button.clicked.connect(self.controller.z_move_up)
         z_down_button = QPushButton("-Z", self)
-        z_down_button.clicked.connect(self.z_move_down)
+        z_down_button.clicked.connect(self.controller.z_move_down)
 
         grid_layout = QGridLayout()
         grid_layout.addWidget(up_button, 0, 1)
@@ -91,10 +93,10 @@ class SettingsView(QWidget):
     def build_controls(self):
 
         home_button = QPushButton("HOME", self)
-        home_button.clicked.connect(self.home)
+        home_button.clicked.connect(self.controller.home)
 
         stop_button = QPushButton("STOP", self)
-        stop_button.clicked.connect(self.stop)
+        stop_button.clicked.connect(self.controller.stop)
 
         layout = QVBoxLayout()
         layout.addWidget(home_button)
@@ -119,7 +121,7 @@ class SettingsView(QWidget):
         self.y_spinner.valueChanged.connect(self.on_spinner_changed)
 
         go_button = QPushButton("GO", self)
-        go_button.clicked.connect(self.go)
+        go_button.clicked.connect(self.controller.go)
 
         layout = QHBoxLayout()
         layout.addWidget(self.x_spinner)
@@ -159,7 +161,7 @@ class SettingsView(QWidget):
         last_pic.setFixedSize(400, 300)
 
         pic_button = QPushButton("Take Picture", self)
-        pic_button.clicked.connect(self.take_picture)
+        pic_button.clicked.connect(self.controller.take_picture)
 
         layout = QVBoxLayout()
         layout.addWidget(last_pic, alignment=Qt.AlignmentFlag.AlignHCenter)
@@ -182,18 +184,6 @@ class SettingsView(QWidget):
         y = abs(self.y_spinner.value() - self.grid_height_mm)
         self.grid.update_dot(x, y)
 
-    def quit(self):
-        print("quit")
-
-    def go(self):
-        print("go")
-
-    def home(self):
-        print("home")
-
-    def stop(self):
-        print("stop")
-
     def move_up(self):
         current_value = abs(self.y_spinner.value() - self.grid_height_mm)
         self.update_coord(self.x_spinner.value(), current_value - self.step_spinner.value())
@@ -210,18 +200,9 @@ class SettingsView(QWidget):
         current_value = self.x_spinner.value()
         self.update_coord(current_value + self.step_spinner.value(), abs(self.y_spinner.value() - self.grid_height_mm))
 
-    def z_move_up(self):
-        print("Move Z up")
-
-    def z_move_down(self):
-        print("Move Z down")
-
     def update_speed(self, value):
         self.speed_label.setText(f"Speed : {value}%")
         print(f"Speed set to {value}%")
-
-    def take_picture(self):
-        print("take picture")
 
 class GridView(QWidget):
 
@@ -245,7 +226,6 @@ class GridView(QWidget):
         opt.initFrom(self)
         painter = QPainter(self)
         self.style().drawPrimitive(QStyle.PrimitiveElement.PE_Widget, opt, painter, self)
-        # Draw the dot if coordinates are set
         pen = QPen(Qt.GlobalColor.red, 5)
         painter.setPen(pen)
         painter.drawPoint(int(getattr(self, 'x', 0)), int(getattr(self, 'y', 0)))
