@@ -91,5 +91,8 @@ class CNChess:
 
     def get_turn(self):
         return self.board.turn
+    
+    def get_board(self):
+        return self.board
 
     
