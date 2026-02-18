@@ -13,7 +13,7 @@
 #define PULLEY_DIAMETER 12.0  // Pulley diameter in millimeters
 #define CIRCUMFERENCE (PULLEY_DIAMETER * PI)
 #define MICROSTEPPING 8.0
-#define DEADZONE_MM 25.4  // Deadzone in millimeters for movement commands
+#define DEADZONE_MM 24  // Deadzone in millimeters for movement commands
 
 #define STEP_PIN_1 D0
 #define DIR_PIN_1 D1
@@ -35,7 +35,7 @@ AccelStepper stepper2(AccelStepper::DRIVER, STEP_PIN_2, DIR_PIN_2); // step, dir
 MultiStepper steppers;
 
 int servoGrabPosition = 0; // Servo position to grab piece0
-int servoReleasePosition = 95; // Servo position to release piece170
+int servoReleasePosition = 85; // Servo position to release piece
 static bool isFastHome = false;
 
 struct Position{
@@ -48,7 +48,7 @@ struct Data{
 };
 
 Position current_position;
-Position drop_position = {0.5, 4.5};
+Position drop_position = {0.5, 5.5};
 
 std::pair<float, float> get_steps(float delta_x, float delta_y);
 
@@ -80,7 +80,7 @@ void setup() {
     myServo.attach(SERVO_PIN);
     goHome();
     myServo.write(servoReleasePosition); // Ensure servo is in release position
-    reset_position();
+    // reset_position();
 
 }
 
@@ -245,9 +245,10 @@ void loop() {
 }
 
 void reset_position() {
+    
     stepper1.setCurrentPosition(0);
     stepper2.setCurrentPosition(0);
-    current_position = {0.0, 0.0};
+    current_position = {0.5*SQUARE_SIZE_MM, 0.5*SQUARE_SIZE_MM}; // Set to center of the board
 }
 
 void grab_piece(bool state) {
@@ -322,7 +323,7 @@ void goHome() {
 
     stepper1.stop();
     stepper2.stop();
-    reset_position();
+    // reset_position();
     move_distance(0.0, 2.0); // Move away from limit switches
 
     while(digitalRead(LIMIT_SWITCH_1) == LOW)
@@ -334,7 +335,7 @@ void goHome() {
     }
     stepper1.stop();
     stepper2.stop();
-    reset_position();   
+    // reset_position();   
     move_distance((SQUARE_SIZE_MM/2), 0.0); // Move away from limit switches
     reset_position();
     
@@ -342,8 +343,8 @@ void goHome() {
 }
 
 void drop_piece() {
-    go_to_position({0, SQUARE_SIZE_MM*5});
-    go_to_position({-DEADZONE_MM, SQUARE_SIZE_MM*5});
-    go_to_position({-DEADZONE_MM, SQUARE_SIZE_MM*2});
+    go_to_position({0.5*SQUARE_SIZE_MM, SQUARE_SIZE_MM*5.5+2});
+    go_to_position({0, SQUARE_SIZE_MM*5.5+2});
+    go_to_position({0, SQUARE_SIZE_MM*2});
 }
 
