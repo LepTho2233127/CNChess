@@ -101,15 +101,7 @@
         </layout>
        </item>
        <item>
-        <widget class="QFrame" name="frame_Board">
-         <property name="styleSheet">
-          <string>background-color: #DEB887;</string>
-         </property>
-         <property name="frameShape">
-          <enum>QFrame::Box</enum>
-         </property>
-         <layout class="QGridLayout" name="gridLayout_Board"/>
-        </widget>
+        <layout class="QGridLayout" name="gridBoard"/>
        </item>
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout_3">
