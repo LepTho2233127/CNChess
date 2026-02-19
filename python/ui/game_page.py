@@ -13,6 +13,7 @@ from PyQt6 import uic
 
 LIGHT_SQUARE_COLOR = "#F0D9B5"
 DARK_SQUARE_COLOR = "#B58863"
+HIGHLIGHT_COLOR = "#FFFF00"  # Yellow highlight for selected piece and possible moves
     
 class GameView(QWidget):
 
@@ -22,7 +23,6 @@ class GameView(QWidget):
         super().__init__()
 
         self.chess_game = chess_game
-        self.game_page_controller = GamePageController(chess_game)
        
 
         # Load the UI from the .ui file
@@ -38,23 +38,27 @@ class GameView(QWidget):
         board_layout = self.findChild(QVBoxLayout, "rightLayout")
 
         board_layout.removeItem(board_layout.itemAt(1))  
-        board = AspectRatioWidget(ChessBoardWidget(chess_game))
-        board_layout.insertWidget(1,board)
+        self.board = AspectRatioWidget(ChessBoardWidget(chess_game))
+        board_layout.insertWidget(1,self.board)
 
+        self.game_page_controller = GamePageController(chess_game,self)
 
         settings_button.clicked.connect(self.game_page_controller.settings_button_clicked)     
         quit_button.clicked.connect(self.game_page_controller.quit_game)
 
-  
-    
 class GamePageController(QObject):
     # Define signals for navigation
     show_settings_signal = pyqtSignal()
     return_home_signal = pyqtSignal()
 
-    def __init__(self, chess_model):
+
+    def __init__(self, chess_model, view=None):
         super().__init__()
         self.chess_model = chess_model
+        self.view = view # Connect the square click signal to the handler method
+        self.board = self.view.board.board_widget
+
+        self.board.squared_clicked_signal.connect(self.handle_square_click) 
 
     def settings_button_clicked(self):
         self.show_settings_signal.emit()
@@ -62,11 +66,20 @@ class GamePageController(QObject):
     def quit_game(self):
         self.return_home_signal.emit()
 
+    def handle_square_click(self, row, col):
+        """Handle click events on the squares. This is where you would implement move selection and execution logic."""
+       
+        print(row,col)
+
+
 class ChessBoardWidget(QWidget):
+
+    squared_clicked_signal = pyqtSignal(int, int)  # Signal to emit when a square is clicked, with row and column info
+
     def __init__(self, chess_game):
         super().__init__()
 
-        self.images = self._load_piece_images()
+        self.images = self.load_piece_images()
         self.chess_game = chess_game
         self.board = self.fen_to_board_array(self.chess_game.get_board_state())
         self.board_layout = self.init_board()
@@ -81,7 +94,7 @@ class ChessBoardWidget(QWidget):
                 square_color = (row + col) % 2
                 square_button = GridButton()
                 square_button.setMinimumSize(60, 60)  # Set a minimum size for the squares
-                square_button.resize()  # Set a base size for the squares to maintain aspect ratio
+                square_button.resize(QSize(65,65))  # Set a base size for the squares to maintain aspect ratio
                 if square_color == 0:
                     square_button.setStyleSheet(f"background-color: {LIGHT_SQUARE_COLOR}; border: none;")
                 else:
@@ -89,6 +102,7 @@ class ChessBoardWidget(QWidget):
 
                 board_layout.addWidget(square_button, row, col)
                 self.draw_piece(square_button, self.board[row][col])  # Initialize with empty squares
+                square_button.clicked.connect(lambda checked, r=row, c=col: self.handle_square_click(r, c))  # Connect click event with row and column info
 
         for i in range(8):
             board_layout.setRowStretch(i, 1)  # Make rows stretchable
@@ -99,7 +113,7 @@ class ChessBoardWidget(QWidget):
 
         return board_layout
     
-    def _load_piece_images(self):
+    def load_piece_images(self):
         """Load piece images from assets directory."""
         images = {}
         # Navigate up to python folder, then to chess_assets
@@ -154,8 +168,13 @@ class ChessBoardWidget(QWidget):
                     board_row.append(char)
             board.append(board_row)
         
-        return board          
-        
+        return board   
+
+    def handle_square_click(self, row, col):
+        """Handle click events on the squares. This is where you would implement move selection and execution logic."""
+       
+        self.squared_clicked_signal.emit(row, col)  # Emit signal with row and column info when a square is clicked
+
     
 class AspectRatioWidget(QWidget):
     
