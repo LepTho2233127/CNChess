@@ -397,41 +397,7 @@ class_dict={0:'black-bishop',1:'black-king',2:'black-knight',3:'black-pawn',4: '
 
 print("\n\n") 
 
-# # YOLOv8  model  
-# model = YOLO("chess-model-yolov8m.pt") 
-
-# # make prediction
-# results = model(image_path) # path to test image
-# im_array = results[0].plot(); # plot a BGR numpy array of predictions
-
-# print("\n\n") 
-
-# # list for cell number and piece id (class value)
-# game_list=[]
-
-# for result in results:  # results is model's prediction     
-#     for id,box in enumerate(result.boxes.xyxy) : # box with xyxy format, (N, 4)
-            
-#             x1,y1,x2,y2=int(box[0]),int(box[1]),int(box[2]),int(box[3]) # take coordinates 
-
-#             # find middle of bounding boxes for x and y 
-#             x_mid=int((x1+x2)/2) 
-#             # add padding to y values
-#             y_mid=int((y1+y2)/2)+25
-
-#             for cell_value, coordinates in coord_dict.items():
-#                 x_values = [point[0] for point in coordinates]
-#                 y_values = [point[1] for point in coordinates]
-                 
-#                 if (min(x_values) <= x_mid <= max(x_values)) and (min(y_values) <= y_mid <= max(y_values)):
-#                     a=int(result.boxes.cls[id])
-
-#                     print(f" cell :  {cell_value} --> {a} ")
-#                     # add cell values and piece cell_value(class value
-#                     game_list.append([cell_value,a]) 
-#                     break
-
-# print("\n\n\n")        
+        
 game_list=[1, 11], [2, 8], [3, 6], [4, 10], [5, 7], [6, 6], [7, 8], [8, 11], [9, 9], [10, 9], [11, 9], [12, 9], [13, 9], [14, 9], [15, 9], [16, 9], [49, 3], [50, 3], [51, 3], [52, 3], [53, 3], [54, 3], [55, 3], [56, 3], [57, 5], [58, 2], [59, 0], [60, 4], [61, 1], [62, 0], [63, 2], [64, 5]
 
 # show game , if cell value exist in game_list , then print piece in that cell , otherwise print space 
@@ -482,7 +448,7 @@ def get_empty_square_baseline_variance(warped_image):
     return baseline_variance
 
 
-def is_piece_in_square_variance(warped_image, square_index, baseline_variance, threshold_multiplier=0.6):
+def is_piece_in_square_variance(warped_image, square_index, baseline_variance, threshold_multiplier=1.0):
     """
     Détecte une pièce en comparant la variance avec le baseline des cases vides.
     Si variance > baseline * threshold_multiplier, il y a une pièce.
@@ -518,7 +484,7 @@ def is_piece_in_square_variance(warped_image, square_index, baseline_variance, t
     
     #print(f"Square {square_index}: variance={variance:.2f}, ratio={ratio:.2f}", end="")
     
-    if ratio > 1:
+    if ratio > threshold_multiplier:
         #print(" ✓ PIECE DETECTED")
         return get_piece_color(square_region)
     else:
@@ -587,13 +553,13 @@ move_start = 0
 move_end = 0
 
 for i in range(1, 65):
-    if is_piece_in_square_variance(warped_image, i, baseline_variance, threshold_multiplier=0.6) is not False:
-        new_piece_color[i-1] = is_piece_in_square_variance(warped_image, i, baseline_variance, threshold_multiplier=0.6)
+    if is_piece_in_square_variance(warped_image, i, baseline_variance, threshold_multiplier=1.0) is not False:
+        new_piece_color[i-1] = is_piece_in_square_variance(warped_image, i, baseline_variance, threshold_multiplier=1.0)
         new_piece_place[i-1] = 1
         print(f"Square {i}: PIECE DETECTED with color {new_piece_color[i-1]}")
     else:
         new_piece_place[i-1] = 0
-#print(game_list_detected)
+
 print(new_piece_color)
 
 for i in range(len(new_piece_place)):
@@ -610,8 +576,6 @@ for i in range(len(new_piece_place)):
             print(f"Square {i+1}: PIECE REMOVED")
             move_start = i+1
 
-print(new_piece_place)
-print(analyses)
 
 plt.imshow(warped_image)
 plt.show()
