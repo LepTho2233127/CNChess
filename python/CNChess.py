@@ -53,6 +53,14 @@ class CNChess:
     def get_player_color(self):
         return self.player_color
 
+
+    def get_legal_moves_from_square(self, square):
+        
+        square_index = chess.parse_square(square)
+        legal_moves = [move for move in self.board.legal_moves if move.from_square == square_index]
+
+        return legal_moves
+     
     def set_player_move(self, move):
         self.next_player_move = move
     
@@ -74,7 +82,7 @@ class CNChess:
             return chess.Move.null()
 
     def make_move(self, move):
-        self.board.push(move)
+        self.board.push(move)    
     
     def get_board_state(self):
         return self.board.fen()

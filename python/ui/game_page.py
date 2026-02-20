@@ -4,16 +4,19 @@ You can access th """
 
 import os
 import sys
+import chess
 
 from PyQt6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QApplication, QSizePolicy
 from PyQt6.QtCore import QObject, pyqtSignal, QSize
-from PyQt6.QtGui import QPixmap, QIcon
+from PyQt6.QtGui import QPixmap, QIcon, QColor
 from PyQt6 import uic
 
+from Communication import Communication
+from Control import Control
 
 LIGHT_SQUARE_COLOR = "#F0D9B5"
 DARK_SQUARE_COLOR = "#B58863"
-HIGHLIGHT_COLOR = "#FFFF00"  # Yellow highlight for selected piece and possible moves
+HIGHLIGHT_COLOR = "#B9B9B9"  # Yellow highlight for selected piece and possible moves
     
 class GameView(QWidget):
 
@@ -23,8 +26,8 @@ class GameView(QWidget):
         super().__init__()
 
         self.chess_game = chess_game
+        self.control = Control()
        
-
         # Load the UI from the .ui file
         ui_path = os.path.join(os.path.dirname(__file__), 'gamePage.ui')
 
@@ -35,30 +38,51 @@ class GameView(QWidget):
 
         settings_button = self.findChild(QPushButton, "settingsButton")
         quit_button = self.findChild(QPushButton, "quitButton")  
-        board_layout = self.findChild(QVBoxLayout, "rightLayout")
+        right_layout = self.findChild(QVBoxLayout, "rightLayout")
 
-        board_layout.removeItem(board_layout.itemAt(1))  
-        self.board = AspectRatioWidget(ChessBoardWidget(chess_game))
-        board_layout.insertWidget(1,self.board)
+        right_layout.removeItem(right_layout.itemAt(1))  
+        resize_board = AspectRatioWidget(ChessBoardWidget())
+        right_layout.insertWidget(1,resize_board)
+        self.board = resize_board.board_widget
 
-        self.game_page_controller = GamePageController(chess_game,self)
+        self.game_page_controller = GamePageController(chess_game,self, self.control)
 
         settings_button.clicked.connect(self.game_page_controller.settings_button_clicked)     
         quit_button.clicked.connect(self.game_page_controller.quit_game)
 
+
+    def update_chess_board(self):
+
+        self.board.reset_square_highlight()  # Clear any existing highlights before updating the boar
+        self.board.update_board(self.chess_game.get_board_state())
+
+
+    def update_highlighted_squares(self, squares):
+        """Highlight the given squares on the board."""
+
+        self.board.reset_square_highlight()  # Clear existing highlights before applying new ones
+
+        for row, col in squares:
+            self.board.update_square_highlight(row, col)    
+        
 class GamePageController(QObject):
     # Define signals for navigation
     show_settings_signal = pyqtSignal()
     return_home_signal = pyqtSignal()
 
 
-    def __init__(self, chess_model, view=None):
+    def __init__(self, chess_model, view=None, control=None):
         super().__init__()
         self.chess_model = chess_model
-        self.view = view # Connect the square click signal to the handler method
-        self.board = self.view.board.board_widget
+        self.view = view 
+        self.board_widget = self.view.board
+        self.board = []
+        self.control = control
+        self.control.update_board_state(self.chess_model.get_board_state())
+        self.communication = Communication()
 
-        self.board.squared_clicked_signal.connect(self.handle_square_click) 
+        self.selected_piece = None  # Track the currently selected piece for move selection
+        self.board_widget.squared_clicked_signal.connect(self.handle_square_click) 
 
     def settings_button_clicked(self):
         self.show_settings_signal.emit()
@@ -68,21 +92,77 @@ class GamePageController(QObject):
 
     def handle_square_click(self, row, col):
         """Handle click events on the squares. This is where you would implement move selection and execution logic."""
-       
-        print(row,col)
+        
+        if self.selected_piece is None:
 
+            self.check_piece_selected(row,col)
+           
+        else :
+            from_square = self.coordinate_to_square(*self.selected_piece)
+            to_square = self.coordinate_to_square(row, col)
+         
+            try:    
+                move = chess.Move.from_uci(from_square + to_square)
+        
+                if self.chess_model.validate_move(move):
+                    self.chess_model.make_move(move)
+                    self.view.update_chess_board()  # Update the board display after making the move
+                    self.selected_piece = None  # Reset the selected piece after making a move
+                    self.computer_move()
+                else:
+                    # If the move is not valid, reset the selection and highlights
+                    self.check_piece_selected(row, col)  # Update highlights for the new position after the move
+            except ValueError:
+                pass # Invalid move format, happens when you click on the same square as the selected piece, just ignore it and wait for a valid move       
+
+    def check_piece_selected(self, row, col): 
+
+        piece = self.board_widget.board[row][col]
+        if piece != '_' and ((self.chess_model.get_player_color() == chess.WHITE and piece.isupper()) or 
+                                                (self.chess_model.get_player_color() == chess.BLACK and piece.islower())):
+            
+            self.selected_piece = (row, col)
+            legal_moves = self.chess_model.get_legal_moves_from_square(self.coordinate_to_square(row, col))
+
+
+            highlighted_squares = [(7 - chess.square_rank(move.to_square), chess.square_file(move.to_square)) for move in legal_moves]
+            highlighted_squares.append((row, col))  # Also highlight the selected piece's square
+
+            self.view.update_highlighted_squares(highlighted_squares)  # Highlight the selected piece and its legal moves
+
+        else :
+            self.view.update_highlighted_squares([(row, col)])  # Clear highlights if no piece or opponent's piece is selected                
+
+      
+    def computer_move(self):
+        best_move = self.chess_model.get_next_best_move()
+        if best_move and best_move != chess.Move.null():
+            self.chess_model.make_move(best_move)
+            self.view.update_chess_board()  # Update the board display after computer move
+            self.control.update_board_state(self.chess_model.get_board_state())  # Update the control with the new board state after computer move
+            path = self.control.get_path(best_move, self.chess_model.get_board())
+
+            self.communication.send_path(path)
+
+
+    def coordinate_to_square(self, row, col):
+        """Convert board coordinates to chess square notation (e.g., (0,0) -> 'a8')."""
+        file = chr(ord('a') + col)
+        rank = 8 - row
+     
+        return f"{file}{rank}"
 
 class ChessBoardWidget(QWidget):
 
     squared_clicked_signal = pyqtSignal(int, int)  # Signal to emit when a square is clicked, with row and column info
 
-    def __init__(self, chess_game):
+    def __init__(self, player_color=chess.WHITE):
         super().__init__()
 
         self.images = self.load_piece_images()
-        self.chess_game = chess_game
-        self.board = self.fen_to_board_array(self.chess_game.get_board_state())
+        self.board = self.fen_to_board_array(chess.STARTING_FEN)
         self.board_layout = self.init_board()
+        self.selected_square = None  # Track the currently selected square for move selection
         self.setLayout(self.board_layout)
             
     def init_board(self):
@@ -136,9 +216,11 @@ class ChessBoardWidget(QWidget):
         
         return images  
     
-    def update_board(self, board_state):
+    def update_board(self, board_state, resize=False):
         """Update the board display based on the new board state (FEN string)."""
-        self.board = self.fen_to_board_array(board_state)
+        if not resize: #If this is a resize event, we don't need to update the board state from the model, just redraw the pieces with the new sizes
+            self.board = self.fen_to_board_array(board_state)
+
         for row in range(8):
             for col in range(8):
                 square_button = self.board_layout.itemAtPosition(row, col).widget()
@@ -152,6 +234,8 @@ class ChessBoardWidget(QWidget):
             icon = self.images[piece_char]
             button.setIcon(icon)
             button.setIconSize(button.size())
+        else:
+            button.setIcon(QIcon())  # Clear the icon for empty squares     
 
     def fen_to_board_array(self, fen: str):
         """Convert FEN string to 8x8 board array."""
@@ -167,13 +251,44 @@ class ChessBoardWidget(QWidget):
                 else:
                     board_row.append(char)
             board.append(board_row)
-        
-        return board   
+    
+        return board  
+
+    def update_square_highlight(self, row, col):
+        """Highlight the selected square and possible move squares."""
+        square_button = self.board_layout.itemAtPosition(row, col).widget()
+
+        square_color = (row + col) % 2
+
+        if square_color == 0:
+            base_color = LIGHT_SQUARE_COLOR
+        else:
+            base_color = DARK_SQUARE_COLOR
+   
+        highlight_color = QColor(base_color).darker(125).name()  # Create a lighter version of the base color for highlighting
+
+        square_button.setStyleSheet(f"background-color: {highlight_color}; border: none;")  
+
+    def reset_square_highlight(self):
+        """Reset the squares color to its original color."""
+
+        for r in range(8):
+            for c in range(8):
+                 
+                square_button = self.board_layout.itemAtPosition(r, c).widget()
+                square_color = (r + c) % 2
+
+                if square_color == 0:
+                    base_color = LIGHT_SQUARE_COLOR
+                else:
+                    base_color = DARK_SQUARE_COLOR
+
+                square_button.setStyleSheet(f"background-color: {base_color}; border: none;")    
 
     def handle_square_click(self, row, col):
         """Handle click events on the squares. This is where you would implement move selection and execution logic."""
        
-        self.squared_clicked_signal.emit(row, col)  # Emit signal with row and column info when a square is clicked
+        self.squared_clicked_signal.emit(row, col)
 
     
 class AspectRatioWidget(QWidget):
@@ -194,7 +309,7 @@ class AspectRatioWidget(QWidget):
         y = (h - side) // 2
 
         self.board_widget.setGeometry(x, y, side, side)    
-        self.board_widget.update_board(self.board_widget.chess_game.get_board_state())  # Update the board display on resize
+        self.board_widget.update_board(None, resize=True)  # Update the board display on resize
 
  
 class GridButton(QPushButton):

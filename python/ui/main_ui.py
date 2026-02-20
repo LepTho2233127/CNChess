@@ -7,6 +7,7 @@ from PyQt6.QtWidgets import QMainWindow, QStackedWidget
 from ui.home_page import HomeView
 from ui.game_page import GameView
 from ui.settings_view import SettingsView
+from Control import Control
 
 class MainUI(QMainWindow):
 
