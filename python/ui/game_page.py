@@ -70,7 +70,6 @@ class GamePageController(QObject):
     show_settings_signal = pyqtSignal()
     return_home_signal = pyqtSignal()
 
-
     def __init__(self, chess_model, view=None, control=None):
         super().__init__()
         self.chess_model = chess_model
@@ -151,6 +150,12 @@ class GamePageController(QObject):
         rank = 8 - row
      
         return f"{file}{rank}"
+    
+    def reset_board(self):
+        self.chess_model.reset_game()
+        self.board_widget.update_board(self.chess_model.get_board_state())
+        self.board_widget.reset_square_highlight()
+        self.selected_square = None  # Reset selected square when resetting the board
 
 class ChessBoardWidget(QWidget):
 
@@ -164,6 +169,7 @@ class ChessBoardWidget(QWidget):
         self.board_layout = self.init_board()
         self.selected_square = None  # Track the currently selected square for move selection
         self.setLayout(self.board_layout)
+        self.update_board(None, resize=True)  # Initial board setup with correct piece images
             
     def init_board(self):
 
@@ -174,7 +180,7 @@ class ChessBoardWidget(QWidget):
                 square_color = (row + col) % 2
                 square_button = GridButton()
                 square_button.setMinimumSize(60, 60)  # Set a minimum size for the squares
-                square_button.resize(QSize(65,65))  # Set a base size for the squares to maintain aspect ratio
+                square_button.resize(QSize(60,60))  # Set a base size for the squares to maintain aspect ratio
                 if square_color == 0:
                     square_button.setStyleSheet(f"background-color: {LIGHT_SQUARE_COLOR}; border: none;")
                 else:
@@ -290,6 +296,8 @@ class ChessBoardWidget(QWidget):
        
         self.squared_clicked_signal.emit(row, col)
 
+
+  
     
 class AspectRatioWidget(QWidget):
     
