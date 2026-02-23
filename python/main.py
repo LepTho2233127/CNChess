@@ -15,7 +15,7 @@ if __name__ == "__main__":
     game.reset_game()
 
     game.set_player_color(chess.WHITE)
-    game.set_elo(1320)
+    game.set_elo(2000)
 
     control = Control()
     control.update_board_state(game.get_board_state())

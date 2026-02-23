@@ -58,7 +58,7 @@ class Grid:
     obstacle_remove_position: Position
 
     def __init__(self, width: int, height: int):
-        self.obstacle_remove_position = Position(0.5, 4.5)  # Position to remove obstacle for captured pieces
+        self.obstacle_remove_position = Position(0.5, 5.5)  # Position to remove obstacle for captured pieces
         self.width = width * 2 + 1
         self.height = height * 2 + 1
         # Use half-step coordinates so intermediate nodes land between board squares
@@ -71,9 +71,13 @@ class Grid:
     
     def get_neighbors(self, node: Node) -> list[Node]:
         neighbors = []
-        # direction with diagonals
-        directions = [(-0.5, 0), (0.5, 0), (0, -0.5), (0, 0.5),
-                      (-0.5, -0.5), (-0.5, 0.5), (0.5, -0.5), (0.5, 0.5)]
+        if (node.position.x % 1 == 0 and node.position.y % 1 != 0) or (node.position.x % 1 != 0 and node.position.y % 1 == 0):
+            # direction without diagonals
+            directions = [(-0.5, 0), (0.5, 0), (0, -0.5), (0, 0.5)]
+        else:
+            # direction with diagonals
+            directions = [(-0.5, 0), (0.5, 0), (0, -0.5), (0, 0.5),
+                        (-0.5, -0.5), (-0.5, 0.5), (0.5, -0.5), (0.5, 0.5)]
 
         for direction in directions:
             neighbor_x = node.position.x + direction[0]
@@ -184,7 +188,7 @@ class Control:
     def update_board_state(self, boardState: str):
         self.grid.update_obstacles(boardState)
     
-    def get_path(self, move: chess.Move) -> list[Command]:
+    def get_path(self, move: chess.Move, board: chess.Board) -> list[Command]:
         start_x = chess.square_file(move.from_square) + 1
         start_y = chess.square_rank(move.from_square) + 1
         end_x = chess.square_file(move.to_square) + 1
@@ -197,13 +201,22 @@ class Control:
         self.grid.remove_obstacle(start_pos)  # Ensure start position is not an obstacle
 
         path_to_obstacle_removal = []
-        if self.grid.is_obstacle(end_pos):
-            print("Obstacle detected at end position, planning path to obstacle removal point.")
-            self.grid.remove_obstacle(end_pos)
-            path_to_obstacle_removal = self.grid.a_star(end_pos, self.grid.obstacle_remove_position)
-
+        if board.is_capture(move):
+            if board.is_en_passant(move): # Handle en passant by adding an additional command to remove the captured pawn
+                # For en passant, also need to remove obstacle at captured pawn's position
+                print("En passant capture detected, planning path to captured pawn removal point.")
+                captured_pawn_square = chess.square(chess.square_file(move.to_square), chess.square_rank(move.from_square))
+                captured_pawn_pos = Position(chess.square_file(captured_pawn_square) + 1, chess.square_rank(captured_pawn_square) + 1)
+                
+                self.grid.remove_obstacle(captured_pawn_pos)
+                path_to_obstacle_removal = self.grid.a_star(captured_pawn_pos, self.grid.obstacle_remove_position)
+            else:
+                print("Obstacle detected at end position, planning path to obstacle removal point.")
+                self.grid.remove_obstacle(end_pos)
+                path_to_obstacle_removal = self.grid.a_star(end_pos, self.grid.obstacle_remove_position)
         path = self.grid.a_star(start_pos, end_pos)
         full_path = path_to_obstacle_removal + path
+
 
         # Convert path to commands with magnet states
         commands = []
@@ -217,8 +230,27 @@ class Control:
             else:
                 # Keep magnet on during movement
                 commands.append(Command(pos, True))
+            
+        
+        # Handle castling by adding additional commands for rook movement
+        if board.is_castling(move):
+            # Update obstacle before calculating rook path to ensure it accounts for king's new position
+            self.grid.add_obstacle(end_pos)  # Temporarily add obstacle back to calculate rook path correctly
+
+            # Handle castling by moving the king first, then the rook
+            if board.turn == chess.WHITE:
+                if board.is_kingside_castling(move):
+                    commands = commands + self.get_path(chess.Move.from_uci("h1f1"), board)
+                else:
+                    commands = commands + self.get_path(chess.Move.from_uci("a1d1"), board)
+            else:
+                if board.is_kingside_castling(move):
+                    commands = commands + self.get_path(chess.Move.from_uci("h8f8"), board)
+                else:
+                    commands = commands + self.get_path(chess.Move.from_uci("a8d8"), board)
 
         output = self.optimize_path(commands)
+
         return output
     
 

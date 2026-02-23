@@ -1,16 +1,19 @@
-#include <AccelStepper.h>
-#include <MultiStepper.h>
+#include "AccelStepper.h"
+#include "MultiStepper.h"
 #include <Arduino.h>
 #include <math.h>
 #include <utility>
 #include <Servo.h>
+#include <string>
+#include <vector>
+#include <sstream>
 
 #define SQUARE_SIZE_MM 50.8  // Size of a chess square in millimeters
 #define STEP_ANGLE_DEGREES 1.8  // Stepper motor step angle in degrees
 #define PULLEY_DIAMETER 12.0  // Pulley diameter in millimeters
 #define CIRCUMFERENCE (PULLEY_DIAMETER * PI)
 #define MICROSTEPPING 8.0
-#define DEADZONE_MM 25.4  // Deadzone in millimeters for movement commands
+#define DEADZONE_MM 24  // Deadzone in millimeters for movement commands
 
 #define STEP_PIN_1 D0
 #define DIR_PIN_1 D1
@@ -32,7 +35,7 @@ AccelStepper stepper2(AccelStepper::DRIVER, STEP_PIN_2, DIR_PIN_2); // step, dir
 MultiStepper steppers;
 
 int servoGrabPosition = 0; // Servo position to grab piece0
-int servoReleasePosition = 170; // Servo position to release piece170
+int servoReleasePosition = 85; // Servo position to release piece
 static bool isFastHome = false;
 
 struct Position{
@@ -45,6 +48,7 @@ struct Data{
 };
 
 Position current_position;
+Position drop_position = {0.5, 5.5};
 
 std::pair<float, float> get_steps(float delta_x, float delta_y);
 
@@ -54,6 +58,7 @@ void reset_position();
 void grab_piece(bool state);
 void release_piece(bool state);
 void move_distance(float delta_x, float delta_y);
+void drop_piece();
 
 Servo myServo;
 
@@ -75,7 +80,7 @@ void setup() {
     myServo.attach(SERVO_PIN);
     goHome();
     myServo.write(servoReleasePosition); // Ensure servo is in release position
-    reset_position();
+    // reset_position();
 
 }
 
@@ -84,7 +89,8 @@ enum CommandType {
     MOVE,
     HOME,
     JOG,
-    STOP
+    STOP,
+    PATH
 };
 
 CommandType parseCommand(String cmd) {
@@ -93,40 +99,122 @@ CommandType parseCommand(String cmd) {
     if (cmd == "HOME") return HOME;
     if (cmd == "STOP") return STOP;
     if (cmd == "JOG")  return JOG;
+    if (cmd == "PATH")  return PATH;
 
     return STOP;
+}
+
+// Helper function to extract command (uppercase letters at start)
+String extractCommand(String input) {
+    String cmd = "";
+    for (int i = 0; i < input.length(); i++) {
+        char c = input[i];
+        if (c >= 'A' && c <= 'Z') {
+            cmd += c;
+        } else {
+            break;
+        }
+    }
+    return cmd;
+}
+
+// Helper function to parse coordinate data from pipe-separated format
+// Format: "|x,y,magnet" or "x,y,magnet"
+bool parseCoordinates(String data, float& x, float& y, bool& magnet) {
+    // Remove leading '|' if present
+    if (data[0] == '|') {
+        data = data.substring(1);
+    }
+    
+    int firstComma = data.indexOf(',');
+    int secondComma = data.indexOf(',', firstComma + 1);
+    
+    if (firstComma == -1 || secondComma == -1) {
+        return false;
+    }
+    
+    x = data.substring(0, firstComma).toFloat();
+    y = data.substring(firstComma + 1, secondComma).toFloat();
+    magnet = data.substring(secondComma + 1).toInt() != 0;
+    
+    return true;
+}
+
+// Helper function to parse PATH command with multiple coordinate sets
+std::vector<std::string> splitByPipe(String input) {
+    std::vector<std::string> result;
+    int start = 0;
+    
+    for (int i = 0; i <= input.length(); i++) {
+        if (i == input.length() || input[i] == '|') {
+            if (i > start) {
+                String segment = input.substring(start, i);
+                result.push_back(std::string(segment.c_str()));
+            }
+            start = i + 1;
+        }
+    }
+    
+    return result;
 }
 
 void loop() {
     if (Serial.available() > 0) 
     {
-
         String input = Serial.readStringUntil('\n');
-        
-        // Parse format: "MOVE x y magnet_state"
-        int firstSpace = input.indexOf(' ');
-        int secondSpace = input.indexOf(' ', firstSpace + 1);
-        int thirdSpace = input.indexOf(' ', secondSpace + 1);
+        input.trim();
 
-        
-        String commandString = input.substring(0, firstSpace);
-        float posX = input.substring(firstSpace + 1, secondSpace).toFloat();
-        float posY = input.substring(secondSpace + 1, thirdSpace).toFloat(); 
-        bool magnetState = input.substring(thirdSpace).toInt();
-        
-        
+        // Extract command (uppercase letters at start)
+        String commandString = extractCommand(input);
         CommandType commandType = parseCommand(commandString);
+
+        float posX = current_position.x;
+        float posY = current_position.y;
+        bool magnetState = false;
 
         switch (commandType) 
         {
-            case CommandType::CHESSMOVE: 
-                posX = posX * SQUARE_SIZE_MM;
-                posY = posY * SQUARE_SIZE_MM;
-                go_to_position({posX, posY});
-                grab_piece(magnetState);
-                digitalWrite(LED_PIN, magnetState);
+            case CommandType::PATH: {
+                // Parse format: "PATH|x,y,magnet|x,y,magnet|..."
+                std::vector<std::string> segments = splitByPipe(input.substring(4)); // Skip "PATH"
+                
+                for (const auto& segment : segments) {
+                    if (segment.empty()) continue;
+                    
+
+                    String segStr(segment.c_str());
+                    if (parseCoordinates(segStr, posX, posY, magnetState)) {
+                        posX = posX * SQUARE_SIZE_MM;
+                        posY = posY * SQUARE_SIZE_MM;
+                        go_to_position({posX, posY});
+                        if ((abs(posX - drop_position.x*SQUARE_SIZE_MM)) < 0.01 && (abs(posY - drop_position.y*SQUARE_SIZE_MM)) < 0.01) {
+                            drop_piece();
+                        }
+                        grab_piece(magnetState);
+                        digitalWrite(LED_PIN, magnetState);
+                    }
+                }
                 Serial.print("DONE");
                 break;
+            }
+            
+            case CommandType::CHESSMOVE: {
+                // Parse format: "CHESSMOVE x,y,magnet"
+                String dataStr = input.substring(9); // Skip "CHESSMOVE"
+                if (parseCoordinates(dataStr, posX, posY, magnetState)) {
+                    posX = posX * SQUARE_SIZE_MM;
+                    posY = posY * SQUARE_SIZE_MM;
+
+                    go_to_position({posX, posY});
+                    if ((posX == drop_position.x*SQUARE_SIZE_MM) && (posY == drop_position.y*SQUARE_SIZE_MM)) {
+                        drop_piece();
+                    }
+                    grab_piece(magnetState);
+                    digitalWrite(LED_PIN, magnetState);
+                }
+                Serial.print("DONE");
+                break;
+            }
 
             case CommandType::MOVE:
                 go_to_position({posX, posY});
@@ -157,18 +245,23 @@ void loop() {
 }
 
 void reset_position() {
+    
     stepper1.setCurrentPosition(0);
     stepper2.setCurrentPosition(0);
-    current_position = {0.0, 0.0};
+    current_position = {0.5*SQUARE_SIZE_MM, 0.5*SQUARE_SIZE_MM}; // Set to center of the board
 }
 
 void grab_piece(bool state) {
     // Activate magnet to grab piece
+    static bool last_state = false;
+    if (state == last_state) return;
+    last_state = state;
     if (state) {
         myServo.write(servoGrabPosition);
     } else {
         myServo.write(servoReleasePosition);
     }
+    delay(250); // Small delay to ensure magnet state change
 }
 
 std::pair<float, float> get_steps(float delta_x, float delta_y) {
@@ -230,7 +323,7 @@ void goHome() {
 
     stepper1.stop();
     stepper2.stop();
-    reset_position();
+    // reset_position();
     move_distance(0.0, 2.0); // Move away from limit switches
 
     while(digitalRead(LIMIT_SWITCH_1) == LOW)
@@ -242,10 +335,16 @@ void goHome() {
     }
     stepper1.stop();
     stepper2.stop();
-    reset_position();   
+    // reset_position();   
     move_distance((SQUARE_SIZE_MM/2), 0.0); // Move away from limit switches
     reset_position();
     
 
+}
+
+void drop_piece() {
+    go_to_position({0.5*SQUARE_SIZE_MM, SQUARE_SIZE_MM*5.5+2});
+    go_to_position({0, SQUARE_SIZE_MM*5.5+2});
+    go_to_position({0, SQUARE_SIZE_MM*2});
 }
 
