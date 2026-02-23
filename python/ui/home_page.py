@@ -79,6 +79,6 @@ if __name__ == "__main__":
     controller = HomePageController(game)
 
     app = QApplication(sys.argv)
-    home_view = HomeView(game, controller)
+    home_view = HomeView(game)
     home_view.show()
     sys.exit(app.exec())       

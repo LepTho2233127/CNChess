@@ -79,7 +79,7 @@ class CNChess:
         if best_move_uci:
             return chess.Move.from_uci(best_move_uci)
         else:
-            return chess.Move.null()
+            return chess.Move.null()    
 
     def make_move(self, move):
         self.board.push(move)    
@@ -102,5 +102,6 @@ class CNChess:
     
     def get_board(self):
         return self.board
+    
 
     

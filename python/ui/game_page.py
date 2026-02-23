@@ -5,8 +5,9 @@ You can access th """
 import os
 import sys
 import chess
+import re
 
-from PyQt6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QApplication, QSizePolicy
+from PyQt6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QApplication, QSizePolicy, QListWidget, QListWidgetItem
 from PyQt6.QtCore import QObject, pyqtSignal, QSize
 from PyQt6.QtGui import QPixmap, QIcon, QColor
 from PyQt6 import uic
@@ -39,6 +40,7 @@ class GameView(QWidget):
         settings_button = self.findChild(QPushButton, "settingsButton")
         quit_button = self.findChild(QPushButton, "quitButton")  
         right_layout = self.findChild(QVBoxLayout, "rightLayout")
+        self.move_list = self.findChild(QListWidget, "moveList")
 
         right_layout.removeItem(right_layout.itemAt(1))  
         resize_board = AspectRatioWidget(ChessBoardWidget())
@@ -102,8 +104,12 @@ class GamePageController(QObject):
          
             try:    
                 move = chess.Move.from_uci(from_square + to_square)
-        
+    
                 if self.chess_model.validate_move(move):
+
+                    piece = self.board_widget.board[self.selected_piece[0]][self.selected_piece[1]].upper()
+                    self.update_list(move=f"{piece}{to_square}", turn=self.chess_model.get_turn())
+                    
                     self.chess_model.make_move(move)
                     self.view.update_chess_board()  # Update the board display after making the move
                     self.selected_piece = None  # Reset the selected piece after making a move
@@ -136,6 +142,15 @@ class GamePageController(QObject):
     def computer_move(self):
         best_move = self.chess_model.get_next_best_move()
         if best_move and best_move != chess.Move.null():
+
+            uci_move = best_move.uci()
+            match = re.search(r'\d+', uci_move)
+            split_index = match.end()
+          
+            to_square = uci_move[split_index:]
+            piece = self.board_widget.board[(7 - chess.square_rank(best_move.from_square))][chess.square_file(best_move.from_square)].upper()
+            self.update_list(move=f"{piece}{to_square}",  turn=self.chess_model.get_turn())
+
             self.chess_model.make_move(best_move)
             self.view.update_chess_board()  # Update the board display after computer move
             self.control.update_board_state(self.chess_model.get_board_state())  # Update the control with the new board state after computer move
@@ -150,6 +165,23 @@ class GamePageController(QObject):
         rank = 8 - row
      
         return f"{file}{rank}"
+    
+    def update_list(self, move, turn):
+
+
+        print(turn)
+        if turn == chess.WHITE:
+            
+            nb_move = self.view.move_list.count()+1
+            self.view.move_list.addItem(QListWidgetItem(f"{nb_move}. {move}"))
+
+        else : 
+            nb_move = self.view.move_list.count()
+            last_move = self.view.move_list.item(nb_move - 1)
+
+            current_text = last_move.text()
+            last_move.setText(current_text + f"\t {move}")
+
     
     def reset_board(self):
         self.chess_model.reset_game()
