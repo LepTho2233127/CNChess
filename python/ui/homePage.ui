@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1020</width>
-    <height>968</height>
+    <height>994</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -249,7 +249,20 @@
       </font>
      </property>
      <property name="styleSheet">
-      <string>background-color: #4CAF50; color: white; padding: 10px; border-radius: 5px;</string>
+      <string notr="true">QPushButton {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px;
+    border-radius: 5px;
+    border: none;
+    font-weight: bold;
+}
+QPushButton:hover {
+    background-color: #45a049;
+}
+QPushButton:pressed {
+    background-color: #3d8b40;
+}</string>
      </property>
      <property name="text">
       <string>Start game</string>

@@ -38,7 +38,19 @@
        <item>
         <widget class="QPushButton" name="quitButton">
          <property name="styleSheet">
-          <string>background-color: #F44336; color: white;</string>
+          <string>QPushButton {
+    background-color: #F44336;
+    color: white;
+    padding: 5px;
+    border-radius: 3px;
+    border: none;
+}
+QPushButton:hover {
+    background-color: #da190b;
+}
+QPushButton:pressed {
+    background-color: #ba0205;
+}</string>
          </property>
          <property name="text">
           <string>Quit game</string>
