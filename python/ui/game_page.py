@@ -40,7 +40,9 @@ class GameView(QWidget):
         settings_button = self.findChild(QPushButton, "settingsButton")
         quit_button = self.findChild(QPushButton, "quitButton")  
         right_layout = self.findChild(QVBoxLayout, "rightLayout")
+        resign_button = self.findChild(QPushButton, "resignButton")
         self.move_list = self.findChild(QListWidget, "moveList")
+        
 
         right_layout.removeItem(right_layout.itemAt(1))  
         resize_board = AspectRatioWidget(ChessBoardWidget())
@@ -51,6 +53,7 @@ class GameView(QWidget):
 
         settings_button.clicked.connect(self.game_page_controller.settings_button_clicked)     
         quit_button.clicked.connect(self.game_page_controller.quit_game)
+        resign_button.clicked.connect(self.game_page_controller.reset_board)
 
 
     def update_chess_board(self):
@@ -182,9 +185,13 @@ class GamePageController(QObject):
             current_text = last_move.text()
             last_move.setText(current_text + f"\t {move}")
 
+    def clear_list(self):
+        self.view.move_list.clear() 
+
     
     def reset_board(self):
         self.chess_model.reset_game()
+        self.clear_list()
         self.board_widget.update_board(self.chess_model.get_board_state())
         self.board_widget.reset_square_highlight()
         self.selected_square = None  # Reset selected square when resetting the board
