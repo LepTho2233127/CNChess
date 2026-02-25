@@ -21,8 +21,8 @@ import ctypes
 # Path of Image that you want to convert
 #image_path = r"test-14.jpeg"
 #image_path = r"image2.jpg"
-#image_path = r"image.png"
-image_path = r"test1_jaune.jpg"
+image_path = r"jaune_vert.jpg"
+#image_path = r"test1_jaune.jpg"
 
 # === Load & Resize Image ===
 scale = 0.3  # resize factor
@@ -44,7 +44,7 @@ orig_image = cv2.imread(image_path)
 # read image and convert it to different color spaces 
 image = cv2.resize(orig_image, None, fx=scale, fy=scale)
 #image = cv2.imread(image_path)
-gray_image=cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
+#gray_image=cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
 rgb_image=cv2.cvtColor(image,cv2.COLOR_BGR2RGB)
 #gray_image = cv2.imread(image, cv2.IMREAD_GRAYSCALE)
 
@@ -145,7 +145,7 @@ bottom_left = None
 bottom_right = None
 # Draw the contour and the extreme points
 
-#calibrate_board(image, scale)
+calibrate_board(image, scale)
 
 def read_calibration_points(json_file):
     with open(json_file, 'r') as f:
@@ -226,12 +226,13 @@ warped_image_masked, mask = create_color_mask(warped_image)
 # Use the masked image for further processing
 warped_image = warped_image_masked
 
-cv2.circle(warped_image, (threshold, threshold), 15, (0, 0, 255), -1)   
-cv2.circle(warped_image, (width + threshold, threshold), 15, (0, 0, 255), -1)   
-cv2.circle(warped_image, (threshold, height + threshold), 15, (0, 0,255), -1)  
-cv2.circle(warped_image, (width + threshold, height + threshold), 15, (0, 0, 255), -1)   
+cv2.circle(warped_image, (threshold, threshold), 15, (255, 0, 0), -1)   
+cv2.circle(warped_image, (width + threshold, threshold), 15, (255, 0, 0), -1)   
+cv2.circle(warped_image, (threshold, height + threshold), 15, (255, 0, 0), -1)  
+cv2.circle(warped_image, (width + threshold, height + threshold), 15, (255, 0, 0), -1)   
 
-
+# plt.imshow(warped_image)
+# plt.show()
 
 #### Divide board to 64 square
 
@@ -332,22 +333,22 @@ cv2.circle(rgb_image,  (int(extreme_points_list[3][0]),int(extreme_points_list[3
 #### Write coordinate of squares to a csv file
 
 # Write coordinates to CSV file 
-with open('board-square-positions-demo.csv', mode='w', newline='') as file:
-    writer = csv.writer(file)
+# with open('board-square-positions-demo.csv', mode='w', newline='') as file:
+#     writer = csv.writer(file)
     
-    # columns
-    writer.writerow(['x1', 'y1', 'x2', 'y2', 'x3', 'y3', 'x4', 'y4'])
+#     # columns
+#     writer.writerow(['x1', 'y1', 'x2', 'y2', 'x3', 'y3', 'x4', 'y4'])
 
 
-    for coordinate in squares_data_original:
-        center, bottom_right, top_right, top_left, bottom_left = coordinate
+#     for coordinate in squares_data_original:
+#         center, bottom_right, top_right, top_left, bottom_left = coordinate
         
-        writer.writerow([
-                bottom_right[0], bottom_right[1],  # x1, y1
-                top_right[0], top_right[1],        # x2, y2
-                top_left[0], top_left[1],          # x3, y3
-                bottom_left[0], bottom_left[1]     # x4, y4
-            ])
+#         writer.writerow([
+#                 bottom_right[0], bottom_right[1],  # x1, y1
+#                 top_right[0], top_right[1],        # x2, y2
+#                 top_left[0], top_left[1],          # x3, y3
+#                 bottom_left[0], bottom_left[1]     # x4, y4
+#             ])
 
 
 #### Check coordinates of squares that are inside of CSV file
@@ -595,92 +596,3 @@ def get_uci_move(move_start, move_end):
 uci_move = get_uci_move(move_start, move_end)
 print(f"Detected move in UCI format: {uci_move}")
 
-# def parse_coordinates(input_str):
-#     """
-#     Parse the input string to extract the positions of the chess pieces.
-#     """
-#     rows = input_str.strip().split('\n')
-#     chess_pieces = []
-#     for row in rows:  # Reversing rows to invert ranks
-#         pieces = row.strip().split()
-#         chess_pieces.extend(pieces)
-#     return chess_pieces
-
-
-
- 
-# input_str=chess_str
-
-# chess_pieces = parse_coordinates(input_str)
-
-# board = chess.Board(None)
-
-# piece_mapping = {
-#     'white-pawn': chess.PAWN,
-#     'black-pawn': chess.PAWN,
-#     'white-knight': chess.KNIGHT,
-#     'black-knight': chess.KNIGHT,
-#     'white-bishop': chess.BISHOP,
-#     'black-bishop': chess.BISHOP,
-#     'white-rook': chess.ROOK,
-#     'black-rook': chess.ROOK,
-#     'white-queen': chess.QUEEN,
-#     'black-queen': chess.QUEEN,
-#     'white-king': chess.KING,
-#     'black-king': chess.KING,
-#     'space': None
-# }
-
-# for rank in range(8):
-#     for file in range(8):
-#         piece = chess_pieces[rank * 8 + file]
-#         if piece != 'space':
-#             color = chess.WHITE if piece.startswith('white') else chess.BLACK
-#             piece_type = piece_mapping[piece]
-#             board.set_piece_at(chess.square(file, rank), chess.Piece(piece_type, color))  # Not inverting rank
-
-# svgboard = chess.svg.board(board)
-# with open("2Dboard.svg", "w") as f:
-#     f.write(svgboard)
-
- 
-
-# # Function to convert SVG to PNG
-# def convert_svg_to_png(svg_file_path, png_file_path):
-#     # Read the SVG file and convert it to a ReportLab Drawing
-#     drawing = svg2rlg(svg_file_path)
-#     # Render the drawing to a PNG file
-#     renderPM.drawToFile(drawing, png_file_path, fmt='jpeg')
-#     print(f"Converted {svg_file_path} to {png_file_path}")
-
-# # Example usage
-# svg_file = '2Dboard.svg'
-# png_file = 'Extracted-Board.jpeg'
-# convert_svg_to_png(svg_file, png_file)
-
-# original_image = cv2.imread(image_path)
-# original_image=cv2.cvtColor(original_image,cv2.COLOR_BGR2RGB)
- 
-
-
-
-# plt.figure(figsize=(14, 10))  # Increase the figure size to 18x6 inches
-
-
-# plt.subplot(131)
-# plt.title(f"{image_path}")
-# plt.imshow(original_image)
-
-# plt.subplot(132)
-# plt.title("Extracted Squares")
-# plt.imshow(image)
-
-# plt.subplot(133)
-# plt.title("Converted Image")
-# plt.imshow(cv2.cvtColor(cv2.imread(png_file),cv2.COLOR_BGR2RGB))
-
-# # Save the figure as a PNG file
-# output_path = 'output_figure.png'
-# plt.savefig(output_path)
-
-# plt.show()  
