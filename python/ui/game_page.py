@@ -22,12 +22,12 @@ HIGHLIGHT_COLOR = "#B9B9B9"  # Yellow highlight for selected piece and possible 
 class GameView(QWidget):
 
   
-    def __init__(self, chess_game):
+    def __init__(self, chess_game, control):
 
         super().__init__()
 
         self.chess_game = chess_game
-        self.control = Control()
+        self.control = control
        
         # Load the UI from the .ui file
         ui_path = os.path.join(os.path.dirname(__file__), 'gamePage.ui')
@@ -169,8 +169,6 @@ class GamePageController(QObject):
     
     def update_list(self, move, turn):
 
-
-        print(turn)
         if turn == chess.WHITE:
             
             nb_move = self.view.move_list.count()+1

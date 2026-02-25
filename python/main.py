@@ -22,7 +22,7 @@ if __name__ == "__main__":
       # Create the Qt application
     app = QApplication(sys.argv) 
     
-    ui = MainUI(game)
+    ui = MainUI(game, control)
     
     # Show the window
     ui.show()
