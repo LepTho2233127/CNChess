@@ -340,7 +340,7 @@ void goHome() {
 
 void drop_piece() {
     go_to_position({0.5*SQUARE_SIZE_MM, SQUARE_SIZE_MM*5.5+2});
-    go_to_position({0, SQUARE_SIZE_MM*5.5+2});
-    go_to_position({0, SQUARE_SIZE_MM*2});
+    go_to_position({-2, SQUARE_SIZE_MM*5.5+2});
+    go_to_position({-2, SQUARE_SIZE_MM*4.5+2});
 }
 
