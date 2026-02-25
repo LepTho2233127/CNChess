@@ -7,8 +7,8 @@ import sys
 import chess
 import re
 
-from PyQt6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QApplication, QSizePolicy, QListWidget, QListWidgetItem
-from PyQt6.QtCore import QObject, pyqtSignal, QSize
+from PyQt6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QApplication, QSizePolicy, QListWidget, QListWidgetItem, QDialog
+from PyQt6.QtCore import QObject, pyqtSignal, QSize, QThread
 from PyQt6.QtGui import QPixmap, QIcon, QColor
 from PyQt6 import uic
 
@@ -18,6 +18,52 @@ from Control import Control
 LIGHT_SQUARE_COLOR = "#F0D9B5"
 DARK_SQUARE_COLOR = "#B58863"
 HIGHLIGHT_COLOR = "#B9B9B9"  # Yellow highlight for selected piece and possible moves
+
+
+class SendPathWorker(QObject):
+    """Worker thread to send path commands without blocking the UI."""
+    finished = pyqtSignal()
+    error = pyqtSignal(str)
+    
+    def __init__(self, communication, path):
+        super().__init__()
+        self.communication = communication
+        self.path = path
+    
+    def run(self):
+        """Execute send_path in the worker thread."""
+        try:
+            result = self.communication.send_path(self.path)
+            if not result:
+                self.error.emit("Failed to send path to device")
+            else:
+                self.finished.emit()
+        except Exception as e:
+            self.error.emit(f"Error sending path: {str(e)}")
+
+
+class WaitingDialog(QDialog):
+    """Simple waiting dialog to show while path is being sent."""
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Processing Move")
+        self.setModal(True)
+        self.setFixedSize(300, 100)
+        
+        layout = QVBoxLayout()
+        label = QLabel("Sending move to device...\nPlease wait.")
+        layout.addWidget(label)
+        self.setLayout(layout)
+        
+        # Center the dialog on parent
+        if parent:
+            parent_geometry = parent.geometry()
+            self.move(
+                parent_geometry.left() + (parent_geometry.width() - 300) // 2,
+                parent_geometry.top() + (parent_geometry.height() - 100) // 2
+            )
+
     
 class GameView(QWidget):
 
@@ -86,13 +132,49 @@ class GamePageController(QObject):
         self.communication = Communication()
 
         self.selected_piece = None  # Track the currently selected piece for move selection
-        self.board_widget.squared_clicked_signal.connect(self.handle_square_click) 
+        self.board_widget.squared_clicked_signal.connect(self.handle_square_click)
+        
+        # Initialize worker thread and waiting dialog
+        self.send_path_worker = None
+        self.send_path_thread = None
+        self.waiting_dialog = WaitingDialog(self.view) 
 
     def settings_button_clicked(self):
         self.show_settings_signal.emit()
 
     def quit_game(self):
         self.return_home_signal.emit()
+
+    def send_path_async(self, path):
+        """Send path to device asynchronously without blocking the UI."""
+        # Create worker and thread
+        self.send_path_worker = SendPathWorker(self.communication, path)
+        self.send_path_thread = QThread()
+        self.send_path_worker.moveToThread(self.send_path_thread)
+        
+        # Connect signals
+        self.send_path_thread.started.connect(self.send_path_worker.run)
+        self.send_path_worker.finished.connect(self.on_send_path_finished)
+        self.send_path_worker.finished.connect(self.send_path_thread.quit)
+        self.send_path_worker.error.connect(self.on_send_path_error)
+        self.send_path_worker.error.connect(self.send_path_thread.quit)
+        self.send_path_thread.finished.connect(self.send_path_worker.deleteLater)
+        self.send_path_thread.finished.connect(self.send_path_thread.deleteLater)
+        
+        # Show waiting dialog and start thread
+        self.waiting_dialog.show()
+        self.send_path_thread.start()
+
+    def on_send_path_finished(self):
+        """Handler when send_path completes successfully."""
+        self.waiting_dialog.hide()
+        print("Path sent successfully to device")
+
+    def on_send_path_error(self, error_msg):
+        """Handler when send_path encounters an error."""
+        self.waiting_dialog.hide()
+        print(f"Error: {error_msg}")
+
 
     def handle_square_click(self, row, col):
         """Handle click events on the squares. This is where you would implement move selection and execution logic."""
@@ -157,7 +239,8 @@ class GamePageController(QObject):
             path = self.make_move(best_move)
             self.view.update_chess_board()  # Update the board display after computer move
 
-            self.communication.send_path(path)
+            # Send path asynchronously to avoid blocking the UI
+            self.send_path_async(path)
 
 
     def coordinate_to_square(self, row, col):
