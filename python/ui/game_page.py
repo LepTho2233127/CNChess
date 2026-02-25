@@ -113,7 +113,7 @@ class GamePageController(QObject):
                     piece = self.board_widget.board[self.selected_piece[0]][self.selected_piece[1]].upper()
                     self.update_list(move=f"{piece}{to_square}", turn=self.chess_model.get_turn())
                     
-                    self.chess_model.make_move(move)
+                    path = self.make_move(move)
                     self.view.update_chess_board()  # Update the board display after making the move
                     self.selected_piece = None  # Reset the selected piece after making a move
                     self.computer_move()
@@ -154,10 +154,8 @@ class GamePageController(QObject):
             piece = self.board_widget.board[(7 - chess.square_rank(best_move.from_square))][chess.square_file(best_move.from_square)].upper()
             self.update_list(move=f"{piece}{to_square}",  turn=self.chess_model.get_turn())
 
-            self.chess_model.make_move(best_move)
+            path = self.make_move(best_move)
             self.view.update_chess_board()  # Update the board display after computer move
-            self.control.update_board_state(self.chess_model.get_board_state())  # Update the control with the new board state after computer move
-            path = self.control.get_path(best_move, self.chess_model.get_board())
 
             self.communication.send_path(path)
 
@@ -187,6 +185,17 @@ class GamePageController(QObject):
 
     def clear_list(self):
         self.view.move_list.clear() 
+    
+    def make_move(self, move):
+        self.control.update_board_state(self.chess_model.get_board_state())
+        path = self.control.get_path(move, self.chess_model.get_board())
+
+        self.control.print_path(path)
+        self.chess_model.make_move(move)
+        # self.view.board_widget.set_trajectory(path)
+        # self.view.board_widget.set_computer_turn(True)
+
+        return path
 
     
     def reset_board(self):
@@ -373,19 +382,19 @@ class GridButton(QPushButton):
         return width  
              
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
 
-    # Ensure the parent package (python/) is on sys.path so CNChess can be imported
-    parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-    if parent_dir not in sys.path:
-        sys.path.insert(0, parent_dir)
+#     # Ensure the parent package (python/) is on sys.path so CNChess can be imported
+#     parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+#     if parent_dir not in sys.path:
+#         sys.path.insert(0, parent_dir)
 
-    from CNChess import CNChess   
+#     from CNChess import CNChess   
 
-    chess_model = CNChess()
-    app = QApplication(sys.argv)
-    game_view = GameView(chess_model)
-    game_view.show()
-    sys.exit(app.exec())
+#     chess_model = CNChess()
+#     app = QApplication(sys.argv)
+#     game_view = GameView(chess_model)
+#     game_view.show()
+#     sys.exit(app.exec())
 
 
