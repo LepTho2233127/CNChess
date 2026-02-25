@@ -34,7 +34,7 @@ AccelStepper stepper1(AccelStepper::DRIVER, STEP_PIN_1, DIR_PIN_1); // step, dir
 AccelStepper stepper2(AccelStepper::DRIVER, STEP_PIN_2, DIR_PIN_2); // step, dir pins
 MultiStepper steppers;
 
-int servoGrabPosition = 0; // Servo position to grab piece0
+int servoGrabPosition = 3; // Servo position to grab piece0
 int servoReleasePosition = 85; // Servo position to release piece
 static bool isFastHome = false;
 
