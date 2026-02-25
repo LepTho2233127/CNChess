@@ -280,7 +280,7 @@ This fonction move the head of the core XY to an absolute position
 */
 void go_to_position (Position pos) { 
 
-    float delta_x = pos.x - current_position.x;
+    float delta_x = -(pos.x - current_position.x);
     float delta_y = pos.y - current_position.y;
     std::pair<float, float> steps = get_steps(delta_x, delta_y);
     long positions[2];
@@ -295,7 +295,7 @@ void go_to_position (Position pos) {
 This fonction move the head of the core XY by a relative distance
 */
 void move_distance(float delta_x, float delta_y) {
-    std::pair<float, float> steps = get_steps(delta_x, delta_y);
+    std::pair<float, float> steps = get_steps(-delta_x, delta_y);
     long positions[2];
     positions[0] = static_cast<long>(steps.first);
     positions[1] = static_cast<long>(steps.second);
@@ -323,23 +323,19 @@ void goHome() {
 
     stepper1.stop();
     stepper2.stop();
-    // reset_position();
     move_distance(0.0, 2.0); // Move away from limit switches
 
     while(digitalRead(LIMIT_SWITCH_1) == LOW)
     {
-        stepper1.setSpeed(-HOME_SPEED); // Move towards home
-        stepper2.setSpeed(-HOME_SPEED); // Move towards home
+        stepper1.setSpeed(HOME_SPEED); // Move towards home
+        stepper2.setSpeed(HOME_SPEED); // Move towards home
         stepper1.run();
         stepper2.run();
     }
     stepper1.stop();
     stepper2.stop();
-    // reset_position();   
     move_distance((SQUARE_SIZE_MM/2), 0.0); // Move away from limit switches
     reset_position();
-    
-
 }
 
 void drop_piece() {
