@@ -278,6 +278,7 @@ class ChessBoardWidget(QWidget):
                 square_button = self.board_layout.itemAtPosition(row, col).widget()
                 piece_char = self.board[row][col]
                 self.draw_piece(square_button, piece_char)
+        self.repaint();
     
     def draw_piece(self, button, piece_char):
         """Draw the piece on the given square button."""
