@@ -44,7 +44,7 @@ class MainUI(QMainWindow):
 
     def switch_to_game_page(self):
         self.stacked_widget.setCurrentWidget(self.game_page)
-        self.game_page.update_chess_board()  # Ensure the game board is updated when switching to the game page
+        self.game_page.start_chess_board()  # Ensure the game board is updated when switching to the game page
 
     def switch_to_settings_page(self):
         self.stacked_widget.setCurrentWidget(self.settings_page)
