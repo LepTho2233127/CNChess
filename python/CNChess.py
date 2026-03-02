@@ -21,11 +21,14 @@ class CNChess:
         self.next_player_move = None
         self.computer = stockfish.Stockfish(path=self.stockfish_path, depth=self.stockfish_depth)
         self.EASY_ELO = 1350
-        self.EASY_DEPTH = 5
+        self.EASY_DEPTH = 1
         self.MEDIUM_ELO = 1350
-        self.MEDIUM_DEPTH = 10
-        self.HARD_ELO = 1700
+        self.MEDIUM_DEPTH = 5
+        self.HARD_ELO = 2000
         self.HARD_DEPTH = 10
+        self.IMPOSSIBLE_ELO = 3000
+        self.IMPOSSIBLE_DEPTH = 20
+        self.difficulty = "medium"
 
 
     def set_elo(self, elo: int):
@@ -37,11 +40,11 @@ class CNChess:
     def set_difficulty(self, difficulty: str):
         """Set the difficulty level of the computer opponent. Valid values are 'easy', 'medium', and 'hard'."""
 
-        if difficulty not in ["easy", "medium", "hard"]:
-            raise ValueError("Invalid difficulty level. Must be 'easy', 'medium', or 'hard'.")
-
-        elo = self.EASY_ELO if difficulty == "easy" else self.MEDIUM_ELO if difficulty == "medium" else self.HARD_ELO
-        depth = self.EASY_DEPTH if difficulty == "easy" else self.MEDIUM_DEPTH if difficulty == "medium" else self.HARD_DEPTH    
+        if difficulty not in ["easy", "medium", "hard", "impossible"]:
+            raise ValueError("Invalid difficulty level. Must be 'easy', 'medium', 'hard', or 'impossible'.")
+        self.difficulty = difficulty
+        elo = self.EASY_ELO if difficulty == "easy" else self.MEDIUM_ELO if difficulty == "medium" else self.HARD_ELO if difficulty == "hard" else self.IMPOSSIBLE_ELO
+        depth = self.EASY_DEPTH if difficulty == "easy" else self.MEDIUM_DEPTH if difficulty == "medium" else self.HARD_DEPTH if difficulty == "hard" else self.IMPOSSIBLE_DEPTH
 
         self.set_elo(elo)
         self.set_depth(depth)
@@ -75,7 +78,11 @@ class CNChess:
     
     def get_next_best_move(self):
         self.computer.set_fen_position(self.board.fen())
-        best_move_uci = self.computer.get_best_move()
+        if self.difficulty == "easy":
+            top_moves = self.computer.get_top_moves(5)
+            best_move_uci = top_moves[4]['Move'] if top_moves else None
+        else:
+            best_move_uci = self.computer.get_best_move()
         if best_move_uci:
             return chess.Move.from_uci(best_move_uci)
         else:
