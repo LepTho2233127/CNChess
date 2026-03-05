@@ -94,7 +94,7 @@ class GameView(QWidget):
         self.move_list = self.findChild(QListWidget, "moveList")
         
         right_layout.removeItem(right_layout.itemAt(1))  
-        resize_board = AspectRatioWidget(ChessBoardWidget(chess_game.get_player_color()))
+        resize_board = AspectRatioWidget(ChessBoardWidget())
         right_layout.insertWidget(1,resize_board)
         self.board = resize_board.board_widget
 
@@ -106,13 +106,14 @@ class GameView(QWidget):
 
 
     def start_chess_board(self):
-        
-        self.board.set_square_colors(self.chess_game.get_player_color())
+
+        color = self.chess_game.get_player_color()
+        self.board.set_player_color(color)
         self.board.paint_board() # Clear any existing highlights before updating the boar
         self.board.update_board(self.chess_game.get_board_state())
 
         #If player is black launch first move of computer as white
-        if not self.chess_game.get_player_color() :
+        if not color :
             self.game_page_controller.start_game_black_signal.emit()
         
 
@@ -219,17 +220,20 @@ class GamePageController(QObject):
 
     def check_piece_selected(self, row, col): 
 
+        player_color = self.chess_game.get_player_color()
         piece = self.board_widget.board[row][col]
-        if piece != '_' and ((self.chess_game.get_player_color() == chess.WHITE and piece.isupper()) or 
-                                                (self.chess_game.get_player_color() == chess.BLACK and piece.islower())):
+        if piece != '_' and (( player_color == chess.WHITE and piece.isupper()) or 
+                                                (player_color == chess.BLACK and piece.islower())):
             
             self.selected_piece = (row, col)
             legal_moves = self.chess_game.get_legal_moves_from_square(self.coordinate_to_square(row, col))
 
-
-            highlighted_squares = [(7 - chess.square_rank(move.to_square), chess.square_file(move.to_square)) for move in legal_moves]
+            if player_color : 
+                highlighted_squares = [(7 - chess.square_rank(move.to_square), chess.square_file(move.to_square)) for move in legal_moves]
+            else : 
+                highlighted_squares = [(chess.square_rank(move.to_square), 7 - chess.square_file(move.to_square)) for move in legal_moves] 
+            
             highlighted_squares.append((row, col))  # Also highlight the selected piece's square
-
             self.view.update_highlighted_squares(highlighted_squares)  # Highlight the selected piece and its legal moves
 
         else :
@@ -262,9 +266,14 @@ class GamePageController(QObject):
 
     def coordinate_to_square(self, row, col):
         """Convert board coordinates to chess square notation (e.g., (0,0) -> 'a8')."""
-        file = chr(ord('a') + col)
-        rank = 8 - row
-     
+
+        if self.chess_game.get_player_color(): 
+            file = chr(ord('a') + col)
+            rank = 8 - row
+        else : 
+            file = chr(ord('h') - col)
+            rank = row + 1
+
         return f"{file}{rank}"
     
     def update_list(self, move, turn):
@@ -307,12 +316,10 @@ class ChessBoardWidget(QWidget):
 
     squared_clicked_signal = pyqtSignal(int, int)  # Signal to emit when a square is clicked, with row and column info
 
-    def __init__(self, player_color=chess.WHITE):
+    def __init__(self):
         super().__init__()
         
-        self.square_colors = ()
-        self.player_color = player_color
-        self.set_square_colors(player_color=player_color)
+        self.player_color = chess.WHITE
         self.images = self.load_piece_images()
         self.board = self.fen_to_board_array(chess.STARTING_FEN)
         self.board_layout = QGridLayout()
@@ -403,8 +410,13 @@ class ChessBoardWidget(QWidget):
                     board_row.append(char)
             board.append(board_row)
 
-
+        #If black flip the board 
         if not self.player_color :
+            #Flip all row
+            for i, row in enumerate(board) : 
+                row_flip = row[::-1] 
+                board[i] = row_flip
+
             board = board[::-1]
             
         return board  
@@ -414,7 +426,7 @@ class ChessBoardWidget(QWidget):
         square_button = self.board_layout.itemAtPosition(row, col).widget()
 
         square_color = (row + col) % 2
-        base_color = self.square_colors[0] if square_color == 0 else self.square_colors[1]
+        base_color = LIGHT_SQUARE_COLOR if square_color == 0 else DARK_SQUARE_COLOR
    
         highlight_color = QColor(base_color).darker(125).name()  # Create a lighter version of the base color for highlighting
 
@@ -434,21 +446,14 @@ class ChessBoardWidget(QWidget):
                 square_button = self.board_layout.itemAtPosition(r, c).widget()
                 square_color = (r + c) % 2
 
-                base_color = self.square_colors[0] if square_color == 0 else self.square_colors[1] 
+                base_color = LIGHT_SQUARE_COLOR if square_color == 0 else DARK_SQUARE_COLOR 
 
                 square_button.setStyleSheet(f"background-color: {base_color}; border: none;")    
 
-        self.repaint()        
+        self.repaint()   
 
-    def set_square_colors(self, player_color=chess.WHITE):
-        """Updates the square_colors variable according to color of player"""
-
-        self.player_color = player_color
-
-        if player_color :
-            self.square_colors = WHITE_SQUARE_COLORS
-        else :
-            self.square_colors = BLACK_SQUARE_COLORS       
+    def set_player_color(self, player_color):
+        self.player_color = player_color               
 
 class AspectRatioWidget(QWidget):
     
