@@ -216,12 +216,7 @@ class GamePageController(QObject):
                     self.update_chess_board()  # Update the board display after making the move
                     self.selected_piece = None  # Reset the selected piece after making a move
 
-                    game_outcome = self.chess_game.check_game_outcome()
-
-                    if game_outcome :
-                        if not game_outcome == "draw":
-                            checkmate_dialog = CheckmateDialog(winner_color=game_outcome)
-    
+                    self.handle_game_outcome()
                     self.computer_move()
                 else:
                     # If the move is not valid, reset the selection and highlights
@@ -268,6 +263,24 @@ class GamePageController(QObject):
 
             # Send path asynchronously to avoid blocking the UI
             self.send_path_async(path)
+            self.handle_game_outcome()
+
+            
+
+    def handle_game_outcome(self):
+
+        game_outcome = self.chess_game.check_game_outcome()
+
+        if game_outcome :
+            if not game_outcome == "draw":
+                checkmate_dialog = CheckmateDialog(winner_color=game_outcome)
+                result = checkmate_dialog.exec()
+
+                #If want to play again switch to home page
+                if result : 
+                    self.return_home_signal.emit()
+                else : 
+                    sys.exit()
 
 
     def update_chess_board(self):
