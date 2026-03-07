@@ -1,4 +1,5 @@
 import chess
+import random
 import stockfish
 
 from chess import Termination
@@ -22,10 +23,8 @@ class CNChess:
         self.next_computer_move = None
         self.next_player_move = None
         self.computer = stockfish.Stockfish(path=self.stockfish_path, depth=self.stockfish_depth)
-        self.EASY_ELO = 1350
-        self.EASY_DEPTH = 1
         self.MEDIUM_ELO = 1350
-        self.MEDIUM_DEPTH = 5
+        self.MEDIUM_DEPTH = 1
         self.HARD_ELO = 2000
         self.HARD_DEPTH = 10
         self.IMPOSSIBLE_ELO = 3000
@@ -45,8 +44,8 @@ class CNChess:
         if difficulty not in ["easy", "medium", "hard", "impossible"]:
             raise ValueError("Invalid difficulty level. Must be 'easy', 'medium', 'hard', or 'impossible'.")
         self.difficulty = difficulty
-        elo = self.EASY_ELO if difficulty == "easy" else self.MEDIUM_ELO if difficulty == "medium" else self.HARD_ELO if difficulty == "hard" else self.IMPOSSIBLE_ELO
-        depth = self.EASY_DEPTH if difficulty == "easy" else self.MEDIUM_DEPTH if difficulty == "medium" else self.HARD_DEPTH if difficulty == "hard" else self.IMPOSSIBLE_DEPTH
+        elo = self.MEDIUM_ELO if difficulty == "medium" else self.HARD_ELO if difficulty == "hard" else self.IMPOSSIBLE_ELO
+        depth = self.MEDIUM_DEPTH if difficulty == "medium" else self.HARD_DEPTH if difficulty == "hard" else self.IMPOSSIBLE_DEPTH
 
         self.set_elo(elo)
         self.set_depth(depth)
@@ -80,8 +79,16 @@ class CNChess:
     def get_next_best_move(self):
         self.computer.set_fen_position(self.board.fen())
         if self.difficulty == "easy":
-            top_moves = self.computer.get_top_moves(5)
-            best_move_uci = top_moves[4]['Move'] if top_moves else None
+
+            captured_moves = list(self.board.generate_legal_captures())  
+
+            if captured_moves :
+                move = captured_moves[random.randrange(len(captured_moves))]
+            else :
+                legal_moves = list(self.board.generate_legal_moves())
+                move = legal_moves[random.randrange(len(legal_moves))]
+
+            return move    
         else:
             best_move_uci = self.computer.get_best_move()
         if best_move_uci:
