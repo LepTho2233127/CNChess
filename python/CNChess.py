@@ -1,6 +1,8 @@
 import chess
 import stockfish
 
+from chess import Termination
+
 class CNChess:
 
     board: chess.Board
@@ -56,7 +58,6 @@ class CNChess:
     def get_player_color(self):
         return self.player_color
 
-
     def get_legal_moves_from_square(self, square):
         
         square_index = chess.parse_square(square)
@@ -87,6 +88,21 @@ class CNChess:
             return chess.Move.from_uci(best_move_uci)
         else:
             return chess.Move.null()    
+        
+    def check_game_outcome(self):
+
+        game_outcome = self.board.outcome()
+
+        if game_outcome :
+            if game_outcome.termination == Termination.CHECKMATE:
+                winner_color = "white" if game_outcome.winner == chess.WHITE else "black"
+                return winner_color
+            else :
+                return "draw"
+        else :
+            return None   
+
+       
 
     def make_move(self, move):
         self.board.push(move)    

@@ -7,6 +7,8 @@ import sys
 import chess
 import re
 
+from chess import Termination
+
 from PyQt6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QApplication, QSizePolicy, QListWidget, QListWidgetItem, QDialog
 from PyQt6.QtCore import QObject, pyqtSignal, QSize, QThread
 from PyQt6.QtGui import QPixmap, QIcon, QColor
@@ -18,6 +20,8 @@ if parent_dir not in sys.path:
 
 from Communication import Communication
 from Control import Control
+from ui.dialog_ui import CheckmateDialog
+
 
 LIGHT_SQUARE_COLOR = "#F0D9B5"
 DARK_SQUARE_COLOR = "#B58863"
@@ -211,6 +215,13 @@ class GamePageController(QObject):
                     path = self.make_move(move)
                     self.update_chess_board()  # Update the board display after making the move
                     self.selected_piece = None  # Reset the selected piece after making a move
+
+                    game_outcome = self.chess_game.check_game_outcome()
+
+                    if game_outcome :
+                        if not game_outcome == "draw":
+                            checkmate_dialog = CheckmateDialog(winner_color=game_outcome)
+    
                     self.computer_move()
                 else:
                     # If the move is not valid, reset the selection and highlights
@@ -303,6 +314,8 @@ class GamePageController(QObject):
         # self.view.board_widget.set_computer_turn(True)
 
         return path
+    
+
 
     
     def reset_board(self):
