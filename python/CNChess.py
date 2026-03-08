@@ -109,8 +109,6 @@ class CNChess:
         else :
             return None   
 
-       
-
     def make_move(self, move):
         self.board.push(move)    
     
@@ -128,7 +126,9 @@ class CNChess:
         self.board.reset()
 
     def get_turn(self):
-        return self.board.turn
+
+        turn = self.board.turn
+        return "white" if turn == chess.WHITE else "black"
     
     def get_board(self):
         return self.board

@@ -9,7 +9,7 @@ import re
 
 from chess import Termination
 
-from PyQt6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QApplication, QSizePolicy, QListWidget, QListWidgetItem, QDialog
+from PyQt6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QApplication, QSizePolicy, QListWidget, QListWidgetItem, QDialog, QGraphicsBlurEffect
 from PyQt6.QtCore import QObject, pyqtSignal, QSize, QThread, QTimer
 from PyQt6.QtGui import QPixmap, QIcon, QColor
 from PyQt6 import uic
@@ -81,9 +81,24 @@ class ChessClock():
 
         self.timer = QTimer()
         self.time_left = initial_time
+        self.initial_time = initial_time
         self.timer.timeout.connect(self.tick)
         self.clock_label = clock_label
         self.update_display()
+        self.blur_effect = QGraphicsBlurEffect()
+        self.blur_effect.setBlurRadius(10)
+        self.clock_label.setGraphicsEffect(self.blur_effect)
+
+        self.clock_label.setStyleSheet("""
+        background-color: #3b2f2f;
+        color: #f3e5ab;
+        border: 4px solid #8b5a2b;
+        border-radius: 5px;
+        padding: 20px;
+        font-family: 'Georgia', serif;
+        font-size: 32px;
+        font-weight: bold;
+    """)
 
     def tick(self):
         
@@ -104,9 +119,19 @@ class ChessClock():
 
         if self.timer.isActive():
             self.timer.stop()
+            self.blur_effect.setBlurRadius(10)
         else :
             print("cdfd")
             self.timer.start(1000) #Every second
+            self.blur_effect.setBlurRadius(0)
+
+    def reset_clock(self):
+        
+        if self.timer.isActive():
+            self.timer.stop()
+        self.time_left = self.initial_time
+        self.update_display()
+        self.blur_effect.setBlurRadius(10)
 
 class GameView(QWidget):
 
@@ -132,6 +157,7 @@ class GameView(QWidget):
         self.move_list = self.findChild(QListWidget, "moveList")
         self.white_timer_display = self.findChild(QLabel, 'whiteTimer')
         self.black_timer_display = self.findChild(QLabel, 'blackTimer')
+        self.turn_indicator = self.findChild(QLabel, 'labelTurn')
 
         right_layout.removeItem(right_layout.itemAt(1))  
         resize_board = AspectRatioWidget(ChessBoardWidget())
@@ -157,10 +183,12 @@ class GameView(QWidget):
         #If player is black launch first move of computer as white
         if not color :
             self.black_clock.toggle_timer()
+            self.turn_indicator.setStyleSheet("background-color:black")
             self.game_page_controller.start_game_black_signal.emit()
 
         else :
             self.white_clock.toggle_timer()            
+            self.turn_indicator.setStyleSheet("background-color:white")
         
     def update_highlighted_squares(self, squares):
         """Highlight the given squares on the board."""
@@ -339,7 +367,7 @@ class GamePageController(QObject):
     
     def update_list(self, move, turn):
 
-        if turn == chess.WHITE:
+        if turn == "white":
             
             nb_move = self.view.move_list.count()+1
             self.view.move_list.addItem(QListWidgetItem(f"{nb_move}. {move}"))
@@ -362,10 +390,14 @@ class GamePageController(QObject):
         self.chess_game.make_move(move)
         self.view.white_clock.toggle_timer()
         self.view.black_clock.toggle_timer()
+
+        turn = self.chess_game.get_turn()
+        self.view.turn_indicator.setStyleSheet(f"background-color:{turn}")
         # self.view.board_widget.set_trajectory(path)
         # self.view.board_widget.set_computer_turn(True)
 
         return path
+
     
     def reset_board(self):
         self.chess_game.reset_game()
@@ -373,6 +405,9 @@ class GamePageController(QObject):
         self.board_widget.update_board(self.chess_game.get_board_state())
         self.board_widget.paint_board()
         self.selected_square = None  # Reset selected square when resetting the board
+        self.view.white_clock.reset_clock()
+        self.view.white_clock.reset_clock()
+
 
 class ChessBoardWidget(QWidget):
 
