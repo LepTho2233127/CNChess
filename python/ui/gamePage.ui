@@ -70,7 +70,11 @@ QPushButton:pressed {
           <number>25</number>
          </property>
          <item>
-          <widget class="QLCDNumber" name="timeWhite"/>
+          <widget class="QLabel" name="whiteTimer">
+           <property name="text">
+            <string>TextLabel</string>
+           </property>
+          </widget>
          </item>
          <item>
           <widget class="QLabel" name="labelTurn">
@@ -90,12 +94,9 @@ QPushButton:pressed {
           </widget>
          </item>
          <item>
-          <widget class="QLCDNumber" name="timeBlack">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
+          <widget class="QLabel" name="blackTimer">
+           <property name="text">
+            <string>TextLabel</string>
            </property>
           </widget>
          </item>
