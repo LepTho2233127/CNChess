@@ -18,7 +18,7 @@ if parent_dir not in sys.path:
 
 from Communication import Communication
 from Control import Control
-from ui.dialog_ui import CheckmateDialog, DrawDialog
+from ui.dialog_ui import CheckmateDialog, DrawDialog, WaitingDialog
 
 
 LIGHT_SQUARE_COLOR = "#F0D9B5"
@@ -48,29 +48,6 @@ class SendPathWorker(QObject):
                 self.finished.emit()
         except Exception as e:
             self.error.emit(f"Error sending path: {str(e)}")
-
-
-class WaitingDialog(QDialog):
-    """Simple waiting dialog to show while path is being sent."""
-    
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("Processing Move")
-        self.setModal(True)
-        self.setFixedSize(300, 100)
-        
-        layout = QVBoxLayout()
-        label = QLabel("Sending move to device...\nPlease wait.")
-        layout.addWidget(label)
-        self.setLayout(layout)
-        
-        # Center the dialog on parent
-        if parent:
-            parent_geometry = parent.geometry()
-            self.move(
-                parent_geometry.left() + (parent_geometry.width() - 300) // 2,
-                parent_geometry.top() + (parent_geometry.height() - 100) // 2
-            )
 
 class ChessClock():
 

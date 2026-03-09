@@ -107,7 +107,7 @@ QPushButton:pressed {
            </property>
            <property name="icon">
             <iconset>
-             <normaloff>../../../../../../Downloads/gear_icon.png</normaloff>../../../../../../Downloads/gear_icon.png</iconset>
+             <normaloff>assets/gear_icon.png</normaloff>assets/gear_icon.png</iconset>
            </property>
           </widget>
          </item>
