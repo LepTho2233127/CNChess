@@ -7,8 +7,6 @@ import sys
 import chess
 import re
 
-from chess import Termination
-
 from PyQt6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QApplication, QSizePolicy, QListWidget, QListWidgetItem, QDialog, QGraphicsBlurEffect
 from PyQt6.QtCore import QObject, pyqtSignal, QSize, QThread, QTimer
 from PyQt6.QtGui import QPixmap, QIcon, QColor
@@ -20,7 +18,7 @@ if parent_dir not in sys.path:
 
 from Communication import Communication
 from Control import Control
-from ui.dialog_ui import CheckmateDialog
+from ui.dialog_ui import CheckmateDialog, DrawDialog
 
 
 LIGHT_SQUARE_COLOR = "#F0D9B5"
@@ -121,10 +119,14 @@ class ChessClock():
          
     def reset_clock(self):
         
-        if self.timer.isActive():
-            self.timer.stop()
+        self.stop()
         self.time_left = self.initial_time
         self.update_display()
+
+    def stop(self):
+
+        if self.timer.isActive():
+            self.timer.stop()    
 
 class GameView(QWidget):
 
@@ -170,6 +172,7 @@ class GameView(QWidget):
 
         color = self.chess_game.get_player_color()
         self.board.set_player_color(color)
+        self.chess_game.reset_game()
         self.board.paint_board() # Clear any existing highlights before updating the boar
         self.board.update_board(self.chess_game.get_board_state())
 
@@ -178,7 +181,8 @@ class GameView(QWidget):
             self.turn_indicator.setStyleSheet("background-color:black")
             self.game_page_controller.start_game_black_signal.emit()
 
-        else :          
+        else :        
+            print("WTF")  
             self.turn_indicator.setStyleSheet("background-color:white")
 
         self.white_clock.toggle_timer()
@@ -277,8 +281,9 @@ class GamePageController(QObject):
                     self.update_chess_board()  # Update the board display after making the move
                     self.selected_piece = None  # Reset the selected piece after making a move
 
-                    self.handle_game_outcome()
-                    self.computer_move()
+                    game_outcome = self.handle_game_outcome()
+                    if not game_outcome :
+                        self.computer_move()
                 else:
                     # If the move is not valid, reset the selection and highlights
                     self.check_piece_selected(row, col)  # Update highlights for the new position after the move
@@ -331,15 +336,22 @@ class GamePageController(QObject):
         game_outcome = self.chess_game.check_game_outcome()
 
         if game_outcome :
+            self.stop_clocks()
             if not game_outcome == "draw":
                 checkmate_dialog = CheckmateDialog(winner_color=game_outcome)
                 result = checkmate_dialog.exec()
 
-                #If want to play again switch to home page
-                if result : 
-                    self.return_home_signal.emit()
-                else : 
-                    sys.exit()
+            else : 
+                draw_dialog = DrawDialog()
+                result = draw_dialog.exec()
+
+            #If want to play again switch to home page
+            if result : 
+                self.return_home_signal.emit()
+            else : 
+                sys.exit()    
+
+        return game_outcome       
 
     def update_chess_board(self):
 
@@ -391,7 +403,6 @@ class GamePageController(QObject):
 
         return path
 
-    
     def reset_board(self):
         self.chess_game.reset_game()
         self.clear_list()
@@ -400,6 +411,11 @@ class GamePageController(QObject):
         self.selected_square = None  # Reset selected square when resetting the board
         self.view.white_clock.reset_clock()
         self.view.black_clock.reset_clock()
+
+    def stop_clocks(self) :
+        self.view.white_clock.stop()
+        self.view.black_clock.stop()
+
 
 class ChessBoardWidget(QWidget):
 
