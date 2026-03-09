@@ -1,8 +1,8 @@
 import sys
 from PyQt6.QtWidgets import (QApplication, QDialog, QLabel, 
-                             QPushButton, QVBoxLayout, QHBoxLayout, QFrame)
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QPixmap,  QTransform
+                             QPushButton, QVBoxLayout, QHBoxLayout, QFrame, QWidget)
+from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QPixmap,  QTransform, QPainter
 
 class CheckmateDialog(QDialog):
     def __init__(self, winner_color="white", parent=None):
@@ -179,9 +179,77 @@ class DrawDialog(QDialog):
         dialog_layout.setContentsMargins(0, 0, 0, 0)
         dialog_layout.addWidget(self.container)
 
+class WaitingDialog(QDialog):
+    """Simple waiting dialog to show while path is being sent."""
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Processing Move")
+        self.setModal(True)
+        self.setFixedSize(300, 150)
+
+        layout = QVBoxLayout()
+        label = QLabel("Sending move to device...\nPlease wait.")
+        self.spinning_gear = self.SpinningImageGear()
+        layout.addWidget(label)
+        layout.addWidget(self.spinning_gear)
+        self.setLayout(layout)
+        
+        # Center the dialog on parent
+        if parent:
+            parent_geometry = parent.geometry()
+            self.move(
+                parent_geometry.left() + (parent_geometry.width() - 300) // 2,
+                parent_geometry.top() + (parent_geometry.height() - 100) // 2
+            )
+    class SpinningImageGear(QWidget):
+        def __init__(self):
+            super().__init__()
+            original_image = QPixmap("ui/assets/gear_icon.png")
+            self.gear_image = original_image.scaled(
+            65, 65, 
+            Qt.AspectRatioMode.KeepAspectRatio, 
+            Qt.TransformationMode.SmoothTransformation
+        )
+
+            self.angle = 0
+
+            # Animation loop
+            self.timer = QTimer(self)
+            self.timer.timeout.connect(self.rotate_gear)
+            self.timer.start(16) 
+
+        def rotate_gear(self):
+            self.angle += 2  
+            if self.angle >= 360:
+                self.angle = 0
+            self.update() 
+
+        def paintEvent(self, event):
+            painter = QPainter(self)
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+            painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform) # Keeps the image from looking pixelated when rotated
+
+            # 2. Move the origin to the center of the widget
+            painter.translate(self.width() / 2, self.height() / 2)
+
+            # 3. Rotate the canvas
+            painter.rotate(self.angle)
+
+            # 4. Draw the image
+            # IMPORTANT: We must offset the drawing by half the image's width and height.
+            # Otherwise, the top-left corner of the image will be at the center of rotation, 
+            # causing it to orbit rather than spin in place.
+            offset_x = int(-self.gear_image.width() / 2)
+            offset_y = int(-self.gear_image.height() / 2)
+            
+            painter.drawPixmap(offset_x, offset_y, self.gear_image)
 
 # --- Example Usage ---
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     dialog = CheckmateDialog(winner_color="black")
+    result = dialog.exec()
+
+    dialog = WaitingDialog()
     result = dialog.exec()
