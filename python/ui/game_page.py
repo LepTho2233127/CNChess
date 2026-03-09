@@ -399,8 +399,7 @@ class GamePageController(QObject):
         self.board_widget.paint_board()
         self.selected_square = None  # Reset selected square when resetting the board
         self.view.white_clock.reset_clock()
-        self.view.white_clock.reset_clock()
-
+        self.view.black_clock.reset_clock()
 
 class ChessBoardWidget(QWidget):
 
