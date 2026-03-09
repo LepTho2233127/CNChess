@@ -85,9 +85,6 @@ class ChessClock():
         self.timer.timeout.connect(self.tick)
         self.clock_label = clock_label
         self.update_display()
-        self.blur_effect = QGraphicsBlurEffect()
-        self.blur_effect.setBlurRadius(10)
-        self.clock_label.setGraphicsEffect(self.blur_effect)
 
         self.clock_label.setStyleSheet("""
         background-color: #3b2f2f;
@@ -119,19 +116,15 @@ class ChessClock():
 
         if self.timer.isActive():
             self.timer.stop()
-            self.blur_effect.setBlurRadius(10)
         else :
-            print("cdfd")
             self.timer.start(1000) #Every second
-            self.blur_effect.setBlurRadius(0)
-
+         
     def reset_clock(self):
         
         if self.timer.isActive():
             self.timer.stop()
         self.time_left = self.initial_time
         self.update_display()
-        self.blur_effect.setBlurRadius(10)
 
 class GameView(QWidget):
 
@@ -182,13 +175,13 @@ class GameView(QWidget):
 
         #If player is black launch first move of computer as white
         if not color :
-            self.black_clock.toggle_timer()
             self.turn_indicator.setStyleSheet("background-color:black")
             self.game_page_controller.start_game_black_signal.emit()
 
-        else :
-            self.white_clock.toggle_timer()            
+        else :          
             self.turn_indicator.setStyleSheet("background-color:white")
+
+        self.white_clock.toggle_timer()
         
     def update_highlighted_squares(self, squares):
         """Highlight the given squares on the board."""
