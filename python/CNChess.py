@@ -1,4 +1,5 @@
 import chess
+import random
 import stockfish
 
 class CNChess:
@@ -20,10 +21,32 @@ class CNChess:
         self.next_computer_move = None
         self.next_player_move = None
         self.computer = stockfish.Stockfish(path=self.stockfish_path, depth=self.stockfish_depth)
+        self.MEDIUM_ELO = 1350
+        self.MEDIUM_DEPTH = 1
+        self.HARD_ELO = 2000
+        self.HARD_DEPTH = 10
+        self.IMPOSSIBLE_ELO = 3000
+        self.IMPOSSIBLE_DEPTH = 20
+        self.difficulty = "medium"
 
 
     def set_elo(self, elo: int):
         self.computer.set_elo_rating(elo)
+
+    def set_depth(self, depth: int):
+        self.computer.set_depth(depth)
+
+    def set_difficulty(self, difficulty: str):
+        """Set the difficulty level of the computer opponent. Valid values are 'easy', 'medium', and 'hard'."""
+
+        if difficulty not in ["easy", "medium", "hard", "impossible"]:
+            raise ValueError("Invalid difficulty level. Must be 'easy', 'medium', 'hard', or 'impossible'.")
+        self.difficulty = difficulty
+        elo = self.MEDIUM_ELO if difficulty == "medium" else self.HARD_ELO if difficulty == "hard" else self.IMPOSSIBLE_ELO
+        depth = self.MEDIUM_DEPTH if difficulty == "medium" else self.HARD_DEPTH if difficulty == "hard" else self.IMPOSSIBLE_DEPTH
+
+        self.set_elo(elo)
+        self.set_depth(depth)
 
     def set_player_color(self, color: chess.Color):
         self.player_color = color
@@ -32,6 +55,14 @@ class CNChess:
     def get_player_color(self):
         return self.player_color
 
+
+    def get_legal_moves_from_square(self, square):
+        
+        square_index = chess.parse_square(square)
+        legal_moves = [move for move in self.board.legal_moves if move.from_square == square_index]
+
+        return legal_moves
+     
     def set_player_move(self, move):
         self.next_player_move = move
     
@@ -46,14 +77,26 @@ class CNChess:
     
     def get_next_best_move(self):
         self.computer.set_fen_position(self.board.fen())
-        best_move_uci = self.computer.get_best_move()
+        if self.difficulty == "easy":
+
+            captured_moves = list(self.board.generate_legal_captures())  
+
+            if captured_moves :
+                move = captured_moves[random.randrange(len(captured_moves))]
+            else :
+                legal_moves = list(self.board.generate_legal_moves())
+                move = legal_moves[random.randrange(len(legal_moves))]
+
+            return move    
+        else:
+            best_move_uci = self.computer.get_best_move()
         if best_move_uci:
             return chess.Move.from_uci(best_move_uci)
         else:
-            return chess.Move.null()
+            return chess.Move.null()    
 
     def make_move(self, move):
-        self.board.push(move)
+        self.board.push(move)    
     
     def get_board_state(self):
         return self.board.fen()
@@ -73,5 +116,6 @@ class CNChess:
     
     def get_board(self):
         return self.board
+    
 
     
