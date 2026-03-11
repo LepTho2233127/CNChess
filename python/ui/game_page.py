@@ -7,9 +7,11 @@ import sys
 import chess
 import re
 
-from PyQt6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QApplication, QSizePolicy, QListWidget, QListWidgetItem, QDialog, QGraphicsBlurEffect
-from PyQt6.QtCore import QObject, pyqtSignal, QSize, QThread, QTimer
-from PyQt6.QtGui import QPixmap, QIcon, QColor
+import math
+
+from PyQt6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QApplication, QSizePolicy, QListWidget, QListWidgetItem, QDialog
+from PyQt6.QtCore import QObject, pyqtSignal, QSize, QThread, Qt, QPointF, QTimer
+from PyQt6.QtGui import QPixmap, QIcon, QColor, QPainter, QPen, QPolygonF
 from PyQt6 import uic
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -235,7 +237,8 @@ class GamePageController(QObject):
 
     def handle_square_click(self, row, col):
         """Handle click events on the squares. This is where you would implement move selection and execution logic."""
-        
+        self.board_widget.clear_trajectory()
+
         if self.selected_piece is None:
             self.check_piece_selected(row,col)
         
@@ -301,6 +304,7 @@ class GamePageController(QObject):
 
             path = self.make_move(best_move)
             self.update_chess_board()  # Update the board display after computer move
+            self.board_widget.set_trajectory(path)
 
             # Send path asynchronously to avoid blocking the UI
             self.send_path_async(path)
@@ -313,7 +317,19 @@ class GamePageController(QObject):
         if game_outcome :
             self.stop_clocks()
             if not game_outcome == "draw":
+                # Get both king positions
+                white_king_pos = self.chess_game.get_board().king(chess.WHITE)
+                black_king_pos = self.chess_game.get_board().king(chess.BLACK)
+
                 checkmate_dialog = CheckmateDialog(winner_color=game_outcome)
+                if game_outcome != self.chess_game.get_player_color(): 
+                    if self.chess_game.get_player_color() == chess.WHITE:
+                        path = self.make_move(chess.Move.from_uci(f"{chess.square_name(black_king_pos)}{chess.square_name(white_king_pos)}"))
+                    else :
+                        path = self.make_move(chess.Move.from_uci(f"{chess.square_name(white_king_pos)}{chess.square_name(black_king_pos)}"))
+                    while self.send_path_thread and self.send_path_thread.isRunning():
+                        QApplication.processEvents()  # Keep the UI responsive while waiting for the thread to finish
+                    self.send_path_async(path)
                 result = checkmate_dialog.exec()
 
             else : 
@@ -373,14 +389,13 @@ class GamePageController(QObject):
 
         turn = self.chess_game.get_turn()
         self.view.turn_indicator.setStyleSheet(f"background-color:{turn}")
-        # self.view.board_widget.set_trajectory(path)
-        # self.view.board_widget.set_computer_turn(True)
 
         return path
 
     def reset_board(self):
         self.chess_game.reset_game()
         self.clear_list()
+        self.board_widget.clear_trajectory()
         self.board_widget.update_board(self.chess_game.get_board_state())
         self.board_widget.paint_board()
         self.selected_square = None  # Reset selected square when resetting the board
@@ -390,6 +405,90 @@ class GamePageController(QObject):
     def stop_clocks(self) :
         self.view.white_clock.stop()
         self.view.black_clock.stop()
+
+
+class TrajectoryOverlay(QWidget):
+    """Transparent overlay that draws the move trajectory on top of the board."""
+
+    TRAJECTORY_COLOR = QColor(220, 50, 50, 200)
+    EAT_COLOR = QColor(50, 220, 50, 200)
+    POINT_COLOR = QColor(50, 50, 220, 200)
+    LINE_WIDTH = 3
+    DOT_RADIUS = 4
+    ARROW_SIZE = 12
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        self.setAttribute(Qt.WidgetAttribute.WA_NoSystemBackground)
+        self.trajectory = []  # list of (x, y) in 1-based board coords
+        self.player_color = chess.WHITE
+
+    def set_trajectory(self, path, player_color):
+        """Set trajectory from a list of Command objects."""
+        self.trajectory = [(cmd.position.x, cmd.position.y) for cmd in path]
+        self.magnet_states = [cmd.magnet_state for cmd in path]
+        self.player_color = player_color
+        self.update()
+
+    def clear_trajectory(self):
+        self.trajectory = []
+        self.update()
+
+    def _to_pixel(self, x, y):
+        """Convert 1-based board coordinates to pixel position on the widget."""
+        sw = self.width() / 8.0
+        sh = self.height() / 8.0
+        if self.player_color == chess.WHITE:
+            px = sw * (x - 0.5)
+            py = sh * (8.5 - y)
+        else:
+            px = sw * (8.5 - x)
+            py = sh * (y - 0.5)
+        return QPointF(px, py)
+
+    def paintEvent(self, event):
+        if len(self.trajectory) < 2:
+            return
+
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        pen = QPen(self.TRAJECTORY_COLOR, self.LINE_WIDTH)
+        painter.setPen(pen)
+
+        points = [self._to_pixel(x, y) for x, y in self.trajectory]
+
+        # Draw path lines
+        for i in range(len(points) - 1):
+            if self.magnet_states[i] == False:
+                painter.setPen(QPen(self.EAT_COLOR, self.LINE_WIDTH, Qt.PenStyle.DashLine))
+                continue
+            painter.drawLine(points[i], points[i + 1])
+
+        # Draw dots at waypoints
+        painter.setBrush(self.POINT_COLOR)
+        painter.setPen(Qt.PenStyle.NoPen)
+        for pt in points:
+            painter.drawEllipse(pt, self.DOT_RADIUS, self.DOT_RADIUS)
+
+        # Draw arrowhead at the final point
+        if len(points) >= 2:
+            p1 = points[-2]
+            p2 = points[-1]
+            angle = math.atan2(p2.y() - p1.y(), p2.x() - p1.x())
+            arrow_p1 = QPointF(
+                p2.x() - self.ARROW_SIZE * math.cos(angle - math.pi / 6),
+                p2.y() - self.ARROW_SIZE * math.sin(angle - math.pi / 6),
+            )
+            arrow_p2 = QPointF(
+                p2.x() - self.ARROW_SIZE * math.cos(angle + math.pi / 6),
+                p2.y() - self.ARROW_SIZE * math.sin(angle + math.pi / 6),
+            )
+            painter.setBrush(self.TRAJECTORY_COLOR)
+            painter.drawPolygon(QPolygonF([p2, arrow_p1, arrow_p2]))
+
+        painter.end()
 
 
 class ChessBoardWidget(QWidget):
@@ -406,6 +505,7 @@ class ChessBoardWidget(QWidget):
         self.init_board()
         self.selected_square = None  # Track the currently selected square for move selection
         self.setLayout(self.board_layout)
+        self.trajectory_overlay = TrajectoryOverlay(self)
         self.update_board(None, resize=True)  # Initial board setup with correct piece images 
             
     def init_board(self):
@@ -531,6 +631,19 @@ class ChessBoardWidget(QWidget):
                 square_button.setStyleSheet(f"background-color: {base_color}; border: none;")    
 
         self.repaint()   
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self.trajectory_overlay.setGeometry(0, 0, event.size().width(), event.size().height())
+        self.trajectory_overlay.raise_()
+
+    def set_trajectory(self, path):
+        """Show the move trajectory on the board."""
+        self.trajectory_overlay.set_trajectory(path, self.player_color)
+
+    def clear_trajectory(self):
+        """Remove the trajectory overlay."""
+        self.trajectory_overlay.clear_trajectory()
 
     def set_player_color(self, player_color):
         self.player_color = player_color               
