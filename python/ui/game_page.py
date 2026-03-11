@@ -403,6 +403,8 @@ class TrajectoryOverlay(QWidget):
     """Transparent overlay that draws the move trajectory on top of the board."""
 
     TRAJECTORY_COLOR = QColor(220, 50, 50, 200)
+    EAT_COLOR = QColor(50, 220, 50, 200)
+    POINT_COLOR = QColor(50, 50, 220, 200)
     LINE_WIDTH = 3
     DOT_RADIUS = 4
     ARROW_SIZE = 12
@@ -451,11 +453,13 @@ class TrajectoryOverlay(QWidget):
 
         # Draw path lines
         for i in range(len(points) - 1):
-            if self.magnet_states[i] == True:
-                painter.drawLine(points[i], points[i + 1])
+            if self.magnet_states[i] == False:
+                painter.setPen(QPen(self.EAT_COLOR, self.LINE_WIDTH, Qt.PenStyle.DashLine))
+                continue
+            painter.drawLine(points[i], points[i + 1])
 
         # Draw dots at waypoints
-        painter.setBrush(self.TRAJECTORY_COLOR)
+        painter.setBrush(self.POINT_COLOR)
         painter.setPen(Qt.PenStyle.NoPen)
         for pt in points:
             painter.drawEllipse(pt, self.DOT_RADIUS, self.DOT_RADIUS)
