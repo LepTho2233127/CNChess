@@ -335,8 +335,9 @@ class GamePageController(QObject):
                         path = self.make_move(chess.Move.from_uci(f"{chess.square_name(black_king_pos)}{chess.square_name(white_king_pos)}"))
                     else :
                         path = self.make_move(chess.Move.from_uci(f"{chess.square_name(white_king_pos)}{chess.square_name(black_king_pos)}"))
-                    while self.send_path_thread and self.send_path_thread.isRunning():
-                        QApplication.processEvents()  # Keep the UI responsive while waiting for the thread to finish
+                    while self.send_path_thread:
+                        if self.send_path_thread.isRunning():
+                            QApplication.processEvents()  # Keep the UI responsive while waiting for the thread to finish
                     self.send_path_async(path)
                 result = checkmate_dialog.exec()
 
