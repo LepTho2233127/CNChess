@@ -203,13 +203,26 @@ class GamePageController(QObject):
         self.show_settings_signal.emit()
 
     def quit_game(self):
+        self.game_page_controller.wait_for_thread()
         self.return_home_signal.emit()
+
+    def wait_for_thread(self):
+        """Wait for any running send_path thread to fully finish."""
+        if self.send_path_thread is not None:
+            if self.send_path_thread.isRunning():
+                self.send_path_thread.quit()
+                self.send_path_thread.wait()
+            self.send_path_thread = None
+            self.send_path_worker = None
 
     def send_path_async(self, path):
         """Send path to device asynchronously without blocking the UI."""
-        # Create worker and thread
+        # Wait for any previous thread to finish before starting a new one
+        self.wait_for_thread()
+
+        # Create worker and thread (parent=self keeps thread alive)
         self.send_path_worker = SendPathWorker(self.communication, path)
-        self.send_path_thread = QThread()
+        self.send_path_thread = QThread(parent=self)
         self.send_path_worker.moveToThread(self.send_path_thread)
         
         # Connect signals
@@ -218,8 +231,6 @@ class GamePageController(QObject):
         self.send_path_worker.finished.connect(self.send_path_thread.quit)
         self.send_path_worker.error.connect(self.on_send_path_error)
         self.send_path_worker.error.connect(self.send_path_thread.quit)
-        self.send_path_thread.finished.connect(self.send_path_worker.deleteLater)
-        self.send_path_thread.finished.connect(self.send_path_thread.deleteLater)
         
         # Show waiting dialog and start thread
         self.waiting_dialog.show()
@@ -228,11 +239,15 @@ class GamePageController(QObject):
     def on_send_path_finished(self):
         """Handler when send_path completes successfully."""
         self.waiting_dialog.hide()
+        self.view.white_clock.toggle_timer()
+        self.view.black_clock.toggle_timer()
         print("Path sent successfully to device")
 
     def on_send_path_error(self, error_msg):
         """Handler when send_path encounters an error."""
         self.waiting_dialog.hide()
+        self.view.white_clock.toggle_timer()
+        self.view.black_clock.toggle_timer()
         print(f"Error: {error_msg}")
 
     def handle_square_click(self, row, col):
@@ -255,6 +270,8 @@ class GamePageController(QObject):
                     self.update_list(move=f"{piece}{to_square}", turn=self.chess_game.get_turn())
                     
                     path = self.make_move(move)
+                    self.view.white_clock.toggle_timer()
+                    self.view.black_clock.toggle_timer()
                     self.update_chess_board()  # Update the board display after making the move
                     self.selected_piece = None  # Reset the selected piece after making a move
 
@@ -327,9 +344,11 @@ class GamePageController(QObject):
                         path = self.make_move(chess.Move.from_uci(f"{chess.square_name(black_king_pos)}{chess.square_name(white_king_pos)}"))
                     else :
                         path = self.make_move(chess.Move.from_uci(f"{chess.square_name(white_king_pos)}{chess.square_name(black_king_pos)}"))
-                    while self.send_path_thread and self.send_path_thread.isRunning():
-                        QApplication.processEvents()  # Keep the UI responsive while waiting for the thread to finish
+                    self.wait_for_thread()
                     self.send_path_async(path)
+                
+                # Hide the waiting dialog before showing the checkmate dialog
+                self.waiting_dialog.hide()
                 result = checkmate_dialog.exec()
 
             else : 
@@ -340,6 +359,7 @@ class GamePageController(QObject):
             if result : 
                 self.return_home_signal.emit()
             else : 
+                self.wait_for_thread()
                 sys.exit()    
 
         return game_outcome       
@@ -384,8 +404,7 @@ class GamePageController(QObject):
 
         self.control.print_path(path)
         self.chess_game.make_move(move)
-        self.view.white_clock.toggle_timer()
-        self.view.black_clock.toggle_timer()
+        
 
         turn = self.chess_game.get_turn()
         self.view.turn_indicator.setStyleSheet(f"background-color:{turn}")

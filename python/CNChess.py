@@ -29,7 +29,7 @@ class CNChess:
         self.HARD_DEPTH = 10
         self.IMPOSSIBLE_ELO = 3000
         self.IMPOSSIBLE_DEPTH = 20
-        self.difficulty = "medium"
+        self.difficulty = "easy"
 
 
     def set_elo(self, elo: int):
