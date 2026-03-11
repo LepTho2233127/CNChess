@@ -319,7 +319,19 @@ class GamePageController(QObject):
         if game_outcome :
             self.stop_clocks()
             if not game_outcome == "draw":
+                # Get both king positions
+                white_king_pos = self.chess_game.get_board().king(chess.WHITE)
+                black_king_pos = self.chess_game.get_board().king(chess.BLACK)
+
                 checkmate_dialog = CheckmateDialog(winner_color=game_outcome)
+                if game_outcome != self.chess_game.get_player_color(): 
+                    if self.chess_game.get_player_color() == chess.WHITE:
+                        path = self.make_move(chess.Move.from_uci(f"{chess.square_name(black_king_pos)}{chess.square_name(white_king_pos)}"))
+                    else :
+                        path = self.make_move(chess.Move.from_uci(f"{chess.square_name(white_king_pos)}{chess.square_name(black_king_pos)}"))
+                    while self.send_path_thread and self.send_path_thread.isRunning():
+                        QApplication.processEvents()  # Keep the UI responsive while waiting for the thread to finish
+                    self.send_path_async(path)
                 result = checkmate_dialog.exec()
 
             else : 
@@ -379,8 +391,6 @@ class GamePageController(QObject):
 
         turn = self.chess_game.get_turn()
         self.view.turn_indicator.setStyleSheet(f"background-color:{turn}")
-        # self.view.board_widget.set_trajectory(path)
-        # self.view.board_widget.set_computer_turn(True)
 
         return path
 
