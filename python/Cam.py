@@ -7,7 +7,7 @@ import ctypes
 
 class ImageCalibration:
     
-    def __init__(self, image_path: str, scale: float = 0.3):
+    def __init__(self, image_path: str, scale: float = 1.0):
         self.image_path = image_path
         self.scale = scale
         self.points = []
@@ -27,9 +27,18 @@ class ImageCalibration:
     @staticmethod
     def center_window(window_name: str, width: int, height: int):
         """Centre la fenêtre sur l'écran"""
-        user32 = ctypes.windll.user32
-        screen_w = user32.GetSystemMetrics(0)
-        screen_h = user32.GetSystemMetrics(1)
+        try:
+            import subprocess
+            output = subprocess.check_output(['xdpyinfo'], stderr=subprocess.DEVNULL).decode()
+            for line in output.split('\n'):
+                if 'dimensions:' in line:
+                    dims = line.split()[1].split('x')
+                    screen_w, screen_h = int(dims[0]), int(dims[1])
+                    break
+            else:
+                screen_w, screen_h = 1920, 1080
+        except Exception:
+            screen_w, screen_h = 1920, 1080
         x = (screen_w - width) // 2
         y = (screen_h - height) // 2
         cv2.moveWindow(window_name, x, y)
@@ -71,7 +80,7 @@ class ImageCalibration:
                             cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
             
             cv2.imshow("Calibration Plateau", vis)
-            
+            cv2.resizeWindow("Calibration Plateau", vis.shape[1], vis.shape[0])
             if first_display:
                 print("[INFO] Photo affichée - en attente de clics sur les coins")
                 first_display = False
@@ -277,56 +286,60 @@ class PieceDetection:
     def __init__(self, warped_image: np.ndarray, board_squares: ChessBoardSquares):
         self.warped_image = warped_image
         self.board_squares = board_squares
-        self.baseline_variance = None
+        # self.baseline_variance = None
         self.piece_place = [0] * 64
         self.piece_color = [0] * 64
     
-    def calculate_baseline_variance(self, empty_indices: list = None) -> float:
-        """Calcule la variance baseline d'une case vide"""
-        if empty_indices is None:
-            empty_indices = [18, 20, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48, 
-                           19, 21, 25, 27, 29, 31, 35, 37, 39, 41, 43, 45, 47, 49]
-        
-        empty_variances = []
-        
-        for idx in empty_indices:
-            square_region = self.board_squares.get_square_region(self.warped_image, idx)
-            variance = np.var(square_region)
-            empty_variances.append(variance)
-        
-        self.baseline_variance = np.median(empty_variances)
-        print(f"Baseline variance (case vide): {self.baseline_variance:.2f}")
-        return self.baseline_variance
+    # def calculate_baseline_variance(self, empty_indices: list = None) -> float:
+    #     """Calcule la variance baseline d'une case vide (kept for API compatibility)"""
+    #     self.baseline_variance = 1.0  # Not used in pixel-count detection
+    #     return self.baseline_variance
     
     def detect_piece_in_square(self, square_index: int, 
-                              threshold_multiplier: float = 1.0) -> str:
-        """Détecte si une pièce est présente et retourne sa couleur"""
+                              threshold_multiplier: float = 1.0,
+                              min_pixel_ratio: float = 0.02) -> str:
+        """Détecte si une pièce est présente by counting non-black pixels in the masked image"""
         square_region = self.board_squares.get_square_region(self.warped_image, square_index)
-        blurred_square = cv2.GaussianBlur(square_region, (5, 5), 0)
-        variance = np.var(blurred_square)
         
-        ratio = variance / self.baseline_variance if self.baseline_variance > 0 else 0
+        # Count non-black pixels (color mask already isolates piece markers)
+        gray = cv2.cvtColor(square_region, cv2.COLOR_RGB2GRAY) if len(square_region.shape) == 3 else square_region
+        non_black_count = np.count_nonzero(gray > 10)
+        total_pixels = gray.shape[0] * gray.shape[1]
         
-        if ratio > threshold_multiplier:
-            return self._get_piece_color(square_region)
+        if total_pixels == 0:
+            return 'empty'
+        
+        ratio = non_black_count / total_pixels
+        
+        if ratio > min_pixel_ratio:
+            return self._get_piece_color(square_index, min_pixel_ratio)
         else:
             return 'empty'
     
-    @staticmethod
-    def _get_piece_color(square_region: np.ndarray) -> str:
+    def _get_piece_color(self, square_index: int, min_pixel_ratio: float = 0.02) -> str:
+
+        square_region = self.board_squares.get_square_region(self.warped_image, square_index)
+
         """Détecte la couleur de la pièce"""
         if square_region.shape[2] != 3:
             return 'empty'
         
-        rgb_sum = np.sum(square_region, axis=2)
-        non_black_mask = rgb_sum > 30
-        colored_pixel_count = np.sum(non_black_mask)
+        # Count non-black pixels (color mask already isolates piece markers)
+        gray = cv2.cvtColor(square_region, cv2.COLOR_RGB2GRAY) if len(square_region.shape) == 3 else square_region
+        non_black_count = np.count_nonzero(gray > 10)
+        total_pixels = gray.shape[0] * gray.shape[1]
+
+        if total_pixels == 0:
+            return 'empty'
         
-        if colored_pixel_count < 10:
+        ratio = non_black_count / total_pixels
+
+
+        if ratio < min_pixel_ratio:
             return 'empty'
         
         hsv_region = cv2.cvtColor(square_region.astype(np.uint8), cv2.COLOR_RGB2HSV)
-        hsv_colored = hsv_region[non_black_mask]
+        hsv_colored = hsv_region[gray > 10]  # Only consider non-black pixels
         
         h_mean = np.mean(hsv_colored[:, 0])
         s_mean = np.mean(hsv_colored[:, 1])
@@ -342,13 +355,13 @@ class PieceDetection:
         else:
             return 'unknown'
     
-    def detect_all_pieces(self, threshold_multiplier: float = 1.0):
+    def detect_all_pieces(self, ratio: float = 0.02):
         """Détecte toutes les pièces du plateau"""
-        if self.baseline_variance is None:
-            self.calculate_baseline_variance()
+        # if self.baseline_variance is None:
+        #     self.calculate_baseline_variance()
         
         for i in range(1, 65):
-            color = self.detect_piece_in_square(i, threshold_multiplier)
+            color = self._get_piece_color(i, ratio)
             
             if color != 'empty':
                 self.piece_place[i-1] = 1
@@ -434,32 +447,30 @@ class ChessBoard:
     
     def initialize_camera(self, calibrate: bool = False):
         """Initialise la caméra avec qualité maximale"""
-        self.cap = cv2.VideoCapture(self.camera_id)
+        self.cap = cv2.VideoCapture("/dev/video4", cv2.CAP_V4L2)
         
         if not self.cap.isOpened():
             print("[ERROR] Impossible d'ouvrir la caméra")
             return False
         
         # Augmenter la résolution et la qualité
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 960)
         self.cap.set(cv2.CAP_PROP_FPS, 30)
-        self.cap.set(cv2.CAP_PROP_AUTOFOCUS, 1)
         self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # Réduire la latence
         
         # Récupérer la résolution réelle
         actual_width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         actual_height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         print("[INFO] Caméra initialisée avec succès")
-        print(f"[INFO] Résolution demandée: 1920x1080")
+        # print(f"[INFO] Résolution demandée: 1920x1080")
         print(f"[INFO] Résolution réelle: {actual_width}x{actual_height}")
         
         # Laisser la caméra se stabiliser (warm-up)
         print("[INFO] Stabilisation de la caméra (2 secondes)...")
         for _ in range(10):
             self.cap.read()
-        import time
-        time.sleep(0.2)
+      
         
         if calibrate:
             self.calibrate_from_camera()
@@ -501,11 +512,17 @@ class ChessBoard:
             print("[ERROR] La caméra n'est pas initialisée")
             return None
         
-        ret, frame = self.cap.read()
+        # Flush the internal buffer to get the latest frame
+        for _ in range(5):
+            self.cap.grab()
+        
+        ret, frame = self.cap.retrieve()
         if not ret:
             print("[ERROR] Impossible de lire depuis la caméra")
             return None
-        
+        cv2.namedWindow("Frame brut capturé", cv2.WINDOW_NORMAL)
+        cv2.imshow("Frame brut capturé", frame)
+        cv2.resizeWindow("Frame brut capturé", frame.shape[1], frame.shape[0])
         return frame
     
     def process_frame(self) -> dict:
@@ -589,6 +606,7 @@ if __name__ == "__main__":
     chess = ChessBoard(board_size=1200, camera_id=1)
     chess.initialize_camera(calibrate=False)
     
+
     # Analyser une photo capturée
     result = chess.process_image()
     
@@ -600,11 +618,12 @@ if __name__ == "__main__":
         # Afficher l'image analysée avec grille
         display_image = cv2.cvtColor(result['warped_image'], cv2.COLOR_RGB2BGR)
         display_image_with_grid = chess.squares.draw_grid(display_image, color=(0, 255, 0), thickness=2)
+        cv2.namedWindow("Plateau d'échecs analysé", cv2.WINDOW_NORMAL)
         cv2.imshow("Plateau d'échecs analysé", display_image_with_grid)
+        cv2.resizeWindow("Plateau d'échecs analysé", display_image_with_grid.shape[1], display_image_with_grid.shape[0])
         print("[INFO] Appuyez sur une touche pour fermer l'image")
         cv2.waitKey(0)
         cv2.destroyAllWindows()
-    
 
     result = chess.process_image()
     
@@ -616,12 +635,13 @@ if __name__ == "__main__":
         # Afficher l'image analysée avec grille
         display_image = cv2.cvtColor(result['warped_image'], cv2.COLOR_RGB2BGR)
         display_image_with_grid = chess.squares.draw_grid(display_image, color=(0, 255, 0), thickness=2)
+        cv2.namedWindow("Plateau d'échecs analysé", cv2.WINDOW_NORMAL)
         cv2.imshow("Plateau d'échecs analysé", display_image_with_grid)
+        cv2.resizeWindow("Plateau d'échecs analysé", display_image_with_grid.shape[1], display_image_with_grid.shape[0])
         print("[INFO] Appuyez sur une touche pour fermer l'image")
         cv2.waitKey(0)
         cv2.destroyAllWindows()
-
-
+    
 
     chess.release()
     
