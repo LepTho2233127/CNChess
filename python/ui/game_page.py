@@ -7,8 +7,8 @@ import sys
 import chess
 import re
 
-from PyQt6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QApplication, QSizePolicy, QListWidget, QListWidgetItem, QDialog
-from PyQt6.QtCore import QObject, pyqtSignal, QSize, QThread
+from PyQt6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QApplication, QSizePolicy, QListWidget, QListWidgetItem, QDialog, QGraphicsBlurEffect
+from PyQt6.QtCore import QObject, pyqtSignal, QSize, QThread, QTimer
 from PyQt6.QtGui import QPixmap, QIcon, QColor
 from PyQt6 import uic
 
@@ -18,6 +18,8 @@ if parent_dir not in sys.path:
 
 from Communication import Communication
 from Control import Control
+from ui.dialog_ui import CheckmateDialog, DrawDialog, WaitingDialog
+
 
 LIGHT_SQUARE_COLOR = "#F0D9B5"
 DARK_SQUARE_COLOR = "#B58863"
@@ -47,29 +49,62 @@ class SendPathWorker(QObject):
         except Exception as e:
             self.error.emit(f"Error sending path: {str(e)}")
 
+class ChessClock():
 
-class WaitingDialog(QDialog):
-    """Simple waiting dialog to show while path is being sent."""
-    
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("Processing Move")
-        self.setModal(True)
-        self.setFixedSize(300, 100)
+    def __init__(self, initial_time, clock_label):
+        """Initial time in seconds"""
+
+        self.timer = QTimer()
+        self.time_left = initial_time
+        self.initial_time = initial_time
+        self.timer.timeout.connect(self.tick)
+        self.clock_label = clock_label
+        self.update_display()
+
+        self.clock_label.setStyleSheet("""
+        background-color: #3b2f2f;
+        color: #f3e5ab;
+        border: 4px solid #8b5a2b;
+        border-radius: 5px;
+        padding: 20px;
+        font-family: 'Georgia', serif;
+        font-size: 32px;
+        font-weight: bold;
+    """)
+
+    def tick(self):
         
-        layout = QVBoxLayout()
-        label = QLabel("Sending move to device...\nPlease wait.")
-        layout.addWidget(label)
-        self.setLayout(layout)
+        if self.time_left > 0:
+            self.time_left -= 1
+            self.update_display()
+        else :
+            self.timer.stop()
+            self.clock_label.setText("00:00")
+            print("No time left")    
+
+    def update_display(self):
+
+        minutes, seconds = divmod(self.time_left, 60)
+        self.clock_label.setText(f"{minutes:02d}:{seconds:02d}")
+
+    def toggle_timer(self):
+
+        if self.timer.isActive():
+            self.timer.stop()
+        else :
+            self.timer.start(1000) #Every second
+         
+    def reset_clock(self):
         
-        # Center the dialog on parent
-        if parent:
-            parent_geometry = parent.geometry()
-            self.move(
-                parent_geometry.left() + (parent_geometry.width() - 300) // 2,
-                parent_geometry.top() + (parent_geometry.height() - 100) // 2
-            )
-  
+        self.stop()
+        self.time_left = self.initial_time
+        self.update_display()
+
+    def stop(self):
+
+        if self.timer.isActive():
+            self.timer.stop()    
+
 class GameView(QWidget):
 
     def __init__(self, chess_game, control):
@@ -92,31 +127,43 @@ class GameView(QWidget):
         right_layout = self.findChild(QVBoxLayout, "rightLayout")
         resign_button = self.findChild(QPushButton, "resignButton")
         self.move_list = self.findChild(QListWidget, "moveList")
-        
+        self.white_timer_display = self.findChild(QLabel, 'whiteTimer')
+        self.black_timer_display = self.findChild(QLabel, 'blackTimer')
+        self.turn_indicator = self.findChild(QLabel, 'labelTurn')
+
         right_layout.removeItem(right_layout.itemAt(1))  
         resize_board = AspectRatioWidget(ChessBoardWidget())
         right_layout.insertWidget(1,resize_board)
         self.board = resize_board.board_widget
+
+        self.white_clock = ChessClock(initial_time=600, clock_label=self.white_timer_display)
+        self.black_clock = ChessClock(initial_time=600, clock_label=self.black_timer_display)
 
         self.game_page_controller = GamePageController(chess_game,self, self.control)
 
         settings_button.clicked.connect(self.game_page_controller.settings_button_clicked)     
         quit_button.clicked.connect(self.game_page_controller.quit_game)
         resign_button.clicked.connect(self.game_page_controller.reset_board)
-
-
+ 
     def start_chess_board(self):
 
         color = self.chess_game.get_player_color()
         self.board.set_player_color(color)
+        self.chess_game.reset_game()
         self.board.paint_board() # Clear any existing highlights before updating the boar
         self.board.update_board(self.chess_game.get_board_state())
 
         #If player is black launch first move of computer as white
         if not color :
+            self.turn_indicator.setStyleSheet("background-color:black")
             self.game_page_controller.start_game_black_signal.emit()
-        
 
+        else :        
+            print("WTF")  
+            self.turn_indicator.setStyleSheet("background-color:white")
+
+        self.white_clock.toggle_timer()
+        
     def update_highlighted_squares(self, squares):
         """Highlight the given squares on the board."""
 
@@ -151,7 +198,6 @@ class GamePageController(QObject):
         self.board_widget.squared_clicked_signal.connect(self.handle_square_click)
         self.start_game_black_signal.connect(self.computer_move)
         
-    
     def settings_button_clicked(self):
         self.show_settings_signal.emit()
 
@@ -211,7 +257,10 @@ class GamePageController(QObject):
                     path = self.make_move(move)
                     self.update_chess_board()  # Update the board display after making the move
                     self.selected_piece = None  # Reset the selected piece after making a move
-                    self.computer_move()
+
+                    game_outcome = self.handle_game_outcome()
+                    if not game_outcome :
+                        self.computer_move()
                 else:
                     # If the move is not valid, reset the selection and highlights
                     self.check_piece_selected(row, col)  # Update highlights for the new position after the move
@@ -257,7 +306,29 @@ class GamePageController(QObject):
 
             # Send path asynchronously to avoid blocking the UI
             self.send_path_async(path)
+            self.handle_game_outcome()
+       
+    def handle_game_outcome(self):
 
+        game_outcome = self.chess_game.check_game_outcome()
+
+        if game_outcome :
+            self.stop_clocks()
+            if not game_outcome == "draw":
+                checkmate_dialog = CheckmateDialog(winner_color=game_outcome)
+                result = checkmate_dialog.exec()
+
+            else : 
+                draw_dialog = DrawDialog()
+                result = draw_dialog.exec()
+
+            #If want to play again switch to home page
+            if result : 
+                self.return_home_signal.emit()
+            else : 
+                sys.exit()    
+
+        return game_outcome       
 
     def update_chess_board(self):
 
@@ -278,7 +349,7 @@ class GamePageController(QObject):
     
     def update_list(self, move, turn):
 
-        if turn == chess.WHITE:
+        if turn == "white":
             
             nb_move = self.view.move_list.count()+1
             self.view.move_list.addItem(QListWidgetItem(f"{nb_move}. {move}"))
@@ -299,18 +370,29 @@ class GamePageController(QObject):
 
         self.control.print_path(path)
         self.chess_game.make_move(move)
+        self.view.white_clock.toggle_timer()
+        self.view.black_clock.toggle_timer()
+
+        turn = self.chess_game.get_turn()
+        self.view.turn_indicator.setStyleSheet(f"background-color:{turn}")
         # self.view.board_widget.set_trajectory(path)
         # self.view.board_widget.set_computer_turn(True)
 
         return path
 
-    
     def reset_board(self):
         self.chess_game.reset_game()
         self.clear_list()
         self.board_widget.update_board(self.chess_game.get_board_state())
         self.board_widget.paint_board()
         self.selected_square = None  # Reset selected square when resetting the board
+        self.view.white_clock.reset_clock()
+        self.view.black_clock.reset_clock()
+
+    def stop_clocks(self) :
+        self.view.white_clock.stop()
+        self.view.black_clock.stop()
+
 
 class ChessBoardWidget(QWidget):
 
