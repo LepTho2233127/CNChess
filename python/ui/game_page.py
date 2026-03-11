@@ -198,7 +198,7 @@ class GamePageController(QObject):
         self.selected_piece = None  # Track the currently selected piece for move selection
         self.board_widget.squared_clicked_signal.connect(self.handle_square_click)
         self.start_game_black_signal.connect(self.computer_move)
-        
+  
     def settings_button_clicked(self):
         self.show_settings_signal.emit()
 
@@ -263,6 +263,17 @@ class GamePageController(QObject):
          
             try:    
                 move = chess.Move.from_uci(from_square + to_square)
+
+                if self.chess_game.is_promotion_move(move):
+                    print("Promotion move detected, showing promotion dialog")
+                    promotion_dialog = PromotionWidget(self.chess_game.get_player_color())
+                    result = promotion_dialog.exec()
+
+                    if result:
+                        move.promotion = promotion_dialog.chosen_piece
+                    else :
+                        self.check_piece_selected(row, col)  # Update highlights for the new position after the move
+                        return # If no piece chosen, cancel the move and wait for a valid move
     
                 if self.chess_game.validate_move(move):
 
@@ -384,14 +395,12 @@ class GamePageController(QObject):
     def update_list(self, move, turn):
 
         if turn == "white":
-            
             nb_move = self.view.move_list.count()+1
             self.view.move_list.addItem(QListWidgetItem(f"{nb_move}. {move}"))
 
         else : 
             nb_move = self.view.move_list.count()
             last_move = self.view.move_list.item(nb_move - 1)
-
             current_text = last_move.text()
             last_move.setText(current_text + f"\t {move}")
 
@@ -405,7 +414,6 @@ class GamePageController(QObject):
         self.control.print_path(path)
         self.chess_game.make_move(move)
         
-
         turn = self.chess_game.get_turn()
         self.view.turn_indicator.setStyleSheet(f"background-color:{turn}")
 
@@ -548,7 +556,6 @@ class ChessBoardWidget(QWidget):
 
         self.paint_board()
 
-    
     def load_piece_images(self):
         """Load piece images from assets directory."""
         images = {}
@@ -702,8 +709,9 @@ class GridButton(QPushButton):
         return width  
     
 
-class PromotionWidget(QWidget):
-    promotion_signal = pyqtSignal(str)  # Signal to emit the chosen promotion piece
+class PromotionWidget(QDialog):  # Signal to emit the chosen promotion piece
+
+    promotion_signal = pyqtSignal(int)  # Signal to emit the chosen promotion piece as chess piece type (e.g., chess.QUEEN)
 
     def __init__(self, player_color):
         super().__init__()
@@ -711,19 +719,21 @@ class PromotionWidget(QWidget):
         layout = QHBoxLayout()
         self.setLayout(layout)
 
+        self.piece_chosen_dict = {
+            'Q': chess.QUEEN,
+            'R': chess.ROOK,
+            'B': chess.BISHOP,
+            'N': chess.KNIGHT,}
+
         pieces = ['Q', 'R', 'B', 'N'] if player_color == chess.WHITE else ['q', 'r', 'b', 'n']
         for piece in pieces:
-            button = QPushButton()
-
-            
-
-
+            button = QPushButton(piece)
             button.clicked.connect(lambda checked, p=piece: self.promote(p))
             layout.addWidget(button)
 
     def promote(self, piece):
-        self.promotion_signal.emit(piece)
-        self.close()  # Close the promotion dialog after selection    
+        self.chosen_piece = self.piece_chosen_dict[piece.upper()]
+        self.accept()  # Close the promotion dialog after selection    
             
 if __name__ == "__main__":
 

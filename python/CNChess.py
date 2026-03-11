@@ -133,5 +133,10 @@ class CNChess:
     def get_board(self):
         return self.board
     
+    def is_promotion_move(self, move):
+        white_promotion = chess.square_rank(move.to_square) == 7 and chess.square_rank(move.from_square) == 6 and self.board.piece_at(move.from_square).piece_type == chess.PAWN and self.board.piece_at(move.from_square).color == chess.WHITE
+        black_promotion = chess.square_rank(move.to_square) == 0 and chess.square_rank(move.from_square) == 1 and self.board.piece_at(move.from_square).piece_type == chess.PAWN and self.board.piece_at(move.from_square).color == chess.BLACK
+
+        return white_promotion or black_promotion            
 
     
