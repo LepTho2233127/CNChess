@@ -10,7 +10,7 @@ import re
 import math
 
 from PyQt6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QApplication, QSizePolicy, QListWidget, QListWidgetItem, QDialog
-from PyQt6.QtCore import QObject, pyqtSignal, QSize, QThread, Qt, QPointF
+from PyQt6.QtCore import QObject, pyqtSignal, QSize, QThread, Qt, QPointF, QTimer
 from PyQt6.QtGui import QPixmap, QIcon, QColor, QPainter, QPen, QPolygonF
 from PyQt6 import uic
 
@@ -417,6 +417,7 @@ class TrajectoryOverlay(QWidget):
     def set_trajectory(self, path, player_color):
         """Set trajectory from a list of Command objects."""
         self.trajectory = [(cmd.position.x, cmd.position.y) for cmd in path]
+        self.magnet_states = [cmd.magnet_state for cmd in path]
         self.player_color = player_color
         self.update()
 
@@ -450,7 +451,8 @@ class TrajectoryOverlay(QWidget):
 
         # Draw path lines
         for i in range(len(points) - 1):
-            painter.drawLine(points[i], points[i + 1])
+            if self.magnet_states[i] == True:
+                painter.drawLine(points[i], points[i + 1])
 
         # Draw dots at waypoints
         painter.setBrush(self.TRAJECTORY_COLOR)
