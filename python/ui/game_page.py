@@ -159,7 +159,6 @@ class GameView(QWidget):
             self.game_page_controller.start_game_black_signal.emit()
 
         else :        
-            print("WTF")  
             self.turn_indicator.setStyleSheet("background-color:white")
 
         self.white_clock.toggle_timer()
@@ -233,7 +232,6 @@ class GamePageController(QObject):
         """Handler when send_path encounters an error."""
         self.waiting_dialog.hide()
         print(f"Error: {error_msg}")
-
 
     def handle_square_click(self, row, col):
         """Handle click events on the squares. This is where you would implement move selection and execution logic."""
@@ -570,8 +568,31 @@ class GridButton(QPushButton):
 
     def heightForWidth(self, width):
         return width  
-             
+    
 
+class PromotionWidget(QWidget):
+    promotion_signal = pyqtSignal(str)  # Signal to emit the chosen promotion piece
+
+    def __init__(self, player_color):
+        super().__init__()
+        self.setFixedSize(200, 100)
+        layout = QHBoxLayout()
+        self.setLayout(layout)
+
+        pieces = ['Q', 'R', 'B', 'N'] if player_color == chess.WHITE else ['q', 'r', 'b', 'n']
+        for piece in pieces:
+            button = QPushButton()
+
+            
+
+
+            button.clicked.connect(lambda checked, p=piece: self.promote(p))
+            layout.addWidget(button)
+
+    def promote(self, piece):
+        self.promotion_signal.emit(piece)
+        self.close()  # Close the promotion dialog after selection    
+            
 if __name__ == "__main__":
 
     # Ensure the parent package (python/) is on sys.path so CNChess can be imported
