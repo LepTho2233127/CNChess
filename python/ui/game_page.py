@@ -143,8 +143,8 @@ class GameView(QWidget):
         right_layout.insertWidget(1,resize_board)
         self.board = resize_board.board_widget
 
-        self.white_clock = ChessClock(initial_time=6, clock_label=self.white_timer_display, color="white")
-        self.black_clock = ChessClock(initial_time=6, clock_label=self.black_timer_display, color="black")
+        self.white_clock = ChessClock(initial_time=600, clock_label=self.white_timer_display, color="white")
+        self.black_clock = ChessClock(initial_time=600, clock_label=self.black_timer_display, color="black")
 
         self.game_page_controller = GamePageController(chess_game,self, self.control)
 
@@ -210,7 +210,7 @@ class GamePageController(QObject):
         self.show_settings_signal.emit()
 
     def quit_game(self):
-        self.game_page_controller.wait_for_thread()
+        self.wait_for_thread()
         self.return_home_signal.emit()
 
     def wait_for_thread(self):
@@ -730,7 +730,7 @@ class GridButton(QPushButton):
         return width  
     
 
-class PromotionWidget(QDialog):  # Signal to emit the chosen promotion piece
+class PromotionWidget(QDialog): 
 
     promotion_signal = pyqtSignal(int)  # Signal to emit the chosen promotion piece as chess piece type (e.g., chess.QUEEN)
 
