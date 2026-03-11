@@ -20,7 +20,7 @@ if parent_dir not in sys.path:
 
 from Communication import Communication
 from Control import Control
-from ui.dialog_ui import CheckmateDialog, DrawDialog, WaitingDialog
+from ui.dialog_ui import WinnerDialog, DrawDialog, WaitingDialog
 
 
 LIGHT_SQUARE_COLOR = "#F0D9B5"
@@ -51,17 +51,20 @@ class SendPathWorker(QObject):
         except Exception as e:
             self.error.emit(f"Error sending path: {str(e)}")
 
-class ChessClock():
+class ChessClock(QWidget):
 
-    def __init__(self, initial_time, clock_label):
+    outOfTime_signal = pyqtSignal(int)
+
+    def __init__(self, initial_time, clock_label, color="white"):
         """Initial time in seconds"""
-
+        super().__init__()
         self.timer = QTimer()
         self.time_left = initial_time
         self.initial_time = initial_time
         self.timer.timeout.connect(self.tick)
         self.clock_label = clock_label
         self.update_display()
+        self.color = color
 
         self.clock_label.setStyleSheet("""
         background-color: #3b2f2f;
@@ -82,6 +85,8 @@ class ChessClock():
         else :
             self.timer.stop()
             self.clock_label.setText("00:00")
+            self.outOfTime_signal.emit(self.color)
+
             print("No time left")    
 
     def update_display(self):
@@ -138,8 +143,8 @@ class GameView(QWidget):
         right_layout.insertWidget(1,resize_board)
         self.board = resize_board.board_widget
 
-        self.white_clock = ChessClock(initial_time=600, clock_label=self.white_timer_display)
-        self.black_clock = ChessClock(initial_time=600, clock_label=self.black_timer_display)
+        self.white_clock = ChessClock(initial_time=600, clock_label=self.white_timer_display, color="white")
+        self.black_clock = ChessClock(initial_time=600, clock_label=self.black_timer_display, color="black")
 
         self.game_page_controller = GamePageController(chess_game,self, self.control)
 
@@ -161,7 +166,6 @@ class GameView(QWidget):
             self.game_page_controller.start_game_black_signal.emit()
 
         else :        
-            print("WTF")  
             self.turn_indicator.setStyleSheet("background-color:white")
 
         self.white_clock.toggle_timer()
@@ -199,12 +203,14 @@ class GamePageController(QObject):
         self.selected_piece = None  # Track the currently selected piece for move selection
         self.board_widget.squared_clicked_signal.connect(self.handle_square_click)
         self.start_game_black_signal.connect(self.computer_move)
-        
+        self.view.white_clock.outOfTime_signal.connect(self.outOfTime)
+        self.view.black_clock.outOfTime_signal.connect(self.outOfTime)
+  
     def settings_button_clicked(self):
         self.show_settings_signal.emit()
 
     def quit_game(self):
-        self.game_page_controller.wait_for_thread()
+        self.wait_for_thread()
         self.return_home_signal.emit()
 
     def wait_for_thread(self):
@@ -251,21 +257,30 @@ class GamePageController(QObject):
         self.view.black_clock.toggle_timer()
         print(f"Error: {error_msg}")
 
-
     def handle_square_click(self, row, col):
         """Handle click events on the squares. This is where you would implement move selection and execution logic."""
         self.board_widget.clear_trajectory()
 
         if self.selected_piece is None:
-
             self.check_piece_selected(row,col)
-           
+        
         else :
             from_square = self.coordinate_to_square(*self.selected_piece)
             to_square = self.coordinate_to_square(row, col)
          
             try:    
                 move = chess.Move.from_uci(from_square + to_square)
+
+                if self.chess_game.is_promotion_move(move):
+                    print("Promotion move detected, showing promotion dialog")
+                    promotion_dialog = PromotionWidget(self.chess_game.get_player_color())
+                    result = promotion_dialog.exec()
+
+                    if result:
+                        move.promotion = promotion_dialog.chosen_piece
+                    else :
+                        self.check_piece_selected(row, col)  # Update highlights for the new position after the move
+                        return # If no piece chosen, cancel the move and wait for a valid move
     
                 if self.chess_game.validate_move(move):
 
@@ -306,6 +321,7 @@ class GamePageController(QObject):
             self.view.update_highlighted_squares(highlighted_squares)  # Highlight the selected piece and its legal moves
 
         else :
+            self.selected_piece = None
             self.view.update_highlighted_squares([(row, col)])  # Clear highlights if no piece or opponent's piece is selected                
 
       
@@ -340,7 +356,7 @@ class GamePageController(QObject):
                 white_king_pos = self.chess_game.get_board().king(chess.WHITE)
                 black_king_pos = self.chess_game.get_board().king(chess.BLACK)
 
-                checkmate_dialog = CheckmateDialog(winner_color=game_outcome)
+                checkmate_dialog = WinnerDialog(winner_color=game_outcome)
                 if game_outcome != self.chess_game.get_player_color(): 
                     if self.chess_game.get_player_color() == chess.WHITE:
                         path = self.make_move(chess.Move.from_uci(f"{chess.square_name(black_king_pos)}{chess.square_name(white_king_pos)}"))
@@ -365,6 +381,20 @@ class GamePageController(QObject):
                 sys.exit()    
 
         return game_outcome       
+    
+    def outOfTime(self, losing_color):
+
+        color = "white" if losing_color == "white" else "black"
+
+        self.stop_clocks()
+        timeout_dialog = WinnerDialog(winner_color=color, reason="timeout")
+        result = timeout_dialog.exec()
+
+        if result : 
+            self.return_home_signal.emit()
+        else : 
+            self.wait_for_thread()
+            sys.exit()
 
     def update_chess_board(self):
 
@@ -386,14 +416,12 @@ class GamePageController(QObject):
     def update_list(self, move, turn):
 
         if turn == "white":
-            
             nb_move = self.view.move_list.count()+1
             self.view.move_list.addItem(QListWidgetItem(f"{nb_move}. {move}"))
 
         else : 
             nb_move = self.view.move_list.count()
             last_move = self.view.move_list.item(nb_move - 1)
-
             current_text = last_move.text()
             last_move.setText(current_text + f"\t {move}")
 
@@ -407,7 +435,6 @@ class GamePageController(QObject):
         self.control.print_path(path)
         self.chess_game.make_move(move)
         
-
         turn = self.chess_game.get_turn()
         self.view.turn_indicator.setStyleSheet(f"background-color:{turn}")
 
@@ -550,7 +577,6 @@ class ChessBoardWidget(QWidget):
 
         self.paint_board()
 
-    
     def load_piece_images(self):
         """Load piece images from assets directory."""
         images = {}
@@ -702,8 +728,34 @@ class GridButton(QPushButton):
 
     def heightForWidth(self, width):
         return width  
-             
+    
 
+class PromotionWidget(QDialog): 
+
+    promotion_signal = pyqtSignal(int)  # Signal to emit the chosen promotion piece as chess piece type (e.g., chess.QUEEN)
+
+    def __init__(self, player_color):
+        super().__init__()
+        self.setFixedSize(200, 100)
+        layout = QHBoxLayout()
+        self.setLayout(layout)
+
+        self.piece_chosen_dict = {
+            'Q': chess.QUEEN,
+            'R': chess.ROOK,
+            'B': chess.BISHOP,
+            'N': chess.KNIGHT,}
+
+        pieces = ['Q', 'R', 'B', 'N'] if player_color == chess.WHITE else ['q', 'r', 'b', 'n']
+        for piece in pieces:
+            button = QPushButton(piece)
+            button.clicked.connect(lambda checked, p=piece: self.promote(p))
+            layout.addWidget(button)
+
+    def promote(self, piece):
+        self.chosen_piece = self.piece_chosen_dict[piece.upper()]
+        self.accept()  # Close the promotion dialog after selection    
+            
 if __name__ == "__main__":
 
     # Ensure the parent package (python/) is on sys.path so CNChess can be imported
