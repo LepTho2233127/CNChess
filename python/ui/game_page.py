@@ -239,9 +239,8 @@ class GamePageController(QObject):
         """Handle click events on the squares. This is where you would implement move selection and execution logic."""
         
         if self.selected_piece is None:
-
             self.check_piece_selected(row,col)
-           
+        
         else :
             from_square = self.coordinate_to_square(*self.selected_piece)
             to_square = self.coordinate_to_square(row, col)
@@ -286,6 +285,7 @@ class GamePageController(QObject):
             self.view.update_highlighted_squares(highlighted_squares)  # Highlight the selected piece and its legal moves
 
         else :
+            self.selected_piece = None
             self.view.update_highlighted_squares([(row, col)])  # Clear highlights if no piece or opponent's piece is selected                
 
       
