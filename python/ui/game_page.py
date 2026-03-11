@@ -20,7 +20,7 @@ if parent_dir not in sys.path:
 
 from Communication import Communication
 from Control import Control
-from ui.dialog_ui import CheckmateDialog, DrawDialog, WaitingDialog
+from ui.dialog_ui import WinnerDialog, DrawDialog, WaitingDialog
 
 
 LIGHT_SQUARE_COLOR = "#F0D9B5"
@@ -51,17 +51,20 @@ class SendPathWorker(QObject):
         except Exception as e:
             self.error.emit(f"Error sending path: {str(e)}")
 
-class ChessClock():
+class ChessClock(QWidget):
 
-    def __init__(self, initial_time, clock_label):
+    outOfTime_signal = pyqtSignal(int)
+
+    def __init__(self, initial_time, clock_label, color="white"):
         """Initial time in seconds"""
-
+        super().__init__()
         self.timer = QTimer()
         self.time_left = initial_time
         self.initial_time = initial_time
         self.timer.timeout.connect(self.tick)
         self.clock_label = clock_label
         self.update_display()
+        self.color = color
 
         self.clock_label.setStyleSheet("""
         background-color: #3b2f2f;
@@ -82,6 +85,8 @@ class ChessClock():
         else :
             self.timer.stop()
             self.clock_label.setText("00:00")
+            self.outOfTime_signal.emit(self.color)
+
             print("No time left")    
 
     def update_display(self):
@@ -138,8 +143,8 @@ class GameView(QWidget):
         right_layout.insertWidget(1,resize_board)
         self.board = resize_board.board_widget
 
-        self.white_clock = ChessClock(initial_time=600, clock_label=self.white_timer_display)
-        self.black_clock = ChessClock(initial_time=600, clock_label=self.black_timer_display)
+        self.white_clock = ChessClock(initial_time=6, clock_label=self.white_timer_display, color="white")
+        self.black_clock = ChessClock(initial_time=6, clock_label=self.black_timer_display, color="black")
 
         self.game_page_controller = GamePageController(chess_game,self, self.control)
 
@@ -198,6 +203,8 @@ class GamePageController(QObject):
         self.selected_piece = None  # Track the currently selected piece for move selection
         self.board_widget.squared_clicked_signal.connect(self.handle_square_click)
         self.start_game_black_signal.connect(self.computer_move)
+        self.view.white_clock.outOfTime_signal.connect(self.outOfTime)
+        self.view.black_clock.outOfTime_signal.connect(self.outOfTime)
   
     def settings_button_clicked(self):
         self.show_settings_signal.emit()
@@ -349,7 +356,7 @@ class GamePageController(QObject):
                 white_king_pos = self.chess_game.get_board().king(chess.WHITE)
                 black_king_pos = self.chess_game.get_board().king(chess.BLACK)
 
-                checkmate_dialog = CheckmateDialog(winner_color=game_outcome)
+                checkmate_dialog = WinnerDialog(winner_color=game_outcome)
                 if game_outcome != self.chess_game.get_player_color(): 
                     if self.chess_game.get_player_color() == chess.WHITE:
                         path = self.make_move(chess.Move.from_uci(f"{chess.square_name(black_king_pos)}{chess.square_name(white_king_pos)}"))
@@ -374,6 +381,20 @@ class GamePageController(QObject):
                 sys.exit()    
 
         return game_outcome       
+    
+    def outOfTime(self, losing_color):
+
+        color = "white" if losing_color == "white" else "black"
+
+        self.stop_clocks()
+        timeout_dialog = WinnerDialog(winner_color=color, reason="timeout")
+        result = timeout_dialog.exec()
+
+        if result : 
+            self.return_home_signal.emit()
+        else : 
+            self.wait_for_thread()
+            sys.exit()
 
     def update_chess_board(self):
 

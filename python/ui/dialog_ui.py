@@ -4,8 +4,8 @@ from PyQt6.QtWidgets import (QApplication, QDialog, QLabel,
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QPixmap,  QTransform, QPainter
 
-class CheckmateDialog(QDialog):
-    def __init__(self, winner_color="white", parent=None):
+class WinnerDialog(QDialog):
+    def __init__(self, winner_color="white", parent=None, reason="checkmate"):
         super().__init__(parent)
         
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Dialog)
@@ -51,12 +51,16 @@ class CheckmateDialog(QDialog):
         button_layout = QHBoxLayout()
         image_layout = QHBoxLayout()
 
-        message = f"CHECKMATE!"
+        if reason == "checkmate":
+            message = f"CHECKMATE!"
+        else :
+            message = f"Out of time \n{winner_color.capitalize()} wins!"
+
         self.label = QLabel(message)
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
         font = self.label.font()
-        font.setPointSize(18)
+        font.setPointSize(16)
         font.setBold(True)
         self.label.setFont(font)
 
@@ -248,7 +252,10 @@ class WaitingDialog(QDialog):
 # --- Example Usage ---
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    dialog = CheckmateDialog(winner_color="black")
+    dialog = WinnerDialog(winner_color="black")
+    result = dialog.exec()
+
+    dialog = WinnerDialog(winner_color="black", reason="timeout")
     result = dialog.exec()
 
     dialog = WaitingDialog()
