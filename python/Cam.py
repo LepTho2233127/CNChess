@@ -299,7 +299,7 @@ class PieceDetection:
                               threshold_multiplier: float = 1.0,
                               min_pixel_ratio: float = 0.02) -> str:
         """Détecte si une pièce est présente by counting non-black pixels in the masked image"""
-        square_region = self.board_squares.get_square_region(self.warped_image, square_index)
+        square_region = self.board_squares.get_square_region(self.warped_image, square_index, padding_ratio=0.33)
         
         # Count non-black pixels (color mask already isolates piece markers)
         gray = cv2.cvtColor(square_region, cv2.COLOR_RGB2GRAY) if len(square_region.shape) == 3 else square_region
@@ -318,7 +318,7 @@ class PieceDetection:
     
     def _get_piece_color(self, square_index: int, min_pixel_ratio: float = 0.02) -> str:
 
-        square_region = self.board_squares.get_square_region(self.warped_image, square_index)
+        square_region = self.board_squares.get_square_region(self.warped_image, square_index, padding_ratio=0.33)
 
         """Détecte la couleur de la pièce"""
         if square_region.shape[2] != 3:
@@ -432,7 +432,7 @@ class MoveDetection:
 class ChessBoard:
     """Classe principale intégrant toutes les fonctionnalités"""
     
-    def __init__(self, board_size: int = 1200, camera_id: int = 0, scale: float = 0.3):
+    def __init__(self, board_size: int = 1200, camera_id: int = 0, scale: float = 1.0):
         self.board_size = board_size
         self.scale = scale
         self.camera_id = camera_id
@@ -506,7 +506,7 @@ class ChessBoard:
         
         return self.calibration.load_calibration()
     
-    def capture_frame(self) -> np.ndarray:
+    def capture_frame(self, show: bool = False) -> np.ndarray:
         """Capture une frame depuis la caméra"""
         if self.cap is None or not self.cap.isOpened():
             print("[ERROR] La caméra n'est pas initialisée")
@@ -520,9 +520,10 @@ class ChessBoard:
         if not ret:
             print("[ERROR] Impossible de lire depuis la caméra")
             return None
-        cv2.namedWindow("Frame brut capturé", cv2.WINDOW_NORMAL)
-        cv2.imshow("Frame brut capturé", frame)
-        cv2.resizeWindow("Frame brut capturé", frame.shape[1], frame.shape[0])
+        if show:
+            cv2.namedWindow("Frame brut capturé", cv2.WINDOW_NORMAL)
+            cv2.imshow("Frame brut capturé", frame)
+            cv2.resizeWindow("Frame brut capturé", frame.shape[1], frame.shape[0])
         return frame
     
     def process_frame(self) -> dict:
@@ -605,6 +606,7 @@ if __name__ == "__main__":
     # Option 1: Calibration depuis la caméra, puis analyser une frame unique
     chess = ChessBoard(board_size=1200, camera_id=1)
     chess.initialize_camera(calibrate=False)
+    
     
 
     # Analyser une photo capturée
