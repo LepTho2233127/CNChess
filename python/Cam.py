@@ -39,9 +39,9 @@ class ImageCalibration:
     def calibrate(self, frame: np.ndarray = None):
         """Lance la calibration interactive (depuis fichier ou frame caméra)"""
         if frame is not None:
-            # Utiliser le frame passé en paramètre - ne pas redimensionner trop petit
+            # Utiliser le frame passé en paramètre
             image = cv2.resize(frame, None, fx=self.scale, fy=self.scale)
-            print("[INFO] Photo capturée depuis la caméra (haute résolution")
+            print("[INFO] Photo capturée depuis la caméra")
         else:
             # Charger depuis le fichier
             orig_image = cv2.imread(self.image_path)
@@ -49,10 +49,9 @@ class ImageCalibration:
             print("[INFO] Image chargée depuis le fichier")
         
         cv2.namedWindow("Calibration Plateau", cv2.WINDOW_NORMAL)
-        cv2.resizeWindow("Calibration Plateau", 1200, 900)  # Fenêtre plus grande
         
         h, w = image.shape[:2]
-        self.center_window("Calibration Plateau", 1200, 900)
+        self.center_window("Calibration Plateau", w, h)
         
         cv2.setMouseCallback("Calibration Plateau", self.mouse_click, param=self.scale)
         
@@ -64,19 +63,14 @@ class ImageCalibration:
         while True:
             vis = image.copy()
             
-            # Ajouter un texte d'instruction
-            instruction = f"Points: {len(self.points)}/4"
-            cv2.putText(vis, instruction, (10, 30),
-                       cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-            
             # Dessiner les points
             for idx, (ox, oy) in enumerate(self.points):
                 x = int(ox * self.scale)
                 y = int(oy * self.scale)
-                cv2.circle(vis, (x, y), 8, (0, 0, 255), -1)  # Point rouge
+                cv2.circle(vis, (x, y), 6, (0, 0, 255), -1)
                 cv2.circle(vis, (x, y), 8, (255, 255, 255), 2)  # Bordure blanche
-                cv2.putText(vis, str(idx+1), (x+12, y-8),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+                cv2.putText(vis, str(idx+1), (x+8, y-8),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
             
             cv2.imshow("Calibration Plateau", vis)
             
@@ -455,8 +449,19 @@ class ChessBoard:
         self.cap.set(cv2.CAP_PROP_AUTOFOCUS, 1)
         self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # Réduire la latence
         
+        # Récupérer la résolution réelle
+        actual_width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        actual_height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         print("[INFO] Caméra initialisée avec succès")
-        print("[INFO] Résolution: 1920x1080")
+        print(f"[INFO] Résolution demandée: 1920x1080")
+        print(f"[INFO] Résolution réelle: {actual_width}x{actual_height}")
+        
+        # Laisser la caméra se stabiliser (warm-up)
+        print("[INFO] Stabilisation de la caméra (2 secondes)...")
+        for _ in range(10):
+            self.cap.read()
+        import time
+        time.sleep(0.2)
         
         if calibrate:
             self.calibrate_from_camera()
@@ -472,9 +477,9 @@ class ChessBoard:
         print("[INFO] Démarrage de la calibration depuis la caméra...")
         print("[INFO] Capture d'une photo...")
         
-        ret, frame = self.cap.read()
-        if not ret:
-            print("[ERROR] Impossible de lire depuis la caméra")
+        frame = self.capture_frame()
+        if frame is None:
+            print("[ERROR] Impossible de capturer depuis la caméra")
             return
         
         print("[INFO] Photo capturée ✓")
@@ -511,19 +516,7 @@ class ChessBoard:
         if frame is None:
             return None
         
-        # Améliorer la qualité de l'image
-        # Débruitage
-        frame = cv2.fastNlMeansDenoisingColored(frame, None, 10, 10, 7, 21)
-        
-        # Améliorer le contraste avec CLAHE
-        lab = cv2.cvtColor(frame, cv2.COLOR_BGR2LAB)
-        l, a, b = cv2.split(lab)
-        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-        l = clahe.apply(l)
-        lab = cv2.merge([l, a, b])
-        frame = cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
-        
-        # Convertir en RGB
+        # Convertir en RGB (même flux que CamDetect)
         rgb_image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         
         # Appliquer transformation perspective
@@ -564,7 +557,7 @@ class ChessBoard:
         warped = self.transform.apply_transform(rgb_image)
         
         # Appliquer masque couleur
-        masked_warped, mask = ColorMask.create_mask(warped)
+        masked_warped, mask = ColorMask.create_color_mask(warped)
         
         # Détecter les pièces
         self.piece_detector = PieceDetection(masked_warped, self.squares)
@@ -595,24 +588,43 @@ class ChessBoard:
 # ============================================================================
 if __name__ == "__main__":
     # Option 1: Calibration depuis la caméra, puis analyser une frame unique
-    chess = ChessBoard(board_size=1200, camera_id=0)
-    chess.initialize_camera(calibrate=True)
+    chess = ChessBoard(board_size=1200, camera_id=1)
+    chess.initialize_camera(calibrate=False)
     
     # Analyser une photo capturée
-    result = chess.process_frame()
+    result = chess.process_image()
     
     if result:
         print("\n=== RÉSULTATS ===")
         print(f"Pièces détectées: {sum(result['piece_place'])}")
         print(f"Mouvement UCI: {result['move']['uci']}")
         
-        # Afficher l'image analysée
+        # Afficher l'image analysée avec grille
         display_image = cv2.cvtColor(result['warped_image'], cv2.COLOR_RGB2BGR)
-        cv2.imshow("Plateau d'échecs analysé", display_image)
+        display_image_with_grid = chess.squares.draw_grid(display_image, color=(0, 255, 0), thickness=2)
+        cv2.imshow("Plateau d'échecs analysé", display_image_with_grid)
         print("[INFO] Appuyez sur une touche pour fermer l'image")
         cv2.waitKey(0)
         cv2.destroyAllWindows()
     
+
+    result = chess.process_image()
+    
+    if result:
+        print("\n=== RÉSULTATS ===")
+        print(f"Pièces détectées: {sum(result['piece_place'])}")
+        print(f"Mouvement UCI: {result['move']['uci']}")
+        
+        # Afficher l'image analysée avec grille
+        display_image = cv2.cvtColor(result['warped_image'], cv2.COLOR_RGB2BGR)
+        display_image_with_grid = chess.squares.draw_grid(display_image, color=(0, 255, 0), thickness=2)
+        cv2.imshow("Plateau d'échecs analysé", display_image_with_grid)
+        print("[INFO] Appuyez sur une touche pour fermer l'image")
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+
+
+
     chess.release()
     
     
