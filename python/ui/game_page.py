@@ -229,11 +229,15 @@ class GamePageController(QObject):
     def on_send_path_finished(self):
         """Handler when send_path completes successfully."""
         self.waiting_dialog.hide()
+        self.view.white_clock.toggle_timer()
+        self.view.black_clock.toggle_timer()
         print("Path sent successfully to device")
 
     def on_send_path_error(self, error_msg):
         """Handler when send_path encounters an error."""
         self.waiting_dialog.hide()
+        self.view.white_clock.toggle_timer()
+        self.view.black_clock.toggle_timer()
         print(f"Error: {error_msg}")
 
 
@@ -258,6 +262,8 @@ class GamePageController(QObject):
                     self.update_list(move=f"{piece}{to_square}", turn=self.chess_game.get_turn())
                     
                     path = self.make_move(move)
+                    self.view.white_clock.toggle_timer()
+                    self.view.black_clock.toggle_timer()
                     self.update_chess_board()  # Update the board display after making the move
                     self.selected_piece = None  # Reset the selected piece after making a move
 
@@ -386,8 +392,7 @@ class GamePageController(QObject):
 
         self.control.print_path(path)
         self.chess_game.make_move(move)
-        self.view.white_clock.toggle_timer()
-        self.view.black_clock.toggle_timer()
+        
 
         turn = self.chess_game.get_turn()
         self.view.turn_indicator.setStyleSheet(f"background-color:{turn}")
