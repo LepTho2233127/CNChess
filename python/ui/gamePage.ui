@@ -159,14 +159,14 @@ QPushButton:pressed {
        <item>
         <layout class="QHBoxLayout" name="buttonBoardLayout">
          <item>
-          <widget class="QPushButton" name="backwardMoveButton">
+          <widget class="QPushButton" name="moveBackButton">
            <property name="text">
             <string>&lt;</string>
            </property>
           </widget>
          </item>
          <item>
-          <widget class="QPushButton" name="forwardMoveButton">
+          <widget class="QPushButton" name="moveForwardButton">
            <property name="text">
             <string>&gt;</string>
            </property>

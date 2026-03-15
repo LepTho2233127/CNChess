@@ -134,6 +134,8 @@ class GameView(QWidget):
         right_layout = self.findChild(QVBoxLayout, "rightLayout")
         resign_button = self.findChild(QPushButton, "resignButton")
         start_button = self.findChild(QPushButton, "startButton")
+        move_back_button = self.findChild(QPushButton, "moveBackButton")
+        move_forward_button = self.findChild(QPushButton, "moveForwardButton")
         self.move_list = self.findChild(QListWidget, "moveList")
         self.white_timer_display = self.findChild(QLabel, 'whiteTimer')
         self.black_timer_display = self.findChild(QLabel, 'blackTimer')
@@ -155,6 +157,9 @@ class GameView(QWidget):
         quit_button.clicked.connect(self.game_page_controller.quit_game)
         resign_button.clicked.connect(self.game_page_controller.reset_board)
         start_button.clicked.connect(self.start_time)
+        move_back_button.clicked.connect(self.game_page_controller.move_back_position)
+        move_forward_button.clicked.connect(self.game_page_controller.move_forward_position)
+    
 
     def setup_board(self):
         color = self.chess_game.get_player_color()
@@ -206,8 +211,12 @@ class GamePageController(QObject):
 
         self.board_widget = self.view.board
         self.board = []
+        self.board_positions = []
+        board_state = self.chess_game.get_board_state()
+        self.board_positions.append(board_state)  # Store the initial board state
+        self.board_positions_index = 0
         self.control = control
-        self.control.update_board_state(self.chess_game.get_board_state())
+        self.control.update_board_state(board_state)
         self.communication = Communication()
 
         self.selected_piece = None  # Track the currently selected piece for move selection
@@ -409,7 +418,11 @@ class GamePageController(QObject):
     def update_chess_board(self):
 
         self.board_widget.paint_board() # Clear any existing highlights before updating the boar
-        self.board_widget.update_board(self.chess_game.get_board_state())
+        board_state = self.chess_game.get_board_state()
+        self.board_positions.append(board_state)  # Store the new board state after the move
+        self.board_positions_index = len(self.board_positions) - 1  # Update index to the latest position after making a move
+        print(len(self.board_positions))
+        self.board_widget.update_board(board_state)
 
     def coordinate_to_square(self, row, col):
         """Convert board coordinates to chess square notation (e.g., (0,0) -> 'a8')."""
@@ -434,6 +447,22 @@ class GamePageController(QObject):
             last_move = self.view.move_list.item(nb_move - 1)
             current_text = last_move.text()
             last_move.setText(current_text + f"\t {move}")
+
+    def move_back_position(self):
+        print("Moving back position")
+        print(self.board_positions_index)
+        if self.board_positions_index > 0 :
+            self.board_positions_index-=1
+            previous_fen = self.board_positions[self.board_positions_index]
+            self.board_widget.update_board(previous_fen)
+            self.board_widget.paint_board()     
+
+    def move_forward_position(self):
+        if self.board_positions_index < len(self.board_positions) - 1 :
+            self.board_positions_index+=1
+            previous_fen = self.board_positions[self.board_positions_index]
+            self.board_widget.update_board(previous_fen)
+            self.board_widget.paint_board()            
 
     def update_score(self):
 
@@ -466,7 +495,7 @@ class GamePageController(QObject):
         self.control.print_path(path)
         self.chess_game.make_move(move)
         self.update_score()
-    
+
         turn = self.chess_game.get_turn()
         self.view.turn_indicator.setStyleSheet(f"background-color:{turn}")
 
