@@ -133,6 +133,7 @@ class GameView(QWidget):
         quit_button = self.findChild(QPushButton, "quitButton")  
         right_layout = self.findChild(QVBoxLayout, "rightLayout")
         resign_button = self.findChild(QPushButton, "resignButton")
+        start_button = self.findChild(QPushButton, "startButton")
         self.move_list = self.findChild(QListWidget, "moveList")
         self.white_timer_display = self.findChild(QLabel, 'whiteTimer')
         self.black_timer_display = self.findChild(QLabel, 'blackTimer')
@@ -151,6 +152,7 @@ class GameView(QWidget):
         settings_button.clicked.connect(self.game_page_controller.settings_button_clicked)     
         quit_button.clicked.connect(self.game_page_controller.quit_game)
         resign_button.clicked.connect(self.game_page_controller.reset_board)
+        start_button.clicked.connect(self.start_chess_board)
  
     def start_chess_board(self):
 
