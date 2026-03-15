@@ -88,7 +88,7 @@ QPushButton:pressed {
      <item>
       <layout class="QVBoxLayout" name="rightLayout" stretch="0,0,0">
        <item>
-        <layout class="QHBoxLayout" name="layout_Timers" stretch="0,1,0,0">
+        <layout class="QHBoxLayout" name="layout_Timers" stretch="0,0,1,0,0,0">
          <property name="spacing">
           <number>15</number>
          </property>
@@ -99,6 +99,13 @@ QPushButton:pressed {
           <widget class="QLabel" name="whiteTimer">
            <property name="text">
             <string>TextLabel</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="whiteScore">
+           <property name="text">
+            <string/>
            </property>
           </widget>
          </item>
@@ -120,6 +127,13 @@ QPushButton:pressed {
           </widget>
          </item>
          <item>
+          <widget class="QLabel" name="blackScore">
+           <property name="text">
+            <string/>
+           </property>
+          </widget>
+         </item>
+         <item>
           <widget class="QLabel" name="blackTimer">
            <property name="text">
             <string>TextLabel</string>
@@ -133,7 +147,7 @@ QPushButton:pressed {
            </property>
            <property name="icon">
             <iconset>
-             <normaloff>assets/gear_icon.png</normaloff>assets/gear_icon.png</iconset>
+             <normaloff>../../../../../../.designer/backup/assets/gear_icon.png</normaloff>../../../../../../.designer/backup/assets/gear_icon.png</iconset>
            </property>
           </widget>
          </item>

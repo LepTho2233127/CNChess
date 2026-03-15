@@ -138,6 +138,8 @@ class GameView(QWidget):
         self.white_timer_display = self.findChild(QLabel, 'whiteTimer')
         self.black_timer_display = self.findChild(QLabel, 'blackTimer')
         self.turn_indicator = self.findChild(QLabel, 'labelTurn')
+        self.black_score = self.findChild(QLabel, 'blackScore')
+        self.white_score = self.findChild(QLabel, 'whiteScore')
 
         right_layout.removeItem(right_layout.itemAt(1))  
         resize_board = AspectRatioWidget(ChessBoardWidget())
@@ -152,15 +154,21 @@ class GameView(QWidget):
         settings_button.clicked.connect(self.game_page_controller.settings_button_clicked)     
         quit_button.clicked.connect(self.game_page_controller.quit_game)
         resign_button.clicked.connect(self.game_page_controller.reset_board)
-        start_button.clicked.connect(self.start_chess_board)
- 
-    def start_chess_board(self):
+        start_button.clicked.connect(self.start_time)
 
+    def setup_board(self):
         color = self.chess_game.get_player_color()
         self.board.set_player_color(color)
         self.chess_game.reset_game()
         self.board.paint_board() # Clear any existing highlights before updating the boar
         self.board.update_board(self.chess_game.get_board_state())
+
+    def start_time(self):
+
+        color = self.chess_game.get_player_color()
+
+        self.white_clock.reset_clock()
+        self.black_clock.reset_clock()
 
         #If player is black launch first move of computer as white
         if not color :
@@ -427,6 +435,27 @@ class GamePageController(QObject):
             current_text = last_move.text()
             last_move.setText(current_text + f"\t {move}")
 
+    def update_score(self):
+
+        white_score = self.chess_game.get_material_evaluation(chess.WHITE)
+        black_score = self.chess_game.get_material_evaluation(chess.BLACK)
+        
+        score = white_score - black_score
+
+        if score > 0 :
+            self.view.white_score.setText(f"+{score}")
+            self.view.black_score.setText("")
+            
+        elif score < 0 :
+            self.view.black_score.setText(f"+{-score}")  
+            self.view.white_score.setText("")
+        else :
+            self.reset_score()
+
+    def reset_score(self):
+        self.view.white_score.setText("")
+        self.view.black_score.setText("")        
+
     def clear_list(self):
         self.view.move_list.clear() 
     
@@ -436,7 +465,8 @@ class GamePageController(QObject):
 
         self.control.print_path(path)
         self.chess_game.make_move(move)
-        
+        self.update_score()
+    
         turn = self.chess_game.get_turn()
         self.view.turn_indicator.setStyleSheet(f"background-color:{turn}")
 
@@ -444,6 +474,7 @@ class GamePageController(QObject):
 
     def reset_board(self):
         self.chess_game.reset_game()
+        self.reset_score()
         self.clear_list()
         self.board_widget.clear_trajectory()
         self.board_widget.update_board(self.chess_game.get_board_state())
