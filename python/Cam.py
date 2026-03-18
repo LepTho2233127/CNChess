@@ -406,8 +406,11 @@ class MoveDetection:
         """Detects moves by comparing with the previous state"""
         analyses = [0] * 64
         
-        if self.detect_castling(new_piece_place, new_piece_color) is not None:
-            return self.detect_castling(new_piece_place, new_piece_color)
+        castling_move = self.detect_castling(new_piece_place, new_piece_color)
+        if castling_move is not None:
+            self.old_piece_place = new_piece_place
+            self.old_piece_color = new_piece_color
+            return castling_move
         
         for i in range(len(new_piece_place)):
             analyses[i] = new_piece_place[i] + self.old_piece_place[i]
