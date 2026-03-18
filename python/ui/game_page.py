@@ -114,7 +114,7 @@ class ChessClock(QWidget):
 
 class GameView(QWidget):
 
-    def __init__(self, chess_game, control):
+    def __init__(self, chess_game, control, communication):
 
         super().__init__()
 
@@ -151,7 +151,7 @@ class GameView(QWidget):
         self.white_clock = ChessClock(initial_time=600, clock_label=self.white_timer_display, color="white")
         self.black_clock = ChessClock(initial_time=600, clock_label=self.black_timer_display, color="black")
 
-        self.game_page_controller = GamePageController(chess_game,self, self.control)
+        self.game_page_controller = GamePageController(chess_game,self, self.control, communication)
 
         settings_button.clicked.connect(self.game_page_controller.settings_button_clicked)     
         quit_button.clicked.connect(self.game_page_controller.quit_game)
