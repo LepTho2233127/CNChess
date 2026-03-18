@@ -429,7 +429,7 @@ class MoveDetection:
         
 
 
-class ChessBoard:
+class Cam:
     """Classe principale intégrant toutes les fonctionnalités"""
     
     def __init__(self, board_size: int = 1200, camera_id: int = 0, scale: float = 1.0):
@@ -604,13 +604,13 @@ class ChessBoard:
 # ============================================================================
 if __name__ == "__main__":
     # Option 1: Calibration depuis la caméra, puis analyser une frame unique
-    chess = ChessBoard(board_size=1200, camera_id=1)
-    chess.initialize_camera(calibrate=False)
+    cam = Cam(board_size=1200, camera_id=1)
+    cam.initialize_camera(calibrate=False)
     
     
 
     # Analyser une photo capturée
-    result = chess.process_image()
+    result = cam.process_image()
     
     if result:
         print("\n=== RÉSULTATS ===")
@@ -619,7 +619,7 @@ if __name__ == "__main__":
         
         # Afficher l'image analysée avec grille
         display_image = cv2.cvtColor(result['warped_image'], cv2.COLOR_RGB2BGR)
-        display_image_with_grid = chess.squares.draw_grid(display_image, color=(0, 255, 0), thickness=2)
+        display_image_with_grid = cam.squares.draw_grid(display_image, color=(0, 255, 0), thickness=2)
         cv2.namedWindow("Plateau d'échecs analysé", cv2.WINDOW_NORMAL)
         cv2.imshow("Plateau d'échecs analysé", display_image_with_grid)
         cv2.resizeWindow("Plateau d'échecs analysé", display_image_with_grid.shape[1], display_image_with_grid.shape[0])
@@ -627,7 +627,7 @@ if __name__ == "__main__":
         cv2.waitKey(0)
         cv2.destroyAllWindows()
 
-    result = chess.process_image()
+    result = cam.process_image()
     
     if result:
         print("\n=== RÉSULTATS ===")
@@ -636,7 +636,7 @@ if __name__ == "__main__":
         
         # Afficher l'image analysée avec grille
         display_image = cv2.cvtColor(result['warped_image'], cv2.COLOR_RGB2BGR)
-        display_image_with_grid = chess.squares.draw_grid(display_image, color=(0, 255, 0), thickness=2)
+        display_image_with_grid = cam.squares.draw_grid(display_image, color=(0, 255, 0), thickness=2)
         cv2.namedWindow("Plateau d'échecs analysé", cv2.WINDOW_NORMAL)
         cv2.imshow("Plateau d'échecs analysé", display_image_with_grid)
         cv2.resizeWindow("Plateau d'échecs analysé", display_image_with_grid.shape[1], display_image_with_grid.shape[0])
@@ -645,15 +645,4 @@ if __name__ == "__main__":
         cv2.destroyAllWindows()
     
 
-    chess.release()
-    
-    
-    # Option 2: Utiliser une image fichier statique
-    # chess = ChessBoard(board_size=1200)
-    # chess.calibration = ImageCalibration("image.jpg")
-    # calibration_points = chess.calibration.load_calibration()
-    # chess.transform = ChessBoardTransform(calibration_points, 1200)
-    # chess.transform.compute_transform_matrix()
-    # 
-    # result = chess.process_image("image.jpg")
-    # print(f"Mouvement: {result['move']['uci']}")
+    cam.release()
