@@ -12,9 +12,10 @@ class SettingsView(QWidget):
     grid_width_mm = 431.8
     grid_height_mm = 406.4
 
-    def __init__(self, parent=None):
+    def __init__(self, communication=None, parent=None):
         super().__init__(parent)
         self._updating_spinners = False
+        self.communication = communication
         self.controller = SettingsController(self)
         self.init_ui()
 
