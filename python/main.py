@@ -5,6 +5,7 @@ from PyQt6.QtWidgets import QApplication
 
 from CNChess import CNChess
 from Control import Control
+from Communication import Communication
 
 from ui.main_ui import MainUI
 
@@ -19,10 +20,12 @@ if __name__ == "__main__":
     control = Control()
     control.update_board_state(game.get_board_state())
 
+    communication = Communication()
+
       # Create the Qt application
     app = QApplication(sys.argv) 
     
-    ui = MainUI(game, control)
+    ui = MainUI(game, control, communication)
     
     # Show the window
     ui.show()
