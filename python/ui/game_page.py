@@ -717,7 +717,7 @@ class ChessBoardWidget(QWidget):
         square_color = (row + col) % 2
         base_color = LIGHT_SQUARE_COLOR if square_color == 0 else DARK_SQUARE_COLOR
    
-        highlight_color = QColor(base_color).darker(125).name()  # Create a lighter version of the base color for highlighting
+        highlight_color = QColor(base_color).darker(175).name()  # Create a lighter version of the base color for highlighting
 
         square_button.setStyleSheet(f"background-color: {highlight_color}; border: none;")  
 
