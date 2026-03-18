@@ -19,6 +19,7 @@
 #define DIR_PIN_1 D1
 #define STEP_PIN_2 D2
 #define DIR_PIN_2 D3
+#define PLAY_PIN D7
 
 #define SERVO_PIN D6
 
@@ -37,7 +38,7 @@ MultiStepper steppers;
 int servoGrabPosition = 3; // Servo position to grab piece0
 int servoReleasePosition = 85; // Servo position to release piece
 static bool isFastHome = false;
-
+bool button_pressed = false;
 struct Position{
     float x;
     float y;
@@ -51,6 +52,12 @@ Position current_position;
 Position drop_position = {0.5, 5.5};
 
 std::pair<float, float> get_steps(float delta_x, float delta_y);
+
+void IRAM_ATTR onPlayButtonPress() {
+    // This function will be called when the play button is pressed
+    button_pressed = true;
+
+}
 
 void go_to_position (Position pos);
 void goHome();
@@ -69,6 +76,7 @@ void setup() {
     pinMode(LIMIT_SWITCH_2, INPUT);
     pinMode(LED_PIN, OUTPUT);
     pinMode(SERVO_PIN, OUTPUT);
+    pinMode(PLAY_PIN, INPUT_PULLDOWN);
     
     stepper1.setMaxSpeed(MOVE_SPEED);
     stepper1.setAcceleration(500);
@@ -77,6 +85,7 @@ void setup() {
     steppers.addStepper(stepper1);
     steppers.addStepper(stepper2);
 
+    attachInterrupt(PLAY_PIN, onPlayButtonPress, RISING);
     myServo.attach(SERVO_PIN);
     goHome();
     myServo.write(servoReleasePosition); // Ensure servo is in release position
@@ -171,6 +180,12 @@ void loop() {
         float posX = current_position.x;
         float posY = current_position.y;
         bool magnetState = false;
+
+        if (button_pressed){
+            // If play button was pressed, override command to PATH with predefined moves
+            Serial.println("PLAYED");
+            button_pressed = false; // Reset button state
+        }
 
         switch (commandType) 
         {
