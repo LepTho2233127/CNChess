@@ -168,6 +168,11 @@ std::vector<std::string> splitByPipe(String input) {
 }
 
 void loop() {
+    if (button_pressed){
+        Serial.println("PLAYED");
+        button_pressed = false;
+    }
+
     if (Serial.available() > 0) 
     {
         String input = Serial.readStringUntil('\n');
@@ -180,12 +185,6 @@ void loop() {
         float posX = current_position.x;
         float posY = current_position.y;
         bool magnetState = false;
-
-        if (button_pressed){
-            // If play button was pressed, override command to PATH with predefined moves
-            Serial.println("PLAYED");
-            button_pressed = false; // Reset button state
-        }
 
         switch (commandType) 
         {
@@ -209,7 +208,7 @@ void loop() {
                         digitalWrite(LED_PIN, magnetState);
                     }
                 }
-                Serial.print("DONE");
+                Serial.println("DONE");
                 break;
             }
             
@@ -227,31 +226,31 @@ void loop() {
                     grab_piece(magnetState);
                     digitalWrite(LED_PIN, magnetState);
                 }
-                Serial.print("DONE");
+                Serial.println("DONE");
                 break;
             }
 
             case CommandType::MOVE:
                 go_to_position({posX, posY});
-                Serial.print("DONE");
+                Serial.println("DONE");
                 break;    
 
             case CommandType::JOG:
                 move_distance(posX, posY);
-                Serial.print("DONE");
+                Serial.println("DONE");
                 break;
         
             case CommandType::HOME:
                 grab_piece(false);
                 goHome();
-                Serial.print("HOMED");
+                Serial.println("HOMED");
                 break;
 
             case CommandType::STOP:
                 grab_piece(false);
                 stepper1.stop();
                 stepper2.stop();
-                Serial.print("STOPPED");
+                Serial.println("STOPPED");
                 break;
             
         }

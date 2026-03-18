@@ -193,9 +193,9 @@ class WaitingDialog(QDialog):
         self.setFixedSize(300, 150)
 
         layout = QVBoxLayout()
-        label = QLabel("Sending move to device...\nPlease wait.")
+        self.label = QLabel("Sending move to device...\nPlease wait.")
         self.spinning_gear = self.SpinningImageGear()
-        layout.addWidget(label)
+        layout.addWidget(self.label)
         layout.addWidget(self.spinning_gear)
         self.setLayout(layout)
         
@@ -206,6 +206,10 @@ class WaitingDialog(QDialog):
                 parent_geometry.left() + (parent_geometry.width() - 300) // 2,
                 parent_geometry.top() + (parent_geometry.height() - 100) // 2
             )
+
+    def set_message(self, message):
+        self.label.setText(message)
+
     class SpinningImageGear(QWidget):
         def __init__(self):
             super().__init__()

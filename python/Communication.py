@@ -87,29 +87,31 @@ class Communication:
             print("Error: serial port not available for validation")
             return False
 
+        expected = set(expected_responses)
         start_time = time()
-        # Wait for data or timeout
-        while True:
-            try:
-                if self.ser.in_waiting > 0:
-                    break
-            except Exception as e:
-                print("Error reading serial in_waiting:", e)
-                return False
 
+        while True:
             if time() - start_time > self.SEND_COMMAND_TIMEOUT:
                 print("Error: No response from motor controller.")
                 return False
 
-        try:
-            response = self.ser.readline().decode('utf-8').strip()
-        except Exception as e:
-            print("Error reading response from serial:", e)
-            return False
+            try:
+                if self.ser.in_waiting == 0:
+                    continue
+                response = self.ser.readline().decode('utf-8', errors='ignore').strip()
+            except Exception as e:
+                print("Error reading response from serial:", e)
+                return False
 
-        if response in expected_responses:
-            return True
-        else:
+            if not response:
+                continue
+            if response in expected:
+                return True
+
+            # PLAYED can arrive asynchronously while waiting for DONE/HOMED/STOPPED.
+            if response == "PLAYED":
+                continue
+
             print("Error: Unexpected response from motor controller:", response)
             return False
 
@@ -141,4 +143,30 @@ class Communication:
         return self.validate_send_command(expected_responses=("STOPPED",))
         
 
-        
+    def wait_for_button_press(self):
+        """
+        Wait for a button press signal from ESP-32. This is used to detect when the user has placed a piece on the board.
+        The ESP-32 should send "PLAYED" when a piece is placed.
+        """
+        if self.ser is None:
+            print("Error: serial port not available")
+            return False
+
+        start_time = time()
+        while True:
+            if time() - start_time > self.SEND_COMMAND_TIMEOUT:
+                print("Error: No button press detected within timeout.")
+                return False
+
+            try:
+                if self.ser.in_waiting == 0:
+                    continue
+
+                response = self.ser.readline().decode('utf-8', errors='ignore').strip()
+                if not response:
+                    continue
+                if response == "PLAYED":
+                    return True
+            except Exception as e:
+                print("Error reading serial in wait_for_button_press:", e)
+                return False
