@@ -164,7 +164,7 @@ class Communication:
 
         start_time = time()
         while True:
-            if time() - start_time > self.SEND_COMMAND_TIMEOUT:
+            if time() - start_time > 600:
                 print("Error: No button press detected within timeout.")
                 return False
 
