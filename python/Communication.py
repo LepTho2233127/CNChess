@@ -141,7 +141,17 @@ class Communication:
             return False
         
         return self.validate_send_command(expected_responses=("STOPPED",))
+    
+    def move_servo(self, state: bool):
+        "Send command to move servo to state (True for up, False for down)"
+
+        try:
+            self.ser.write(f"SERVO|{int(state)};\n".encode('utf-8'))
+        except Exception as e:
+            print("Error writing SERVO to serial:", e)
+            return False
         
+        return self.validate_send_command(expected_responses=("SERVO",))
 
     def wait_for_button_press(self):
         """

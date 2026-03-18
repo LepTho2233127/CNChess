@@ -135,7 +135,7 @@ class ChessClock(QWidget):
 
 class GameView(QWidget):
 
-    def __init__(self, chess_game, control, communication,cam):
+    def __init__(self, chess_game, control, communication, cam):
 
         super().__init__()
 
