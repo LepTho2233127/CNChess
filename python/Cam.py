@@ -381,6 +381,25 @@ class MoveDetection:
         self.old_piece_color = [0] * 64
         self.move_start = 0
         self.move_end = 0
+        
+    def init_from_board(self):
+        """Initialize piece state from the current chess board"""
+        board = self.chess_game.get_board()
+        
+        # Iterate through all 64 squares
+        for square_index in range(64):
+            piece = board.piece_at(square_index)
+            
+            if piece is None:
+                # Empty square
+                self.old_piece_place[square_index] = 0
+                self.old_piece_color[square_index] = 0
+            else:
+                # Occupied square
+                self.old_piece_place[square_index] = 1
+                # Color: 0 for black/captured, use 1 for white, 2 for black (or map to 'white'/'black')
+                # For compatibility with camera detection: 'yellow' or 'green'
+                self.old_piece_color[square_index] = 'white' if piece.color == chess.WHITE else 'black'
 
     def detect_castling(self, new_piece_place: list, new_piece_color: list) -> dict:
         """Detects castling moves"""
@@ -408,20 +427,13 @@ class MoveDetection:
         """Detects moves by comparing with the previous state"""
         analyses = [0] * 64
         
-        # Reset move detection for this frame
-        self.move_start = 0
-        self.move_end = 0
+        # # Reset move detection for this frame
+        # self.move_start = 0
+        # self.move_end = 0
         
         # Check for castling first
         castling_move = self.detect_castling(new_piece_place, new_piece_color)
         if castling_move is not None:
-            try:
-                move = chess.Move.from_uci(castling_move['uci'])
-                if self.chess_game.validate_move(move):
-                    self.old_piece_place = new_piece_place
-                    self.old_piece_color = new_piece_color
-            except:
-                pass  # Invalid castling, don't update state
             return castling_move
         
         # Detect normal moves
@@ -437,16 +449,7 @@ class MoveDetection:
                 else:
                     self.move_start = i+1
         
-        # Validate and update state only if we have a valid move
         uci_move = self.get_uci_move()
-        if self.move_start > 0 and self.move_end > 0:
-            try:
-                move = chess.Move.from_uci(uci_move)
-                if self.chess_game.validate_move(move):
-                    self.old_piece_place = new_piece_place
-                    self.old_piece_color = new_piece_color
-            except:
-                pass  # Invalid move, don't update state
         
         return {
             'move_start': self.move_start,
@@ -482,6 +485,8 @@ class Cam:
         self.calibration = None
         self.squares = ChessBoardSquares(board_size)
         self.move_detector = MoveDetection(chess_game)
+        # Initialize move detector with current board state
+        self.move_detector.init_from_board()
         self.piece_detector = None
         self.transform = None
         self.cap = None

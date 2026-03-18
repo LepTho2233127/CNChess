@@ -23,7 +23,7 @@ if __name__ == "__main__":
 
     cam = Cam(game, board_size=1200, camera_id=1)  # Adjust camera_id as needed
     cam.initialize_camera(calibrate=False)
-    cam.process_image()  # Initial processing to set up the board state
+    #cam.process_image()  # Initial processing to set up the board state
 
     communication = Communication()
     # Create the Qt application
