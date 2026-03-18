@@ -307,7 +307,6 @@ class GamePageController(QObject):
 
                     piece = self.board_widget.board[self.selected_piece[0]][self.selected_piece[1]].upper()
                     self.update_list(move=f"{piece}{to_square}", turn=self.chess_game.get_turn())
-                    cam_result = self.cam.process_image()  # Process the move with the camera before sending the path
                     print(f"Camera processing result: Actual move: {move.uci()}")
                     path = self.make_move(move)
                     self.view.white_clock.toggle_timer()
@@ -324,6 +323,25 @@ class GamePageController(QObject):
             except ValueError:
                 pass # Invalid move format, happens when you click on the same square as the selected piece, just ignore it and wait for a valid move       
 
+
+    def on_cam_button_clicked(self):
+
+        cam_result = self.cam.process_image()
+        move = cam_result['move']['uci']
+        if self.chess_game.validate_move(move):
+
+            piece = self.board_widget.board[self.selected_piece[0]][self.selected_piece[1]].upper()
+            self.update_list(move=f"{piece}{move.to_square()}", turn=self.chess_game.get_turn())
+            path = self.make_move(move)
+            self.view.white_clock.toggle_timer()
+            self.view.black_clock.toggle_timer()
+            self.update_chess_board()  # Update the board display after making the move
+            self.selected_piece = None  # Reset the selected piece after making a move
+
+            game_outcome = self.handle_game_outcome()
+            if not game_outcome :
+                self.computer_move()
+            
     def check_piece_selected(self, row, col): 
 
         player_color = self.chess_game.get_player_color()
