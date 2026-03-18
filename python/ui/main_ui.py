@@ -37,6 +37,7 @@ class MainUI(QMainWindow):
         self.home_page.home_page_controller.start_game_signal.connect(self.switch_to_game_page_from_home)
         self.game_page.game_page_controller.show_settings_signal.connect(self.switch_to_settings_page)
         self.game_page.game_page_controller.return_home_signal.connect(self.switch_to_home_page)
+        self.settings_page.settings_controller.game_page_signal.connect(self.switch_to_game_page_from_home)
 
     def switch_to_home_page(self):
         self.stacked_widget.setCurrentWidget(self.home_page)
@@ -44,10 +45,9 @@ class MainUI(QMainWindow):
 
     def switch_to_game_page_from_home(self, game_started=False):
 
-        if 
-
         self.stacked_widget.setCurrentWidget(self.game_page)
-        self.game_page.setup_board()
+        if not game_started:
+            self.game_page.setup_board()
       
     def switch_to_settings_page(self):
         self.stacked_widget.setCurrentWidget(self.settings_page)
