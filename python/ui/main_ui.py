@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import QMainWindow, QStackedWidget
 
 from ui.home_page import HomeView
 from ui.game_page import GameView
-from ui.settings_view import SettingsView
+from ui.settings_page import SettingsView
 from Control import Control
 
 class MainUI(QMainWindow):
@@ -34,15 +34,16 @@ class MainUI(QMainWindow):
         self.stacked_widget.addWidget(self.settings_page)
 
         # Connect controller signals to page-switching methods
-        self.home_page.home_page_controller.start_game_signal.connect(self.switch_to_game_page)
+        self.home_page.home_page_controller.start_game_signal.connect(self.switch_to_game_page_from_home)
         self.game_page.game_page_controller.show_settings_signal.connect(self.switch_to_settings_page)
         self.game_page.game_page_controller.return_home_signal.connect(self.switch_to_home_page)
+        
 
     def switch_to_home_page(self):
         self.stacked_widget.setCurrentWidget(self.home_page)
         self.game_page.game_page_controller.reset_board()
 
-    def switch_to_game_page(self):
+    def switch_to_game_page_from_home(self):
         self.stacked_widget.setCurrentWidget(self.game_page)
         self.game_page.setup_board()
       
