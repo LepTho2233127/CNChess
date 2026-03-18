@@ -407,21 +407,14 @@ class MoveDetection:
     def detect_move(self, new_piece_place: list, new_piece_color: list) -> dict:
         """Detects moves by comparing with the previous state"""
         analyses = [0] * 64
-        
-        # Reset move detection for this frame
-        self.move_start = 0
-        self.move_end = 0
-        
+            
         # Check for castling first
         castling_move = self.detect_castling(new_piece_place, new_piece_color)
         if castling_move is not None:
-            try:
-                move = chess.Move.from_uci(castling_move['uci'])
-                if self.chess_game.validate_move(move):
-                    self.old_piece_place = new_piece_place
-                    self.old_piece_color = new_piece_color
-            except:
-                pass  # Invalid castling, don't update state
+            
+            self.old_piece_place = new_piece_place
+            self.old_piece_color = new_piece_color
+           
             return castling_move
         
         # Detect normal moves
@@ -437,16 +430,12 @@ class MoveDetection:
                 else:
                     self.move_start = i+1
         
-        # Validate and update state only if we have a valid move
+        # # Validate and update state only if we have a valid move
         uci_move = self.get_uci_move()
-        if self.move_start > 0 and self.move_end > 0:
-            try:
-                move = chess.Move.from_uci(uci_move)
-                if self.chess_game.validate_move(move):
-                    self.old_piece_place = new_piece_place
-                    self.old_piece_color = new_piece_color
-            except:
-                pass  # Invalid move, don't update state
+
+        self.old_piece_place = new_piece_place
+        self.old_piece_color = new_piece_color
+   
         
         return {
             'move_start': self.move_start,
@@ -456,6 +445,7 @@ class MoveDetection:
     
     def get_uci_move(self) -> str:
         """Converts positions to UCI notation"""
+        
         files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
         ranks = ['8', '7', '6', '5', '4', '3', '2', '1']
         start_file = files[(self.move_start - 1) % 8]
@@ -582,7 +572,8 @@ class Cam:
         
         # Appliquer masque couleur
         masked_warped, mask = ColorMask.create_color_mask(warped)
-        
+        cv2.imwrite("processed_image.jpg", cv2.cvtColor(masked_warped, cv2.COLOR_RGB2BGR))
+
         # Détecter les pièces
         self.piece_detector = PieceDetection(masked_warped, self.squares)
         self.piece_detector.detect_all_pieces()

@@ -68,7 +68,7 @@ class Communication:
         """
         
         try:
-            self.ser.write(f"MOVE|{pos.x}|{pos.y};\n".encode('utf-8'))
+            self.ser.write(f"JOG|{pos.x}|{pos.y};\n".encode('utf-8'))
         except Exception as e:
             print("Error writing to serial port:", e)
             return False
@@ -99,6 +99,7 @@ class Communication:
                 if self.ser.in_waiting == 0:
                     continue
                 response = self.ser.readline().decode('utf-8', errors='ignore').strip()
+                print("Received from serial:", response)
             except Exception as e:
                 print("Error reading response from serial:", e)
                 return False

@@ -89,7 +89,7 @@ void setup() {
     myServo.attach(SERVO_PIN);
     goHome();
     myServo.write(servoReleasePosition); // Ensure servo is in release position
-    // reset_position();
+    reset_position();
 
 }
 
@@ -151,6 +151,24 @@ bool parseCoordinates(String data, float& x, float& y, bool& magnet) {
     return true;
 }
 
+Position parsePosition(String data) {
+    // Remove leading '|' if present
+    if (data.length() > 0 && data[0] == '|') {
+        data = data.substring(1);
+    }
+    
+    // Parse pipe-separated format: "x|y"
+    int pipeIndex = data.indexOf('|');
+    if (pipeIndex == -1) {
+        return {0, 0}; // Invalid format
+    }
+    
+    float x = data.substring(0, pipeIndex).toFloat();
+    float y = data.substring(pipeIndex + 1).toFloat();
+
+    return {x, y};
+}
+
 // Helper function to parse PATH command with multiple coordinate sets
 std::vector<std::string> splitByPipe(String input) {
     std::vector<std::string> result;
@@ -183,6 +201,7 @@ void loop() {
         // Extract command (uppercase letters at start)
         String commandString = extractCommand(input);
         CommandType commandType = parseCommand(commandString);
+        String dataString = input.substring(commandString.length());
 
         float posX = current_position.x;
         float posY = current_position.y;
@@ -197,7 +216,6 @@ void loop() {
                 for (const auto& segment : segments) {
                     if (segment.empty()) continue;
                     
-
                     String segStr(segment.c_str());
                     if (parseCoordinates(segStr, posX, posY, magnetState)) {
                         posX = posX * SQUARE_SIZE_MM;
@@ -233,12 +251,16 @@ void loop() {
             }
 
             case CommandType::MOVE:
-                go_to_position({posX, posY});
+                Position targetPos; 
+                targetPos = parsePosition(dataString);
+                go_to_position({-targetPos.x, targetPos.y});
                 Serial.println("DONE");
                 break;    
 
             case CommandType::JOG:
-                move_distance(posX, posY);
+                Position deltaPos;
+                deltaPos = parsePosition(dataString);
+                move_distance(deltaPos.x, deltaPos.y);
                 Serial.println("DONE");
                 break;
         
@@ -263,14 +285,13 @@ void loop() {
                 break;
         }
     }
-
 }
 
 void reset_position() {
     
     stepper1.setCurrentPosition(0);
     stepper2.setCurrentPosition(0);
-    current_position = {0.5*SQUARE_SIZE_MM, 0.5*SQUARE_SIZE_MM}; // Set to center of the board
+    current_position = {0.5*SQUARE_SIZE_MM, 0.5*SQUARE_SIZE_MM}; 
 }
 
 void grab_piece(bool state) {

@@ -27,7 +27,7 @@ class MainUI(QMainWindow):
         # Create the different pages
         self.home_page = HomeView(chess_model)
         self.game_page = GameView(chess_model,self.control, communication, self.cam)
-        self.settings_page = SettingsView(communication)
+        self.settings_page = SettingsView(communication, cam)
 
         # Add the pages to the stacked widget
         self.stacked_widget.addWidget(self.home_page)

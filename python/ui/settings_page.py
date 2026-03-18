@@ -4,18 +4,20 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
 from PyQt6.QtCore import Qt, pyqtSignal, QObject
 from PyQt6.QtGui import QPainter, QPen, QPixmap
 from Control import Position
+
 import sys
 import os
+import cv2 
 
 class SettingsView(QWidget):
 
     grid_width_mm = 431.8
     grid_height_mm = 406.4
 
-    def __init__(self, com=None):
+    def __init__(self, com=None, cam=None):
         super().__init__()
         self._updating_spinners = False
-        self.controller = SettingsController(self, com)
+        self.controller = SettingsController(self, com, cam)
         self.init_ui()
 
     def init_ui(self):
@@ -154,17 +156,19 @@ class SettingsView(QWidget):
         return self.grid
 
     def build_camera(self):
-        last_pic = QLabel(self)
-        img_path = os.path.join(os.path.dirname(__file__), 'assets', 'temp_img.jpg')
+        self.last_pic = QLabel(self)
+        img_path = os.path.join(os.path.dirname(__file__), 'assets', 'captured_image.jpg')
 
-        last_pic.setPixmap(QPixmap(img_path))
-        last_pic.setFixedSize(400, 300)
+        image = QPixmap(img_path)
+        image = image.scaled(640, 480, Qt.AspectRatioMode.KeepAspectRatio)
+
+        self.last_pic.setPixmap(image)
 
         pic_button = QPushButton("Take Picture", self)
         pic_button.clicked.connect(self.controller.take_picture)
 
         layout = QVBoxLayout()
-        layout.addWidget(last_pic, alignment=Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(self.last_pic, alignment=Qt.AlignmentFlag.AlignHCenter)
         layout.addWidget(pic_button)
 
         return layout
@@ -203,16 +207,18 @@ class SettingsController(QObject):
 
     game_page_signal = pyqtSignal(bool)
 
-    def __init__(self, view, com):
+    def __init__(self, view, com, cam):
         super().__init__()
         self.view = view
         self.com = com
+        self.cam = cam
 
     def quit(self):
         self.game_page_signal.emit(True)
 
     def go(self):
-        self.com.send_position(Position(self.view.x_spinner.value(), self.view.y_spinner.value()))
+        pos = Position(float(self.view.x_spinner.value()), float(self.view.y_spinner.value()))
+        self.com.send_position(pos)
 
     def home(self):
         self.com.go_home()
@@ -231,8 +237,17 @@ class SettingsController(QObject):
     #     print(f"Speed set to {value}%")
     
     def take_picture(self):
-        print("take picture")
+        image = self.cam.process_image()["warped_image"]
+        display_image_with_grid = self.cam.squares.draw_grid(image, color=(0, 255, 0), thickness=2)
 
+        img_path = os.path.join(os.path.dirname(__file__), 'assets', 'captured_image.jpg')
+        cv2.imwrite(img_path, cv2.cvtColor(display_image_with_grid, cv2.COLOR_RGB2BGR))
+
+        image = QPixmap(img_path)
+        image = image.scaled(640, 480, Qt.AspectRatioMode.KeepAspectRatio)
+
+        self.view.last_pic.setPixmap(image)
+        
 class GridView(QWidget):
 
     grid_width_mm = 431.8
