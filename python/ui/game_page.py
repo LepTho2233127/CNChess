@@ -72,12 +72,13 @@ class WaitingDialog(QDialog):
   
 class GameView(QWidget):
 
-    def __init__(self, chess_game, control):
+    def __init__(self, chess_game, control, cam):
 
         super().__init__()
 
         self.chess_game = chess_game
         self.control = control
+        self.cam = cam
        
         # Load the UI from the .ui file
         ui_path = os.path.join(os.path.dirname(__file__), 'gamePage.ui')
@@ -98,7 +99,7 @@ class GameView(QWidget):
         right_layout.insertWidget(1,resize_board)
         self.board = resize_board.board_widget
 
-        self.game_page_controller = GamePageController(chess_game,self, self.control)
+        self.game_page_controller = GamePageController(chess_game,self, self.control, self.cam)
 
         settings_button.clicked.connect(self.game_page_controller.settings_button_clicked)     
         quit_button.clicked.connect(self.game_page_controller.quit_game)
@@ -131,10 +132,11 @@ class GamePageController(QObject):
     start_game_black_signal = pyqtSignal() #Signal for start of game as black
     return_home_signal = pyqtSignal()
 
-    def __init__(self, chess_game, view=None, control=None):
+    def __init__(self, chess_game, view=None, control=None, cam=None):
         super().__init__()
         self.chess_game = chess_game
-        self.view = view 
+        self.view = view
+        self.cam = cam
 
          # Initialize worker thread and waiting dialog
         self.send_path_worker = None
@@ -181,6 +183,7 @@ class GamePageController(QObject):
     def on_send_path_finished(self):
         """Handler when send_path completes successfully."""
         self.waiting_dialog.hide()
+        self.cam.process_image()  # Process the move with the camera after sending the path
         print("Path sent successfully to device")
 
     def on_send_path_error(self, error_msg):
@@ -199,7 +202,7 @@ class GamePageController(QObject):
         else :
             from_square = self.coordinate_to_square(*self.selected_piece)
             to_square = self.coordinate_to_square(row, col)
-         
+        
             try:    
                 move = chess.Move.from_uci(from_square + to_square)
     
@@ -207,7 +210,8 @@ class GamePageController(QObject):
 
                     piece = self.board_widget.board[self.selected_piece[0]][self.selected_piece[1]].upper()
                     self.update_list(move=f"{piece}{to_square}", turn=self.chess_game.get_turn())
-                    
+                    cam_result = self.cam.process_image()  # Process the move with the camera before sending the path
+                    print(f"Camera processing result: Actual move: {move.uci()}")
                     path = self.make_move(move)
                     self.update_chess_board()  # Update the board display after making the move
                     self.selected_piece = None  # Reset the selected piece after making a move

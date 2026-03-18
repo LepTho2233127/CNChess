@@ -366,7 +366,7 @@ class PieceDetection:
             if color != 'empty':
                 self.piece_place[i-1] = 1
                 self.piece_color[i-1] = color
-                print(f"Square {i}: PIECE DETECTED with color {color}")
+                # print(f"Square {i}: PIECE DETECTED with color {color}")
             else:
                 self.piece_place[i-1] = 0
 
@@ -391,15 +391,15 @@ class MoveDetection:
             analyses[i] = new_piece_place[i] + self.old_piece_place[i]
             
             if analyses[i] == 2 and self.old_piece_color[i] != new_piece_color[i]:
-                print(f"Square {i+1}: PIECE COLOR CHANGED from {self.old_piece_color[i]} to {new_piece_color[i]}")
+                # print(f"Square {i+1}: PIECE COLOR CHANGED from {self.old_piece_color[i]} to {new_piece_color[i]}")
                 self.move_end = i+1
             
             if analyses[i] == 1:
                 if new_piece_place[i] == 1:
-                    print(f"Square {i+1}: NEW PIECE DETECTED")
+                    # print(f"Square {i+1}: NEW PIECE DETECTED")
                     self.move_end = i+1
                 else:
-                    print(f"Square {i+1}: PIECE REMOVED")
+                    # print(f"Square {i+1}: PIECE REMOVED")
                     self.move_start = i+1
         
         # Mettre à jour l'état
@@ -607,8 +607,6 @@ if __name__ == "__main__":
     cam = Cam(board_size=1200, camera_id=1)
     cam.initialize_camera(calibrate=False)
     
-    
-
     # Analyser une photo capturée
     result = cam.process_image()
     

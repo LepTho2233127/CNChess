@@ -11,11 +11,12 @@ from Control import Control
 
 class MainUI(QMainWindow):
 
-    def __init__(self, chess_model, control):
+    def __init__(self, chess_model, control, cam):
 
         super().__init__()
         self.chess_model = chess_model
         self.control = control
+        self.cam = cam
 
         self.setWindowTitle("CNChess")
 
@@ -25,7 +26,7 @@ class MainUI(QMainWindow):
 
         # Create the different pages
         self.home_page = HomeView(chess_model)
-        self.game_page = GameView(chess_model,self.control)
+        self.game_page = GameView(chess_model,self.control, self.cam)
         self.settings_page = SettingsView()
 
         # Add the pages to the stacked widget
