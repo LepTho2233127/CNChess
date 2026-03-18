@@ -107,7 +107,24 @@ class CNChess:
             else :
                 return "draw"
         else :
-            return None   
+            return None 
+    def get_material_evaluation(self, color):
+        piece_values = {
+            chess.PAWN: 1,
+            chess.KNIGHT: 3,
+            chess.BISHOP: 3,
+            chess.ROOK: 5,
+            chess.QUEEN: 9,
+            chess.KING: 0
+        }
+
+        evaluation = 0
+
+        for piece, value in piece_values.items():
+            pieces = self.board.pieces(piece, color)
+            evaluation += len(pieces) * value
+               
+        return evaluation      
 
     def make_move(self, move):
         self.board.push(move)    

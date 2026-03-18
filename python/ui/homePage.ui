@@ -277,7 +277,7 @@ QPushButton:pressed {
  <resources/>
  <connections/>
  <buttongroups>
-  <buttongroup name="colorButtonGroup"/>
   <buttongroup name="difficultyButtonGroup"/>
+  <buttongroup name="colorButtonGroup"/>
  </buttongroups>
 </ui>
