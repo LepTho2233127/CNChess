@@ -5,16 +5,17 @@ from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QPainter, QPen, QPixmap
 import sys
 import os
-from ui.settings_controller import SettingsController
+
 
 class SettingsView(QWidget):
 
     grid_width_mm = 431.8
     grid_height_mm = 406.4
 
-    def __init__(self, parent=None):
+    def __init__(self, communication=None, parent=None):
         super().__init__(parent)
         self._updating_spinners = False
+        self.communication = communication
         self.controller = SettingsController(self)
         self.init_ui()
 
@@ -203,6 +204,32 @@ class SettingsView(QWidget):
     def update_speed(self, value):
         self.speed_label.setText(f"Speed : {value}%")
         print(f"Speed set to {value}%")
+
+class SettingsController:
+     
+    def __init__(self, view):
+        self.view = view
+    
+    def quit(self):
+        print("quit")
+
+    def go(self):
+        print("go")
+
+    def home(self):
+        print("home")
+
+    def stop(self):
+        print("stop")
+    
+    def z_move_up(self):
+        print("Move Z up")
+
+    def z_move_down(self):
+        print("Move Z down")
+    
+    def take_picture(self):
+        print("take picture")
 
 class GridView(QWidget):
 

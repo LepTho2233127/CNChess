@@ -198,8 +198,6 @@ class Control:
         start_pos = Position(start_x, start_y)
         end_pos = Position(end_x, end_y)
 
-        self.grid.remove_obstacle(start_pos)  # Ensure start position is not an obstacle
-
         path_to_obstacle_removal = []
         if board.is_capture(move):
             if board.is_en_passant(move): # Handle en passant by adding an additional command to remove the captured pawn
@@ -214,6 +212,7 @@ class Control:
                 print("Obstacle detected at end position, planning path to obstacle removal point.")
                 self.grid.remove_obstacle(end_pos)
                 path_to_obstacle_removal = self.grid.a_star(end_pos, self.grid.obstacle_remove_position)
+        self.grid.remove_obstacle(start_pos)  # Ensure start position is not an obstacle
         path = self.grid.a_star(start_pos, end_pos)
         full_path = path_to_obstacle_removal + path
 

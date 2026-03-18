@@ -71,6 +71,7 @@ class HomePageController(QObject):
     def start_game(self):
         # Emit the signal instead of directly calling a method
         self.start_game_signal.emit()    
+        
 
 
 if __name__ == "__main__":

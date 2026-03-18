@@ -2,6 +2,8 @@ import chess
 import random
 import stockfish
 
+from chess import Termination
+
 class CNChess:
 
     board: chess.Board
@@ -27,7 +29,7 @@ class CNChess:
         self.HARD_DEPTH = 10
         self.IMPOSSIBLE_ELO = 3000
         self.IMPOSSIBLE_DEPTH = 20
-        self.difficulty = "medium"
+        self.difficulty = "easy"
 
 
     def set_elo(self, elo: int):
@@ -54,7 +56,6 @@ class CNChess:
     
     def get_player_color(self):
         return self.player_color
-
 
     def get_legal_moves_from_square(self, square):
         
@@ -94,6 +95,36 @@ class CNChess:
             return chess.Move.from_uci(best_move_uci)
         else:
             return chess.Move.null()    
+        
+    def check_game_outcome(self):
+
+        game_outcome = self.board.outcome()
+
+        if game_outcome :
+            if game_outcome.termination == Termination.CHECKMATE:
+                winner_color = "white" if game_outcome.winner == chess.WHITE else "black"
+                return winner_color
+            else :
+                return "draw"
+        else :
+            return None 
+    def get_material_evaluation(self, color):
+        piece_values = {
+            chess.PAWN: 1,
+            chess.KNIGHT: 3,
+            chess.BISHOP: 3,
+            chess.ROOK: 5,
+            chess.QUEEN: 9,
+            chess.KING: 0
+        }
+
+        evaluation = 0
+
+        for piece, value in piece_values.items():
+            pieces = self.board.pieces(piece, color)
+            evaluation += len(pieces) * value
+               
+        return evaluation      
 
     def make_move(self, move):
         self.board.push(move)    
@@ -112,10 +143,17 @@ class CNChess:
         self.board.reset()
 
     def get_turn(self):
-        return self.board.turn
+
+        turn = self.board.turn
+        return "white" if turn == chess.WHITE else "black"
     
     def get_board(self):
         return self.board
     
+    def is_promotion_move(self, move):
+        white_promotion = chess.square_rank(move.to_square) == 7 and chess.square_rank(move.from_square) == 6 and self.board.piece_at(move.from_square).piece_type == chess.PAWN and self.board.piece_at(move.from_square).color == chess.WHITE
+        black_promotion = chess.square_rank(move.to_square) == 0 and chess.square_rank(move.from_square) == 1 and self.board.piece_at(move.from_square).piece_type == chess.PAWN and self.board.piece_at(move.from_square).color == chess.BLACK
+
+        return white_promotion or black_promotion            
 
     
