@@ -565,6 +565,7 @@ class Cam:
             cv2.namedWindow("Raw Frame Captured", cv2.WINDOW_NORMAL)
             cv2.imshow("Raw Frame Captured", frame)
             cv2.resizeWindow("Raw Frame Captured", frame.shape[1], frame.shape[0])
+        cv2.imwrite("captured_frame.jpg", frame)
         return frame
     
     def process_frame(self) -> dict:
