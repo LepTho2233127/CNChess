@@ -6,7 +6,6 @@ from PyQt6.QtGui import QPainter, QPen, QPixmap
 import sys
 import os
 
-
 class SettingsView(QWidget):
 
     grid_width_mm = 431.8
@@ -200,31 +199,35 @@ class SettingsView(QWidget):
         current_value = self.x_spinner.value()
         self.update_coord(current_value + self.step_spinner.value(), abs(self.y_spinner.value() - self.grid_height_mm))
 
-    def update_speed(self, value):
-        self.speed_label.setText(f"Speed : {value}%")
-        print(f"Speed set to {value}%")
-
 class SettingsController:
-    def __init__(self, view):
+
+    quit_signal = pyqtSignal(bool game_started)
+
+    def __init__(self, view, com):
         self.view = view
-    
+        self.com = com
+
     def quit(self):
-        print("quit")
+        self.quit_signal.emit(True)
 
     def go(self):
-        print("go")
+        self.com.send_position(self.view.x_spinner.value(), self.view.y_spinner.value())
 
     def home(self):
-        print("home")
+        self.com.go_home()
 
     def stop(self):
-        print("stop")
-    
+        self.com.stop()
+
     def z_move_up(self):
         print("Move Z up")
 
     def z_move_down(self):
         print("Move Z down")
+    
+    def update_speed(self, value):
+        self.speed_label.setText(f"Speed : {value}%")
+        print(f"Speed set to {value}%")
     
     def take_picture(self):
         print("take picture")
