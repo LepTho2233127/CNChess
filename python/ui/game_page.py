@@ -51,6 +51,27 @@ class SendPathWorker(QObject):
         except Exception as e:
             self.error.emit(f"Error sending path: {str(e)}")
 
+
+class WaitForButtonWorker(QObject):
+    """Worker thread to wait for ESP button press without blocking the UI."""
+    finished = pyqtSignal()
+    error = pyqtSignal(str)
+
+    def __init__(self, communication):
+        super().__init__()
+        self.communication = communication
+
+    def run(self):
+        """Execute wait_for_button_press in the worker thread."""
+        try:
+            result = self.communication.wait_for_button_press()
+            if result:
+                self.finished.emit()
+            else:
+                self.error.emit("No button press detected")
+        except Exception as e:
+            self.error.emit(f"Error while waiting for button press: {str(e)}")
+
 class ChessClock(QWidget):
 
     outOfTime_signal = pyqtSignal(int)
@@ -114,12 +135,13 @@ class ChessClock(QWidget):
 
 class GameView(QWidget):
 
-    def __init__(self, chess_game, control):
+    def __init__(self, chess_game, control, communication, cam):
 
         super().__init__()
 
         self.chess_game = chess_game
         self.control = control
+        self.cam = cam
        
         # Load the UI from the .ui file
         ui_path = os.path.join(os.path.dirname(__file__), 'gamePage.ui')
@@ -147,11 +169,10 @@ class GameView(QWidget):
         resize_board = AspectRatioWidget(ChessBoardWidget())
         right_layout.insertWidget(1,resize_board)
         self.board = resize_board.board_widget
-
+        
         self.white_clock = ChessClock(initial_time=600, clock_label=self.white_timer_display, color="white")
         self.black_clock = ChessClock(initial_time=600, clock_label=self.black_timer_display, color="black")
-
-        self.game_page_controller = GamePageController(chess_game,self, self.control)
+        self.game_page_controller = GamePageController(chess_game,self, self.control, communication, self.cam)
 
         settings_button.clicked.connect(self.game_page_controller.settings_button_clicked)     
         quit_button.clicked.connect(self.game_page_controller.quit_game)
@@ -182,6 +203,8 @@ class GameView(QWidget):
 
         else :        
             self.turn_indicator.setStyleSheet("background-color:white")
+            # Human starts as white: wait asynchronously for the board button press.
+            self.game_page_controller.wait_for_button_press_async()
 
         self.white_clock.toggle_timer()
         
@@ -199,14 +222,17 @@ class GamePageController(QObject):
     start_game_black_signal = pyqtSignal() #Signal for start of game as black
     return_home_signal = pyqtSignal()
 
-    def __init__(self, chess_game, view=None, control=None):
+    def __init__(self, chess_game, view=None, control=None, communication=None, cam=None):
         super().__init__()
         self.chess_game = chess_game
-        self.view = view 
+        self.view = view
+        self.cam = cam
 
          # Initialize worker thread and waiting dialog
         self.send_path_worker = None
         self.send_path_thread = None
+        self.wait_button_worker = None
+        self.wait_button_thread = None
         self.waiting_dialog = WaitingDialog(self.view)     
 
         self.board_widget = self.view.board
@@ -217,7 +243,7 @@ class GamePageController(QObject):
         self.board_positions_index = 0
         self.control = control
         self.control.update_board_state(board_state)
-        self.communication = Communication()
+        self.communication = communication
 
         self.selected_piece = None  # Track the currently selected piece for move selection
         self.board_widget.squared_clicked_signal.connect(self.handle_square_click)
@@ -229,7 +255,7 @@ class GamePageController(QObject):
         self.show_settings_signal.emit()
 
     def quit_game(self):
-        self.wait_for_thread()
+        self.wait_for_threads()
         self.return_home_signal.emit()
 
     def wait_for_thread(self):
@@ -240,6 +266,20 @@ class GamePageController(QObject):
                 self.send_path_thread.wait()
             self.send_path_thread = None
             self.send_path_worker = None
+
+    def wait_for_button_thread(self):
+        """Wait for any running button-wait thread to fully finish."""
+        if self.wait_button_thread is not None:
+            if self.wait_button_thread.isRunning():
+                self.wait_button_thread.quit()
+                self.wait_button_thread.wait()
+            self.wait_button_thread = None
+            self.wait_button_worker = None
+
+    def wait_for_threads(self):
+        """Wait for all communication worker threads to finish."""
+        self.wait_for_thread()
+        self.wait_for_button_thread()
 
     def send_path_async(self, path):
         """Send path to device asynchronously without blocking the UI."""
@@ -259,15 +299,32 @@ class GamePageController(QObject):
         self.send_path_worker.error.connect(self.send_path_thread.quit)
         
         # Show waiting dialog and start thread
+        self.waiting_dialog.set_message("Sending move to device...\nPlease wait.")
         self.waiting_dialog.show()
         self.send_path_thread.start()
 
+    def wait_for_button_press_async(self):
+        """Wait for physical button press asynchronously without blocking the UI."""
+        self.wait_for_button_thread()
+
+        self.wait_button_worker = WaitForButtonWorker(self.communication)
+        self.wait_button_thread = QThread(parent=self)
+        self.wait_button_worker.moveToThread(self.wait_button_thread)
+
+        self.wait_button_thread.started.connect(self.wait_button_worker.run)
+        self.wait_button_worker.finished.connect(self.on_wait_button_finished)
+        self.wait_button_worker.finished.connect(self.wait_button_thread.quit)
+        self.wait_button_worker.error.connect(self.on_wait_button_error)
+        self.wait_button_worker.error.connect(self.wait_button_thread.quit)
+
+        self.waiting_dialog.set_message("Waiting for button press...\nPlease play your move.")
+        self.waiting_dialog.show()
+        self.wait_button_thread.start()
+
     def on_send_path_finished(self):
         """Handler when send_path completes successfully."""
-        self.waiting_dialog.hide()
-        self.view.white_clock.toggle_timer()
-        self.view.black_clock.toggle_timer()
         print("Path sent successfully to device")
+        self.wait_for_button_press_async()
 
     def on_send_path_error(self, error_msg):
         """Handler when send_path encounters an error."""
@@ -275,6 +332,42 @@ class GamePageController(QObject):
         self.view.white_clock.toggle_timer()
         self.view.black_clock.toggle_timer()
         print(f"Error: {error_msg}")
+
+    def on_wait_button_finished(self):
+        """Handler when the ESP button press is detected."""
+        print("Button press detected")
+
+        self.waiting_dialog.hide()
+        self.board_widget.clear_trajectory()
+
+        cam_result = self.cam.process_image()
+        move = chess.Move.from_uci(cam_result['move']['uci'])
+        if self.chess_game.validate_move(move):
+            moved_piece = self.chess_game.get_board().piece_at(move.from_square)
+            piece = moved_piece.symbol().upper() if moved_piece is not None else "?"
+            self.update_list(move=f"{piece}{move.to_square}", turn=self.chess_game.get_turn())
+            path = self.make_move(move)
+            self.view.white_clock.toggle_timer()
+            self.view.black_clock.toggle_timer()
+            self.update_chess_board()  # Update the board display after making the move
+            self.selected_piece = None  # Reset the selected piece after making a move
+
+            game_outcome = self.handle_game_outcome()
+            if not game_outcome :
+                self.computer_move()
+        else:
+            print(f"Camera processing result: Invalid move detected: {move.uci()}. Waiting for valid move.")
+
+        self.view.white_clock.toggle_timer()
+        self.view.black_clock.toggle_timer()
+
+    def on_wait_button_error(self, error_msg):
+        """Handler when waiting for button press fails or times out."""
+        self.waiting_dialog.hide()
+        self.cam.process_image()
+        self.view.white_clock.toggle_timer()
+        self.view.black_clock.toggle_timer()
+        print(f"Error: {error_msg}. Continuing without button confirmation.")
 
     def handle_square_click(self, row, col):
         """Handle click events on the squares. This is where you would implement move selection and execution logic."""
@@ -286,7 +379,7 @@ class GamePageController(QObject):
         else :
             from_square = self.coordinate_to_square(*self.selected_piece)
             to_square = self.coordinate_to_square(row, col)
-         
+        
             try:    
                 move = chess.Move.from_uci(from_square + to_square)
 
@@ -305,7 +398,7 @@ class GamePageController(QObject):
 
                     piece = self.board_widget.board[self.selected_piece[0]][self.selected_piece[1]].upper()
                     self.update_list(move=f"{piece}{to_square}", turn=self.chess_game.get_turn())
-                    
+                    print(f"Camera processing result: Actual move: {move.uci()}")
                     path = self.make_move(move)
                     self.view.white_clock.toggle_timer()
                     self.view.black_clock.toggle_timer()
@@ -321,6 +414,7 @@ class GamePageController(QObject):
             except ValueError:
                 pass # Invalid move format, happens when you click on the same square as the selected piece, just ignore it and wait for a valid move       
 
+        
     def check_piece_selected(self, row, col): 
 
         player_color = self.chess_game.get_player_color()
@@ -381,7 +475,7 @@ class GamePageController(QObject):
                         path = self.make_move(chess.Move.from_uci(f"{chess.square_name(black_king_pos)}{chess.square_name(white_king_pos)}"))
                     else :
                         path = self.make_move(chess.Move.from_uci(f"{chess.square_name(white_king_pos)}{chess.square_name(black_king_pos)}"))
-                    self.wait_for_thread()
+                    self.wait_for_threads()
                     self.send_path_async(path)
                 
                 # Hide the waiting dialog before showing the checkmate dialog
@@ -396,7 +490,7 @@ class GamePageController(QObject):
             if result : 
                 self.return_home_signal.emit()
             else : 
-                self.wait_for_thread()
+                self.wait_for_threads()
                 sys.exit()    
 
         return game_outcome       
@@ -412,7 +506,7 @@ class GamePageController(QObject):
         if result : 
             self.return_home_signal.emit()
         else : 
-            self.wait_for_thread()
+            self.wait_for_threads()
             sys.exit()
 
     def update_chess_board(self):
@@ -421,7 +515,6 @@ class GamePageController(QObject):
         board_state = self.chess_game.get_board_state()
         self.board_positions.append(board_state)  # Store the new board state after the move
         self.board_positions_index = len(self.board_positions) - 1  # Update index to the latest position after making a move
-        print(len(self.board_positions))
         self.board_widget.update_board(board_state)
 
     def coordinate_to_square(self, row, col):
