@@ -21,7 +21,7 @@ if __name__ == "__main__":
     control = Control()
     control.update_board_state(game.get_board_state())
 
-    cam = Cam(board_size=1200, camera_id=1)  # Adjust camera_id as needed
+    cam = Cam(game, board_size=1200, camera_id=1)  # Adjust camera_id as needed
     cam.initialize_camera(calibrate=False)
     cam.process_image()  # Initial processing to set up the board state
 
