@@ -199,7 +199,7 @@ class GamePageController(QObject):
     start_game_black_signal = pyqtSignal() #Signal for start of game as black
     return_home_signal = pyqtSignal()
 
-    def __init__(self, chess_game, view=None, control=None):
+    def __init__(self, chess_game, view=None, control=None, communication=None):
         super().__init__()
         self.chess_game = chess_game
         self.view = view 
@@ -217,7 +217,7 @@ class GamePageController(QObject):
         self.board_positions_index = 0
         self.control = control
         self.control.update_board_state(board_state)
-        self.communication = Communication()
+        self.communication = communication
 
         self.selected_piece = None  # Track the currently selected piece for move selection
         self.board_widget.squared_clicked_signal.connect(self.handle_square_click)
@@ -421,7 +421,6 @@ class GamePageController(QObject):
         board_state = self.chess_game.get_board_state()
         self.board_positions.append(board_state)  # Store the new board state after the move
         self.board_positions_index = len(self.board_positions) - 1  # Update index to the latest position after making a move
-        print(len(self.board_positions))
         self.board_widget.update_board(board_state)
 
     def coordinate_to_square(self, row, col):

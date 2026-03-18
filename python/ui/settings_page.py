@@ -205,6 +205,7 @@ class SettingsView(QWidget):
         print(f"Speed set to {value}%")
 
 class SettingsController:
+     
     def __init__(self, view):
         self.view = view
     
