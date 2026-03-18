@@ -113,7 +113,7 @@ class Communication:
             print("Error: Unexpected response from motor controller:", response)
             return False
 
-    def goHome(self):
+    def go_home(self):
         if self.ser is None:
             print("Error: serial port not available")
             return False

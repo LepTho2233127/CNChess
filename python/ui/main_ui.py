@@ -6,12 +6,12 @@ from PyQt6.QtWidgets import QMainWindow, QStackedWidget
 
 from ui.home_page import HomeView
 from ui.game_page import GameView
-from ui.settings_view import SettingsView
+from ui.settings_page import SettingsView
 from Control import Control
 
 class MainUI(QMainWindow):
 
-    def __init__(self, chess_model, control, cam):
+    def __init__(self, chess_model, control, communication, cam):
 
         super().__init__()
         self.chess_model = chess_model
@@ -26,8 +26,8 @@ class MainUI(QMainWindow):
 
         # Create the different pages
         self.home_page = HomeView(chess_model)
-        self.game_page = GameView(chess_model,self.control, self.cam)
-        self.settings_page = SettingsView()
+        self.game_page = GameView(chess_model,self.control, communication, self.cam)
+        self.settings_page = SettingsView(communication)
 
         # Add the pages to the stacked widget
         self.stacked_widget.addWidget(self.home_page)
@@ -35,7 +35,7 @@ class MainUI(QMainWindow):
         self.stacked_widget.addWidget(self.settings_page)
 
         # Connect controller signals to page-switching methods
-        self.home_page.home_page_controller.start_game_signal.connect(self.switch_to_game_page)
+        self.home_page.home_page_controller.start_game_signal.connect(self.switch_to_game_page_from_home)
         self.game_page.game_page_controller.show_settings_signal.connect(self.switch_to_settings_page)
         self.game_page.game_page_controller.return_home_signal.connect(self.switch_to_home_page)
 
@@ -43,9 +43,10 @@ class MainUI(QMainWindow):
         self.stacked_widget.setCurrentWidget(self.home_page)
         self.game_page.game_page_controller.reset_board()
 
-    def switch_to_game_page(self):
-        self.stacked_widget.setCurrentWidget(self.game_page)
-        self.game_page.start_chess_board()  # Ensure the game board is updated when switching to the game page
+    def switch_to_game_page_from_home(self, game_started=False):
 
+        self.stacked_widget.setCurrentWidget(self.game_page)
+        self.game_page.setup_board()
+      
     def switch_to_settings_page(self):
         self.stacked_widget.setCurrentWidget(self.settings_page)

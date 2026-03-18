@@ -6,6 +6,7 @@ from PyQt6.QtWidgets import QApplication
 from CNChess import CNChess
 from Control import Control
 from Cam import Cam
+from Communication import Communication
 
 from ui.main_ui import MainUI
 
@@ -24,10 +25,11 @@ if __name__ == "__main__":
     cam.initialize_camera(calibrate=False)
     cam.process_image()  # Initial processing to set up the board state
 
+    communication = Communication()
     # Create the Qt application
     app = QApplication(sys.argv) 
     
-    ui = MainUI(game, control, cam)
+    ui = MainUI(game, control, communication, cam)
     
     # Show the window
     ui.show()

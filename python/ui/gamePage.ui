@@ -36,9 +36,11 @@
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="quitButton">
-         <property name="styleSheet">
-          <string>QPushButton {
+        <layout class="QHBoxLayout" name="horizontalLayout">
+         <item>
+          <widget class="QPushButton" name="quitButton">
+           <property name="styleSheet">
+            <string>QPushButton {
     background-color: #F44336;
     color: white;
     padding: 5px;
@@ -51,18 +53,42 @@ QPushButton:hover {
 QPushButton:pressed {
     background-color: #ba0205;
 }</string>
-         </property>
-         <property name="text">
-          <string>Quit game</string>
-         </property>
-        </widget>
+           </property>
+           <property name="text">
+            <string>Quit game</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="startButton">
+           <property name="styleSheet">
+            <string notr="true">QPushButton {
+    background-color: #4CAF50;
+    color: white;
+    padding: 5px;
+    border-radius: 3px;
+    border: none;
+}
+QPushButton:hover {
+    background-color: #45a049;
+}
+QPushButton:pressed {
+    background-color:#3d8b40;
+}</string>
+           </property>
+           <property name="text">
+            <string>Start time</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
        </item>
       </layout>
      </item>
      <item>
       <layout class="QVBoxLayout" name="rightLayout" stretch="0,0,0">
        <item>
-        <layout class="QHBoxLayout" name="layout_Timers" stretch="0,1,0,0">
+        <layout class="QHBoxLayout" name="layout_Timers" stretch="0,0,1,0,0,0">
          <property name="spacing">
           <number>15</number>
          </property>
@@ -70,7 +96,18 @@ QPushButton:pressed {
           <number>25</number>
          </property>
          <item>
-          <widget class="QLCDNumber" name="timeWhite"/>
+          <widget class="QLabel" name="whiteTimer">
+           <property name="text">
+            <string>TextLabel</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="whiteScore">
+           <property name="text">
+            <string/>
+           </property>
+          </widget>
          </item>
          <item>
           <widget class="QLabel" name="labelTurn">
@@ -82,7 +119,7 @@ QPushButton:pressed {
             </font>
            </property>
            <property name="text">
-            <string>Turn indicator</string>
+            <string/>
            </property>
            <property name="alignment">
             <set>Qt::AlignCenter</set>
@@ -90,12 +127,16 @@ QPushButton:pressed {
           </widget>
          </item>
          <item>
-          <widget class="QLCDNumber" name="timeBlack">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
+          <widget class="QLabel" name="blackScore">
+           <property name="text">
+            <string/>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="blackTimer">
+           <property name="text">
+            <string>TextLabel</string>
            </property>
           </widget>
          </item>
@@ -106,7 +147,7 @@ QPushButton:pressed {
            </property>
            <property name="icon">
             <iconset>
-             <normaloff>../../../../../../Downloads/gear_icon.png</normaloff>../../../../../../Downloads/gear_icon.png</iconset>
+             <normaloff>../../../../../../.designer/backup/assets/gear_icon.png</normaloff>../../../../../../.designer/backup/assets/gear_icon.png</iconset>
            </property>
           </widget>
          </item>
@@ -118,14 +159,14 @@ QPushButton:pressed {
        <item>
         <layout class="QHBoxLayout" name="buttonBoardLayout">
          <item>
-          <widget class="QPushButton" name="backwardMoveButton">
+          <widget class="QPushButton" name="moveBackButton">
            <property name="text">
             <string>&lt;</string>
            </property>
           </widget>
          </item>
          <item>
-          <widget class="QPushButton" name="forwardMoveButton">
+          <widget class="QPushButton" name="moveForwardButton">
            <property name="text">
             <string>&gt;</string>
            </property>
