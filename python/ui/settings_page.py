@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
                              QLabel, QSlider, QPushButton, QDoubleSpinBox, QApplication,
                              QStyleOption, QStyle)
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import QObject, Qt, pyqtSignal
 from PyQt6.QtGui import QPainter, QPen, QPixmap
 import sys
 import os
@@ -198,11 +198,12 @@ class SettingsView(QWidget):
         current_value = self.x_spinner.value()
         self.update_coord(current_value + self.step_spinner.value(), abs(self.y_spinner.value() - self.grid_height_mm))
 
-class SettingsController:
+class SettingsController(QObject):
 
     game_page_signal = pyqtSignal(bool)
 
     def __init__(self, view, com):
+        super().__init__()
         self.view = view
         self.com = com
 
