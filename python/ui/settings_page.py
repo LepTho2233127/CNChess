@@ -11,17 +11,17 @@ class SettingsView(QWidget):
     grid_width_mm = 431.8
     grid_height_mm = 406.4
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    def __init__(self, com=None):
+        super().__init__()
         self._updating_spinners = False
-        self.controller = SettingsController(self)
+        self.controller = SettingsController(self, com)
         self.init_ui()
 
     def init_ui(self):
         back_button = QPushButton("Back", self)
         back_button.clicked.connect(self.controller.quit)
         back_button.setFixedSize(80, 30)
-        layout_speed = self.build_speed()
+        # layout_speed = self.build_speed()
         grid = self.build_grid()
         layout_coord = self.build_coord()
         layout_remoteXY = self.build_remoteXY()
@@ -30,7 +30,7 @@ class SettingsView(QWidget):
 
         left_layout = QVBoxLayout()
         left_layout.addWidget(back_button, alignment=Qt.AlignmentFlag.AlignTop)
-        left_layout.addLayout(layout_speed)
+        # left_layout.addLayout(layout_speed)
         middle_layout = QVBoxLayout()
         middle_layout.addWidget(grid, alignment=Qt.AlignmentFlag.AlignHCenter)
         middle_layout.addLayout(layout_coord)
@@ -129,23 +129,23 @@ class SettingsView(QWidget):
 
         return layout
     
-    def build_speed(self):
+    # def build_speed(self):
 
-        self.speed_label = QLabel("Speed : 50%", self)
-        self.speed_label.setFixedHeight(100)
+    #     self.speed_label = QLabel("Speed : 50%", self)
+    #     self.speed_label.setFixedHeight(100)
 
-        speed_slider = QSlider(self)
-        speed_slider.setOrientation(Qt.Orientation.Vertical)
-        speed_slider.setRange(0, 100)
-        speed_slider.setValue(50)
-        speed_slider.setFixedSize(25, 400)
-        speed_slider.valueChanged.connect(self.update_speed)
+    #     speed_slider = QSlider(self)
+    #     speed_slider.setOrientation(Qt.Orientation.Vertical)
+    #     speed_slider.setRange(0, 100)
+    #     speed_slider.setValue(50)
+    #     speed_slider.setFixedSize(25, 400)
+    #     speed_slider.valueChanged.connect(self.update_speed)
 
-        layout = QVBoxLayout()
-        layout.addWidget(self.speed_label, alignment=Qt.AlignmentFlag.AlignHCenter)
-        layout.addWidget(speed_slider, alignment=Qt.AlignmentFlag.AlignHCenter)
+    #     layout = QVBoxLayout()
+    #     layout.addWidget(self.speed_label, alignment=Qt.AlignmentFlag.AlignHCenter)
+    #     layout.addWidget(speed_slider, alignment=Qt.AlignmentFlag.AlignHCenter)
 
-        return layout
+    #     return layout
     
     def build_grid(self):
         self.grid = GridView()
@@ -176,7 +176,6 @@ class SettingsView(QWidget):
         self.grid.update_dot(x, y)
     
     def on_spinner_changed(self):
-        
         if self._updating_spinners:
             return
         x = self.x_spinner.value()
@@ -201,14 +200,14 @@ class SettingsView(QWidget):
 
 class SettingsController:
 
-    quit_signal = pyqtSignal(bool game_started)
+    game_page_signal = pyqtSignal(bool)
 
     def __init__(self, view, com):
         self.view = view
         self.com = com
 
     def quit(self):
-        self.quit_signal.emit(True)
+        self.game_page_signal.emit(True)
 
     def go(self):
         self.com.send_position(self.view.x_spinner.value(), self.view.y_spinner.value())
@@ -220,14 +219,14 @@ class SettingsController:
         self.com.stop()
 
     def z_move_up(self):
-        print("Move Z up")
+        self.com.move_servo(True)
 
     def z_move_down(self):
-        print("Move Z down")
-    
-    def update_speed(self, value):
-        self.speed_label.setText(f"Speed : {value}%")
-        print(f"Speed set to {value}%")
+        self.com.move_servo(False)
+
+    # def update_speed(self, value):
+    #     self.speed_label.setText(f"Speed : {value}%")
+    #     print(f"Speed set to {value}%")
     
     def take_picture(self):
         print("take picture")
