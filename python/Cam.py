@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import json
 import ctypes
+import chess
 
 ## Extracting Chess Squares with Perspective Transformation (image --> fen format)
 
@@ -374,7 +375,8 @@ class PieceDetection:
 class MoveDetection:
     """Manages move detection"""
     
-    def __init__(self):
+    def __init__(self, chess_game):
+        self.chess_game = chess_game
         self.old_piece_place = [0] * 64
         self.old_piece_color = [0] * 64
         self.move_start = 0
@@ -406,32 +408,45 @@ class MoveDetection:
         """Detects moves by comparing with the previous state"""
         analyses = [0] * 64
         
+        # Reset move detection for this frame
+        self.move_start = 0
+        self.move_end = 0
+        
+        # Check for castling first
         castling_move = self.detect_castling(new_piece_place, new_piece_color)
         if castling_move is not None:
-            self.old_piece_place = new_piece_place
-            self.old_piece_color = new_piece_color
+            try:
+                move = chess.Move.from_uci(castling_move['uci'])
+                if self.chess_game.validate_move(move):
+                    self.old_piece_place = new_piece_place
+                    self.old_piece_color = new_piece_color
+            except:
+                pass  # Invalid castling, don't update state
             return castling_move
         
+        # Detect normal moves
         for i in range(len(new_piece_place)):
             analyses[i] = new_piece_place[i] + self.old_piece_place[i]
             
             if analyses[i] == 2 and self.old_piece_color[i] != new_piece_color[i]:
-                # print(f"Square {i+1}: PIECE COLOR CHANGED from {self.old_piece_color[i]} to {new_piece_color[i]}")
                 self.move_end = i+1
             
             if analyses[i] == 1:
                 if new_piece_place[i] == 1:
-                    # print(f"Square {i+1}: NEW PIECE DETECTED")
                     self.move_end = i+1
                 else:
-                    # print(f"Square {i+1}: PIECE REMOVED")
                     self.move_start = i+1
         
-        # Update the state
-        self.old_piece_place = new_piece_place
-        self.old_piece_color = new_piece_color
-        
+        # Validate and update state only if we have a valid move
         uci_move = self.get_uci_move()
+        if self.move_start > 0 and self.move_end > 0:
+            try:
+                move = chess.Move.from_uci(uci_move)
+                if self.chess_game.validate_move(move):
+                    self.old_piece_place = new_piece_place
+                    self.old_piece_color = new_piece_color
+            except:
+                pass  # Invalid move, don't update state
         
         return {
             'move_start': self.move_start,
@@ -457,7 +472,8 @@ class MoveDetection:
 class Cam:
     """Main class integrating all functionalities"""
     
-    def __init__(self, board_size: int = 1200, camera_id: int = 0, scale: float = 1.0):
+    def __init__(self, chess_game, board_size: int = 1200, camera_id: int = 0, scale: float = 1.0):
+        self.chess_game = chess_game
         self.board_size = board_size
         self.scale = scale
         self.camera_id = camera_id
@@ -465,7 +481,7 @@ class Cam:
         
         self.calibration = None
         self.squares = ChessBoardSquares(board_size)
-        self.move_detector = MoveDetection()
+        self.move_detector = MoveDetection(chess_game)
         self.piece_detector = None
         self.transform = None
         self.cap = None
@@ -570,7 +586,7 @@ class Cam:
         self.piece_detector = PieceDetection(masked_warped, self.squares)
         self.piece_detector.detect_all_pieces()
         
-        # Détecter les mouvements
+        # Detect moves
         move_info = self.move_detector.detect_move(
             self.piece_detector.piece_place,
             self.piece_detector.piece_color
@@ -628,8 +644,14 @@ class Cam:
 # USAGE EXAMPLE
 # ============================================================================
 if __name__ == "__main__":
-    # Option 1: Calibration depuis la caméra, puis analyser une frame unique
-    cam = Cam(board_size=1200, camera_id=1)
+    # Import chess game module (adjust import based on your structure)
+    import chess  # or from your_module import ChessGame
+    
+    # Create a chess game instance
+    chess_game = chess.Board()
+    
+    # Option 1: Calibration from camera, then analyze a single frame
+    cam = Cam(chess_game=chess_game, board_size=1200, camera_id=1)
     cam.initialize_camera(calibrate=False)
     
     # Analyser une photo capturée
