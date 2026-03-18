@@ -3,6 +3,7 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
                              QStyleOption, QStyle)
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QPainter, QPen, QPixmap
+from Control import Position
 import sys
 import os
 
@@ -210,7 +211,7 @@ class SettingsController:
         self.game_page_signal.emit(True)
 
     def go(self):
-        self.com.send_position(self.view.x_spinner.value(), self.view.y_spinner.value())
+        self.com.send_position(Position(self.view.x_spinner.value(), self.view.y_spinner.value()))
 
     def home(self):
         self.com.go_home()

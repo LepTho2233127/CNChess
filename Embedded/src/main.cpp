@@ -90,7 +90,8 @@ enum CommandType {
     HOME,
     JOG,
     STOP,
-    PATH
+    PATH,
+    SERVO
 };
 
 CommandType parseCommand(String cmd) {
@@ -100,6 +101,7 @@ CommandType parseCommand(String cmd) {
     if (cmd == "STOP") return STOP;
     if (cmd == "JOG")  return JOG;
     if (cmd == "PATH")  return PATH;
+    if(cmd == "SERVO") return SERVO;
 
     return STOP;
 }
@@ -239,6 +241,12 @@ void loop() {
                 Serial.print("STOPPED");
                 break;
             
+            case CommandType::SERVO:
+                // Get magnet state from input
+                magnetState = input.substring(5).toInt() != 0;
+                grab_piece(magnetState);
+                Serial.print("SERVO");
+                break;
         }
     }
 
