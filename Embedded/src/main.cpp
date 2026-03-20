@@ -35,8 +35,8 @@ AccelStepper stepper1(AccelStepper::DRIVER, STEP_PIN_1, DIR_PIN_1); // step, dir
 AccelStepper stepper2(AccelStepper::DRIVER, STEP_PIN_2, DIR_PIN_2); // step, dir pins
 MultiStepper steppers;
 
-int servoGrabPosition = -3; // Servo position to grab piece0
-int servoReleasePosition = 85; // Servo position to release piece
+int servoGrabPosition = 130; // Servo position to grab piece0
+int servoReleasePosition = 200; // Servo position to release piece
 static bool isFastHome = false;
 bool button_pressed = false;
 struct Position{
@@ -56,7 +56,6 @@ std::pair<float, float> get_steps(float delta_x, float delta_y);
 void IRAM_ATTR onPlayButtonPress() {
     // This function will be called when the play button is pressed
     button_pressed = true;
-
 }
 
 void go_to_position (Position pos);
@@ -89,8 +88,6 @@ void setup() {
     myServo.attach(SERVO_PIN);
     goHome();
     myServo.write(servoReleasePosition); // Ensure servo is in release position
-    reset_position();
-
 }
 
 enum CommandType {
@@ -279,9 +276,9 @@ void loop() {
             
             case CommandType::SERVO:
                 // Get magnet state from input
-                magnetState = input.substring(5).toInt() != 0;
+                magnetState = input.substring(6).toInt() != 0;
                 grab_piece(magnetState);
-                Serial.print("SERVO");
+                Serial.println("SERVO");
                 break;
         }
     }
