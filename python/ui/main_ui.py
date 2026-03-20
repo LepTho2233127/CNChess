@@ -39,6 +39,8 @@ class MainUI(QMainWindow):
         self.game_page.game_page_controller.show_settings_signal.connect(self.switch_to_settings_page)
         self.game_page.game_page_controller.return_home_signal.connect(self.switch_to_home_page)
         self.settings_page.controller.game_page_signal.connect(self.switch_to_game_page)
+        self.game_page.game_page_controller.send_gantry_position.connect(self.settings_page.update_coord)
+
 
     def switch_to_home_page(self):
         self.stacked_widget.setCurrentWidget(self.home_page)

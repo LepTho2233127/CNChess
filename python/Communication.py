@@ -61,14 +61,16 @@ class Communication:
             return False
         return True
     
-    def send_position(self, pos:Position):
+    def send_position(self, pos:Position, relative=False):
         """
         Function that sends a position to ESP-32 via serial port 
-        ex: MOVE POSX POSY
+        ex: MOVE POSX POSY or JOG POSX POSY for relative movement
         """
+
+        cmd = "JOG" if relative else "MOVE"
         
         try:
-            self.ser.write(f"JOG|{pos.x}|{pos.y};\n".encode('utf-8'))
+            self.ser.write(f"{cmd}|{pos.x}|{pos.y};\n".encode('utf-8'))
         except Exception as e:
             print("Error writing to serial port:", e)
             return False
@@ -77,6 +79,7 @@ class Communication:
             print("Error: Move command failed.")
             return False
         return True
+
     
     def validate_send_command(self, expected_responses=("DONE", "HOMED")) -> bool:
         """

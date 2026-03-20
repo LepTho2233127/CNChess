@@ -28,6 +28,7 @@ DARK_SQUARE_COLOR = "#B58863"
 HIGHLIGHT_COLOR = "#B9B9B9"  # Yellow highlight for selected piece and possible moves
 WHITE_SQUARE_COLORS = (LIGHT_SQUARE_COLOR, DARK_SQUARE_COLOR)
 BLACK_SQUARE_COLORS = (DARK_SQUARE_COLOR, LIGHT_SQUARE_COLOR)
+SQUARE_SIZE_MM = 50.8
 
 
 class SendPathWorker(QObject):
@@ -221,6 +222,7 @@ class GamePageController(QObject):
     show_settings_signal = pyqtSignal()
     start_game_black_signal = pyqtSignal() #Signal for start of game as black
     return_home_signal = pyqtSignal()
+    send_gantry_position = pyqtSignal(float, float, bool)
 
     def __init__(self, chess_game, view=None, control=None, communication=None, cam=None):
         super().__init__()
@@ -437,7 +439,6 @@ class GamePageController(QObject):
             self.selected_piece = None
             self.view.update_highlighted_squares([(row, col)])  # Clear highlights if no piece or opponent's piece is selected                
 
-      
     def computer_move(self):
         best_move = self.chess_game.get_next_best_move()
         if best_move and best_move != chess.Move.null():
@@ -451,6 +452,8 @@ class GamePageController(QObject):
             self.update_list(move=f"{piece}{to_square}",  turn=self.chess_game.get_turn())
 
             path = self.make_move(best_move)
+            self.send_gantry_position.emit(path[-1].position.x * SQUARE_SIZE_MM, path[-1].position.y * SQUARE_SIZE_MM, True)  # Emit the final position of the path for gantry movement
+            
             self.update_chess_board()  # Update the board display after computer move
             self.board_widget.set_trajectory(path)
 
@@ -470,7 +473,8 @@ class GamePageController(QObject):
                 black_king_pos = self.chess_game.get_board().king(chess.BLACK)
 
                 checkmate_dialog = WinnerDialog(winner_color=game_outcome)
-                if game_outcome != self.chess_game.get_player_color(): 
+                chess_game_outcome = chess.WHITE if game_outcome == "white" else chess.BLACK
+                if chess_game_outcome != self.chess_game.get_player_color(): 
                     if self.chess_game.get_player_color() == chess.WHITE:
                         path = self.make_move(chess.Move.from_uci(f"{chess.square_name(black_king_pos)}{chess.square_name(white_king_pos)}"))
                     else :

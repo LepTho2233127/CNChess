@@ -253,7 +253,7 @@ void loop() {
             case CommandType::MOVE:
                 Position targetPos; 
                 targetPos = parsePosition(dataString);
-                go_to_position({-targetPos.x, targetPos.y});
+                go_to_position({targetPos.x, targetPos.y});
                 Serial.println("DONE");
                 break;    
 
@@ -351,7 +351,6 @@ void move_distance(float delta_x, float delta_y) {
     current_position.x += delta_x;
     current_position.y += delta_y;
 }
-
 
 void goHome() {
 

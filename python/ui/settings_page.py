@@ -173,10 +173,16 @@ class SettingsView(QWidget):
 
         return layout
 
-    def update_coord(self, x, y):
-        self._updating_spinners = True
+    def update_coord(self, x, y, computer_move=False):
+        self.view_updating_spinners = True
         self.x_spinner.setValue(float(x))
-        self.y_spinner.setValue(abs(float(y)-self.grid_height_mm))
+        if not computer_move:
+            self.y_spinner.setValue(self.grid_height_mm - float(y))
+           
+        else :
+            self.y_spinner.setValue(y)     
+            y = self.grid_height_mm - float(y)
+        
         self._updating_spinners = False
         self.grid.update_dot(x, y)
     
@@ -218,7 +224,7 @@ class SettingsController(QObject):
 
     def go(self):
         pos = Position(float(self.view.x_spinner.value()), float(self.view.y_spinner.value()))
-        self.com.send_position(pos)
+        self.com.send_position(pos, relative=False)
 
     def home(self):
         self.com.go_home()
