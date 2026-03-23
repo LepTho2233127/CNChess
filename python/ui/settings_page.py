@@ -1,11 +1,12 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
                              QLabel, QSlider, QPushButton, QDoubleSpinBox, QApplication,
                              QStyleOption, QStyle)
-from PyQt6.QtCore import Qt, pyqtSignal, QObject
+from PyQt6.QtCore import QLine, QPoint, Qt, pyqtSignal, QObject
 from PyQt6.QtGui import QPainter, QPen, QPixmap
-from Control import Position
 import sys
 import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from Control import Position
 
 class SettingsView(QWidget):
 
@@ -255,9 +256,21 @@ class GridView(QWidget):
         opt.initFrom(self)
         painter = QPainter(self)
         self.style().drawPrimitive(QStyle.PrimitiveElement.PE_Widget, opt, painter, self)
-        pen = QPen(Qt.GlobalColor.red, 5)
-        painter.setPen(pen)
+        dot_pen = QPen(Qt.GlobalColor.red, 5)
+        painter.setPen(dot_pen)
         painter.drawPoint(int(getattr(self, 'x', 0)), int(getattr(self, 'y', 0)))
+        grid_pen = QPen(Qt.GlobalColor.black, 1)
+        painter.setPen(grid_pen)
+        for i in range(0, round(self.grid_width_mm), round(self.grid_width_mm/8.0)):
+            start_point = QPoint(i, 0)
+            end_point = QPoint(i, round(self.grid_height_mm))
+            v_line = QLine(start_point, end_point)
+            painter.drawLine(v_line)
+        for j in range(0, round(self.grid_height_mm), round(self.grid_height_mm/8.0)):
+            start_point = QPoint(0, j)
+            end_point = QPoint(round(self.grid_width_mm), j)
+            h_line = QLine(start_point, end_point)
+            painter.drawLine(h_line)
         painter.end()
 
     def mousePressEvent(self, event):
