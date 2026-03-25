@@ -75,12 +75,10 @@ class MainUI(QMainWindow):
     def cleanup_all_threads(self):
         """Terminate all worker threads in all pages before closing."""
         # Clean up game page threads
-        if hasattr(self.game_page, 'cleanup_threads'):
-            self.game_page.cleanup_threads()
+        self.game_page.cleanup_threads()
         
         # Clean up settings page threads
-        if hasattr(self.settings_page, 'cleanup_threads'):
-            self.settings_page.cleanup_threads()
+        self.settings_page.cleanup_threads()
     
     def __del__(self):
         """Destructor to ensure cleanup on object destruction."""

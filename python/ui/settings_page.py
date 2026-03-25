@@ -45,8 +45,7 @@ class SettingsView(QWidget):
     
     def cleanup_threads(self):
         """Clean up all worker threads in the settings page."""
-        if hasattr(self, 'controller'):
-            self.controller.cleanup_threads()
+        self.controller.cleanup_threads()
 
     def init_ui(self):
         back_button = QPushButton("Back", self)

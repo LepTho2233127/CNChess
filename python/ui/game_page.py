@@ -204,8 +204,7 @@ class GameView(QWidget):
     
     def cleanup_threads(self):
         """Clean up all worker threads in the game page."""
-        if hasattr(self, 'game_page_controller'):
-            self.game_page_controller.wait_for_threads()
+        self.game_page_controller.wait_for_threads()
 
     def setup_board(self):
         color = self.chess_game.get_player_color()
