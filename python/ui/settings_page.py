@@ -3,20 +3,23 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
                              QStyleOption, QStyle)
 from PyQt6.QtCore import QLine, QPoint, Qt, pyqtSignal, QObject
 from PyQt6.QtGui import QPainter, QPen, QPixmap
+from Control import Position
+
 import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from Control import Position
+import cv2 
+
+
+SQUARE_SIZE_MM = 50.8
+grid_width_mm = 8*SQUARE_SIZE_MM
+grid_height_mm = 8*SQUARE_SIZE_MM
 
 class SettingsView(QWidget):
 
-    grid_width_mm = 431.8
-    grid_height_mm = 406.4
-
-    def __init__(self, com=None):
+    def __init__(self, com=None, cam=None):
         super().__init__()
         self._updating_spinners = False
-        self.controller = SettingsController(self, com)
+        self.controller = SettingsController(self, com, cam)
         self.init_ui()
 
     def init_ui(self):
@@ -165,7 +168,7 @@ class SettingsView(QWidget):
     def build_coord(self):
 
         self.x_spinner = QDoubleSpinBox(self)
-        self.x_spinner.setRange(0.0, self.grid_width_mm)
+        self.x_spinner.setRange(0.0, grid_width_mm)
         self.x_spinner.setSingleStep(1.0)
         self.x_spinner.setValue(0.0)
         self.x_spinner.setPrefix("X: ")
@@ -173,7 +176,7 @@ class SettingsView(QWidget):
         self.x_spinner.setFixedSize(100, 40)
 
         self.y_spinner = QDoubleSpinBox(self)
-        self.y_spinner.setRange(0.0, self.grid_height_mm)
+        self.y_spinner.setRange(0.0, grid_height_mm)
         self.y_spinner.setSingleStep(1.0)
         self.y_spinner.setValue(0.0)
         self.y_spinner.setPrefix("Y: ")
@@ -220,11 +223,13 @@ class SettingsView(QWidget):
         return self.grid
 
     def build_camera(self):
-        last_pic = QLabel(self)
-        img_path = os.path.join(os.path.dirname(__file__), 'assets', 'temp_img.jpg') # changer pour photo de la camera
+        self.last_pic = QLabel(self)
+        img_path = os.path.join(os.path.dirname(__file__), 'assets', 'captured_image.jpg')
 
-        last_pic.setPixmap(QPixmap(img_path))
-        last_pic.setFixedSize(400, 300)
+        image = QPixmap(img_path)
+        image = image.scaled(640, 480, Qt.AspectRatioMode.KeepAspectRatio)
+
+        self.last_pic.setPixmap(image)
 
         pic_button = QPushButton("TAKE PICTURE", self)
         pic_button.clicked.connect(self.controller.take_picture)
@@ -236,15 +241,21 @@ class SettingsView(QWidget):
                                   """)
 
         layout = QVBoxLayout()
-        layout.addWidget(last_pic, alignment=Qt.AlignmentFlag.AlignHCenter)
-        layout.addWidget(pic_button, alignment=Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(self.last_pic, alignment=Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(pic_button)
 
         return layout
 
-    def update_coord(self, x, y):
-        self._updating_spinners = True
+    def update_coord(self, x, y, computer_move=False):
+        self.view_updating_spinners = True
         self.x_spinner.setValue(float(x))
-        self.y_spinner.setValue(abs(float(y)-self.grid_height_mm))
+        if not computer_move:
+            self.y_spinner.setValue(grid_height_mm - float(y))
+           
+        else :
+            self.y_spinner.setValue(y)     
+            y = grid_height_mm - float(y)
+        
         self._updating_spinners = False
         self.grid.update_dot(x, y)
     
@@ -252,39 +263,41 @@ class SettingsView(QWidget):
         if self._updating_spinners:
             return
         x = self.x_spinner.value()
-        y = abs(self.y_spinner.value() - self.grid_height_mm)
+        y = abs(self.y_spinner.value() - grid_height_mm)
         self.grid.update_dot(x, y)
 
     def move_up(self):
-        current_value = abs(self.y_spinner.value() - self.grid_height_mm)
+        current_value = abs(self.y_spinner.value() - grid_height_mm)
         self.update_coord(self.x_spinner.value(), current_value - self.step_spinner.value())
 
     def move_down(self):
-        current_value = abs(self.y_spinner.value() - self.grid_height_mm)
+        current_value = abs(self.y_spinner.value() - grid_height_mm)
         self.update_coord(self.x_spinner.value(), current_value + self.step_spinner.value())
     
     def move_left(self):
         current_value = self.x_spinner.value()
-        self.update_coord(current_value - self.step_spinner.value(), abs(self.y_spinner.value() - self.grid_height_mm))
+        self.update_coord(current_value - self.step_spinner.value(), abs(self.y_spinner.value() - grid_height_mm))
     
     def move_right(self):
         current_value = self.x_spinner.value()
-        self.update_coord(current_value + self.step_spinner.value(), abs(self.y_spinner.value() - self.grid_height_mm))
+        self.update_coord(current_value + self.step_spinner.value(), abs(self.y_spinner.value() - grid_height_mm))
 
 class SettingsController(QObject):
 
     game_page_signal = pyqtSignal(bool)
 
-    def __init__(self, view, com):
+    def __init__(self, view, com, cam):
         super().__init__()
         self.view = view
         self.com = com
+        self.cam = cam
 
     def quit(self):
         self.game_page_signal.emit(True)
 
     def go(self):
-        self.com.send_position(Position(self.view.x_spinner.value(), self.view.y_spinner.value()))
+        pos = Position(float(self.view.x_spinner.value() + 0.5*SQUARE_SIZE_MM), float(self.view.y_spinner.value()+0.5*SQUARE_SIZE_MM))
+        self.com.send_position(pos, relative=False)
 
     def home(self):
         self.com.go_home()
@@ -303,12 +316,19 @@ class SettingsController(QObject):
     #     print(f"Speed set to {value}%")
     
     def take_picture(self):
-        print("take picture")
+        image = self.cam.process_image()["warped_image"]
+        display_image_with_grid = self.cam.squares.draw_grid(image, color=(0, 255, 0), thickness=2)
 
+        img_path = os.path.join(os.path.dirname(__file__), 'assets', 'captured_image.jpg')
+        cv2.imwrite(img_path, cv2.cvtColor(display_image_with_grid, cv2.COLOR_RGB2BGR))
+
+        image = QPixmap(img_path)
+        image = image.scaled(640, 480, Qt.AspectRatioMode.KeepAspectRatio)
+
+        self.view.last_pic.setPixmap(image)
+        
 class GridView(QWidget):
 
-    grid_width_mm = 431.8
-    grid_height_mm = 406.4
     x = 0
     y = grid_height_mm
 
@@ -319,7 +339,7 @@ class GridView(QWidget):
         self.init()
 
     def init(self):
-        self.setFixedSize(int(self.grid_width_mm), int(self.grid_height_mm))
+        self.setFixedSize(int(grid_width_mm), int(grid_height_mm))
         self.setStyleSheet("background-color: white; border: 1px solid black;")
 
     def paintEvent(self, event):
@@ -332,14 +352,14 @@ class GridView(QWidget):
         painter.drawPoint(int(getattr(self, 'x', 0)), int(getattr(self, 'y', 0)))
         grid_pen = QPen(Qt.GlobalColor.black, 1)
         painter.setPen(grid_pen)
-        for i in range(0, round(self.grid_width_mm), round(self.grid_width_mm/8.0)):
+        for i in range(0, round(grid_width_mm), round(grid_width_mm/8.0)):
             start_point = QPoint(i, 0)
-            end_point = QPoint(i, round(self.grid_height_mm))
+            end_point = QPoint(i, round(grid_height_mm))
             v_line = QLine(start_point, end_point)
             painter.drawLine(v_line)
-        for j in range(0, round(self.grid_height_mm), round(self.grid_height_mm/8.0)):
+        for j in range(0, round(grid_height_mm), round(grid_height_mm/8.0)):
             start_point = QPoint(0, j)
-            end_point = QPoint(round(self.grid_width_mm), j)
+            end_point = QPoint(round(grid_width_mm), j)
             h_line = QLine(start_point, end_point)
             painter.drawLine(h_line)
         painter.end()

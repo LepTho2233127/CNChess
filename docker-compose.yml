@@ -12,6 +12,7 @@ services:
       - QT_DEBUG_PLUGINS=0
     devices:
       - "/dev/ttyACM0:/dev/ttyACM0"
+      - "/dev/video1:/dev/video1"
     privileged: true
     network_mode: host
     stdin_open: true
