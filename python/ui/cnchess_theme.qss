@@ -18,6 +18,7 @@ QPushButton {
     font-size: 15px;
     border: none;
 }
+
 QPushButton:hover {
     background-color: #d91a0d;
 }
@@ -36,11 +37,13 @@ QLabel {
     color: #fff0f0;
     font-size: 15px;
 }
+QLabel#logo_label{
+    height: 10px;
+}
 
 
 QFrame {
     background-color: #3a1818;
-    border: 2px solid #f61f0f;
     border-radius: 15px;
 }
 
@@ -49,7 +52,7 @@ QDoubleSpinBox, QSpinBox {
     background: #2a1818;
     color: #fff0f0;
     border: 1px solid #f61f0f;
-    width: 20px;
+    width: 60px;
     border-radius: 6px;
     padding: 4px 8px;
 }
@@ -69,6 +72,12 @@ QSlider::handle:vertical {
 QGridLayout, QVBoxLayout, QHBoxLayout {
     margin: 8px;
     spacing: 8px;
+}
+
+/*Menu buttons*/
+QPushButton#menu_button{
+    width: 200px;
+    height: 20px
 }
 
 /* Chessboard squares */
@@ -101,4 +110,9 @@ QLabel#turnIndicator {
     min-width: 40px;
     min-height: 40px;
     border: 2px solid #34495e;
+}
+
+/*Camera buttons*/
+QPushButton#camera_button{
+    width: 400px;
 }

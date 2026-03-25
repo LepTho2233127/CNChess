@@ -47,6 +47,7 @@ class MainUI(QMainWindow):
 
         # Connect controller signals to page-switching methods
         self.home_page.home_page_controller.start_game_signal.connect(self.switch_to_game_page)
+        self.home_page.home_page_controller.settings_signal.connect(self.switch_to_settings_page)
         self.game_page.game_page_controller.show_settings_signal.connect(self.switch_to_settings_page)
         self.game_page.game_page_controller.return_home_signal.connect(self.switch_to_home_page)
         self.settings_page.controller.game_page_signal.connect(self.switch_to_game_page)

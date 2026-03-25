@@ -1,17 +1,16 @@
+import os
+import sys
+import cv2 
+
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
                              QLabel, QSlider, QPushButton, QDoubleSpinBox, QApplication,
                              QStyleOption, QStyle)
 from PyQt6.QtCore import QLine, QPoint, Qt, pyqtSignal, QObject, QThread
 from PyQt6.QtGui import QPainter, QPen, QPixmap
-from Control import Position
-from ui.dialog_ui import WaitingDialog
 
-import sys
-import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from ui.dialog_ui import WaitingDialog
 from Control import Position
-import cv2 
-
 
 SQUARE_SIZE_MM = 50.8
 grid_width_mm = 8*SQUARE_SIZE_MM
@@ -124,7 +123,6 @@ class SettingsView(QWidget):
         layout = QVBoxLayout()
         layout.addWidget(home_button)
         layout.addWidget(stop_button)
-        # Removed setAlignment for QSS control
 
         return layout
     
@@ -188,10 +186,16 @@ class SettingsView(QWidget):
 
         pic_button = QPushButton("TAKE PICTURE", self)
         pic_button.clicked.connect(self.controller.take_picture)
+        pic_button.setObjectName("camera_button")
+
+        calib_button = QPushButton("CALIBRATE CAMERA", self)
+        calib_button.clicked.connect(self.controller.calibrate_camera)
+        calib_button.setObjectName("camera_button")
 
         layout = QVBoxLayout()
-        layout.addWidget(self.last_pic)
-        layout.addWidget(pic_button)
+        layout.addWidget(self.last_pic, alignment=Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(pic_button, alignment=Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(calib_button, alignment=Qt.AlignmentFlag.AlignHCenter)
 
         return layout
 
@@ -287,6 +291,8 @@ class SettingsController(QObject):
         self.send_position_async(pos)
 
     def home(self):
+        self.x_spinner.setValue(0.0)
+        self.y_spinner.setValue(0.0)
         self.com.go_home()
 
     def stop(self):
@@ -313,6 +319,9 @@ class SettingsController(QObject):
         image = image.scaled(640, 480, Qt.AspectRatioMode.KeepAspectRatio)
 
         self.view.last_pic.setPixmap(image)
+    
+    def calibrate_camera(self):
+        self.cam.initialize_camera(calibrate=True)
         
 class GridView(QWidget):
 
@@ -327,7 +336,7 @@ class GridView(QWidget):
 
     def init(self):
         self.setFixedSize(int(grid_width_mm), int(grid_height_mm))
-        self.setStyleSheet("border: 1px solid white;")
+        self.setStyleSheet("border: 2px solid white;")
 
     def paintEvent(self, event):
         opt = QStyleOption()
@@ -364,7 +373,6 @@ class GridView(QWidget):
 if __name__ == "__main__":
 
     app = QApplication(sys.argv)
-    # Load QSS theme for standalone testing
     qss_path = os.path.join(os.path.dirname(__file__), "cnchess_theme.qss")
     if os.path.exists(qss_path):
         with open(qss_path, "r", encoding="utf-8") as f:
