@@ -202,6 +202,9 @@ class GameView(QWidget):
         move_back_button.clicked.connect(self.game_page_controller.move_back_position)
         move_forward_button.clicked.connect(self.game_page_controller.move_forward_position)
     
+    def cleanup_threads(self):
+        """Clean up all worker threads in the game page."""
+        self.game_page_controller.wait_for_threads()
 
     def setup_board(self):
         color = self.chess_game.get_player_color()

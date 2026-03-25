@@ -3,6 +3,7 @@ The main window is responsible for switching between the different pages and man
 a QStackedWidget."""
 
 from PyQt6.QtWidgets import QMainWindow, QStackedWidget
+from PyQt6.QtCore import Qt
 import os
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -64,3 +65,24 @@ class MainUI(QMainWindow):
       
     def switch_to_settings_page(self):
         self.stacked_widget.setCurrentWidget(self.settings_page)
+    
+    def closeEvent(self, event):
+        """Clean up all threads when the application window is closed."""
+        print("[INFO] Closing application and terminating all threads...")
+        self.cleanup_all_threads()
+        event.accept()
+    
+    def cleanup_all_threads(self):
+        """Terminate all worker threads in all pages before closing."""
+        # Clean up game page threads
+        self.game_page.cleanup_threads()
+        
+        # Clean up settings page threads
+        self.settings_page.cleanup_threads()
+    
+    def __del__(self):
+        """Destructor to ensure cleanup on object destruction."""
+        try:
+            self.cleanup_all_threads()
+        except:
+            pass  # Ignore errors during destruction
