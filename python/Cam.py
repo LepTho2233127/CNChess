@@ -601,7 +601,7 @@ class Cam:
             if frame is None:
                 return None
             
-            time.sleep(0.2) # Time to wait between frames (in seconds)
+            time.sleep(0.1) # Time to wait between frames (in seconds)
             # Convertir en RGB (même flux que CamDetect)
             rgb_image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             
