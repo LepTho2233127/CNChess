@@ -253,6 +253,125 @@ class WaitingDialog(QDialog):
             
             painter.drawPixmap(offset_x, offset_y, self.gear_image)
 
+class TurnIndicatorWidget(QWidget):
+    """Combined widget showing current turn with dynamic background and optional waiting spinner."""
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setFixedHeight(80)
+        self.current_turn = "white"  # "white" or "black"
+        self.is_waiting = False
+        self.waiting_message = ""
+        
+        # Main layout
+        self.main_layout = QHBoxLayout(self)
+        self.main_layout.setContentsMargins(10, 10, 10, 10)
+        self.main_layout.setSpacing(15)
+        
+        # Turn text label
+        self.turn_label = QLabel("White's Turn")
+        self.turn_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        font = self.turn_label.font()
+        font.setPointSize(16)
+        font.setBold(True)
+        self.turn_label.setFont(font)
+        
+        # Spinning gear for waiting state
+        self.spinning_gear = self.SpinningGear()
+        self.spinning_gear.setVisible(False)
+        
+        # Message label for waiting state
+        self.message_label = QLabel("")
+        self.message_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.message_label.setVisible(False)
+        font = self.message_label.font()
+        font.setPointSize(10)
+        self.message_label.setFont(font)
+        
+        # Add widgets to layout
+        self.main_layout.addStretch()
+        self.main_layout.addWidget(self.turn_label)
+        self.main_layout.addWidget(self.spinning_gear)
+        self.main_layout.addWidget(self.message_label)
+        self.main_layout.addStretch()
+        
+        # Set initial background color and text color
+        self.update_turn("white")
+    
+    def update_turn(self, color):
+        """Update the turn indicator with new color (white or black)."""
+        self.current_turn = color
+        if color.lower() == "white":
+            bg_color = "white"
+            self.turn_label.setText("White's Turn")
+        else:
+            bg_color = "black"
+            self.turn_label.setText("Black's Turn")
+        
+        # Update background color only - labels will be styled by global QSS
+        self.setStyleSheet(f"""
+            TurnIndicatorWidget {{
+                background-color: {bg_color};
+                border: 2px solid #34495e;
+                border-radius: 10px;
+            }}
+        """)
+    
+    def show_waiting(self, message="Processing..."):
+        """Show waiting state with spinning gear and message."""
+        self.is_waiting = True
+        self.waiting_message = message
+        self.turn_label.setVisible(False)
+        self.spinning_gear.setVisible(True)
+        self.message_label.setText(message)
+        self.message_label.setVisible(True)
+    
+    def hide_waiting(self):
+        """Hide waiting state and show turn indicator."""
+        self.is_waiting = False
+        self.waiting_message = ""
+        self.turn_label.setVisible(True)
+        self.spinning_gear.setVisible(False)
+        self.message_label.setVisible(False)
+        self.message_label.setText("")
+    
+    class SpinningGear(QWidget):
+        """Spinning gear widget for waiting state."""
+        
+        def __init__(self):
+            super().__init__()
+            self.setFixedSize(50, 50)
+            original_image = QPixmap("ui/assets/gear_icon.png")
+            self.gear_image = original_image.scaled(
+                50, 50, 
+                Qt.AspectRatioMode.KeepAspectRatio, 
+                Qt.TransformationMode.SmoothTransformation
+            )
+            self.angle = 0
+            
+            # Animation timer
+            self.timer = QTimer(self)
+            self.timer.timeout.connect(self.rotate_gear)
+            self.timer.start(16)
+        
+        def rotate_gear(self):
+            self.angle += 2
+            if self.angle >= 360:
+                self.angle = 0
+            self.update()
+        
+        def paintEvent(self, event):
+            painter = QPainter(self)
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+            painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+            
+            painter.translate(self.width() / 2, self.height() / 2)
+            painter.rotate(self.angle)
+            
+            offset_x = int(-self.gear_image.width() / 2)
+            offset_y = int(-self.gear_image.height() / 2)
+            painter.drawPixmap(offset_x, offset_y, self.gear_image)
+
 # --- Example Usage ---
 if __name__ == "__main__":
     app = QApplication(sys.argv)

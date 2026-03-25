@@ -25,6 +25,7 @@ class HomeView(QWidget):
 
         # Load the UI from the .ui file
         ui_path = os.path.join(os.path.dirname(__file__), 'homePage.ui')
+     
 
         if not os.path.exists(ui_path):
             raise FileNotFoundError(f"UI file not found at path: {ui_path}")

@@ -327,16 +327,19 @@ class GridView(QWidget):
 
     def init(self):
         self.setFixedSize(int(grid_width_mm), int(grid_height_mm))
-        self.setStyleSheet("border: 1px solid white;")
+        self.setStyleSheet("background-color: black; border: 2px solid white;")
 
     def paintEvent(self, event):
-        opt = QStyleOption()
-        opt.initFrom(self)
         painter = QPainter(self)
-        self.style().drawPrimitive(QStyle.PrimitiveElement.PE_Widget, opt, painter, self)
-        dot_pen = QPen(Qt.GlobalColor.red, 6)
-        painter.setPen(dot_pen)
-        painter.drawPoint(int(getattr(self, 'x', 0)), int(getattr(self, 'y', 0)))
+        # Paint background
+        painter.fillRect(self.rect(), Qt.GlobalColor.black)
+        
+        # Paint border
+        border_pen = QPen(Qt.GlobalColor.white, 2)
+        painter.setPen(border_pen)
+        painter.drawRect(0, 0, self.width() - 1, self.height() - 1)
+        
+        # Paint grid lines
         grid_pen = QPen(Qt.GlobalColor.white, 1)
         painter.setPen(grid_pen)
         for i in range(0, round(grid_width_mm), round(grid_width_mm/8.0)):
@@ -349,6 +352,12 @@ class GridView(QWidget):
             end_point = QPoint(round(grid_width_mm), j)
             h_line = QLine(start_point, end_point)
             painter.drawLine(h_line)
+        
+        # Paint the red dot for current position
+        dot_pen = QPen(Qt.GlobalColor.red, 6)
+        painter.setPen(dot_pen)
+        painter.drawPoint(int(getattr(self, 'x', 0)), int(getattr(self, 'y', 0)))
+        
         painter.end()
 
     def mousePressEvent(self, event):
