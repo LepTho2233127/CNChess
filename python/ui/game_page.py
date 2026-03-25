@@ -20,7 +20,7 @@ if parent_dir not in sys.path:
 
 from Communication import Communication
 from Control import Control
-from ui.dialog_ui import WinnerDialog, DrawDialog, WaitingDialog
+from ui.dialog_ui import WinnerDialog, DrawDialog, WaitingDialog, TurnIndicatorWidget
 
 
 LIGHT_SQUARE_COLOR = "#F0D9B5"
@@ -162,9 +162,29 @@ class GameView(QWidget):
         self.move_list = self.findChild(QListWidget, "moveList")
         self.white_timer_display = self.findChild(QLabel, 'whiteTimer')
         self.black_timer_display = self.findChild(QLabel, 'blackTimer')
-        self.turn_indicator = self.findChild(QLabel, 'labelTurn')
         self.black_score = self.findChild(QLabel, 'blackScore')
         self.white_score = self.findChild(QLabel, 'whiteScore')
+        
+        # Replace the simple turn_indicator label with the new TurnIndicatorWidget
+        old_turn_indicator = self.findChild(QLabel, 'labelTurn')
+        if old_turn_indicator:
+            # Find the parent layout (layout_Timers)
+            layout_timers = self.findChild(QHBoxLayout, 'layout_Timers')
+            if layout_timers:
+                # Get the index of the old turn indicator
+                index = layout_timers.indexOf(old_turn_indicator)
+                # Remove the old widget
+                layout_timers.removeWidget(old_turn_indicator)
+                old_turn_indicator.deleteLater()
+                # Create and insert the new TurnIndicatorWidget
+                self.turn_indicator = TurnIndicatorWidget()
+                layout_timers.insertWidget(index, self.turn_indicator)
+            else:
+                # Fallback if layout not found
+                self.turn_indicator = TurnIndicatorWidget()
+        else:
+            # Fallback if old indicator not found
+            self.turn_indicator = TurnIndicatorWidget()
 
         right_layout.removeItem(right_layout.itemAt(1))  
         resize_board = AspectRatioWidget(ChessBoardWidget())
@@ -199,11 +219,11 @@ class GameView(QWidget):
 
         #If player is black launch first move of computer as white
         if not color :
-            self.turn_indicator.setStyleSheet("background-color:black")
+            self.turn_indicator.update_turn("black")
             self.game_page_controller.start_game_black_signal.emit()
 
         else :        
-            self.turn_indicator.setStyleSheet("background-color:white")
+            self.turn_indicator.update_turn("white")
             # Human starts as white: wait asynchronously for the board button press.
             self.game_page_controller.wait_for_button_press_async()
 
@@ -230,12 +250,11 @@ class GamePageController(QObject):
         self.view = view
         self.cam = cam
 
-         # Initialize worker thread and waiting dialog
+         # Initialize worker threads
         self.send_path_worker = None
         self.send_path_thread = None
         self.wait_button_worker = None
         self.wait_button_thread = None
-        self.waiting_dialog = WaitingDialog(self.view)     
 
         self.board_widget = self.view.board
         self.board = []
@@ -300,9 +319,8 @@ class GamePageController(QObject):
         self.send_path_worker.error.connect(self.on_send_path_error)
         self.send_path_worker.error.connect(self.send_path_thread.quit)
         
-        # Show waiting dialog and start thread
-        self.waiting_dialog.set_message("Sending move to device...\nPlease wait.")
-        self.waiting_dialog.show()
+# Show waiting state and start thread
+        self.view.turn_indicator.show_waiting("Sending move to device...\nPlease wait.")
         self.send_path_thread.start()
 
     def wait_for_button_press_async(self):
@@ -323,8 +341,7 @@ class GamePageController(QObject):
         self.wait_button_worker.error.connect(self.on_wait_button_error)
         self.wait_button_worker.error.connect(self.wait_button_thread.quit)
 
-        self.waiting_dialog.set_message(message)
-        self.waiting_dialog.show()
+        self.view.turn_indicator.show_waiting(message)
         self.wait_button_thread.start()
 
     def on_send_path_finished(self):
@@ -336,7 +353,7 @@ class GamePageController(QObject):
 
     def on_send_path_error(self, error_msg):
         """Handler when send_path encounters an error."""
-        self.waiting_dialog.hide()
+        self.view.turn_indicator.hide_waiting()
         self.view.white_clock.toggle_timer()
         self.view.black_clock.toggle_timer()
         print(f"Error: {error_msg}")
@@ -345,7 +362,7 @@ class GamePageController(QObject):
         """Handler when the ESP button press is detected."""
         print("Button press detected")
 
-        self.waiting_dialog.hide()
+        self.view.turn_indicator.hide_waiting()
         self.board_widget.clear_trajectory()
 
         cam_result = self.cam.process_image()
@@ -374,7 +391,7 @@ class GamePageController(QObject):
 
     def on_wait_button_error(self, error_msg):
         """Handler when waiting for button press fails or times out."""
-        self.waiting_dialog.hide()
+        self.view.turn_indicator.hide_waiting()
         self.cam.process_image()
         self.view.white_clock.toggle_timer()
         self.view.black_clock.toggle_timer()
@@ -468,7 +485,7 @@ class GamePageController(QObject):
 
             # Send path asynchronously to avoid blocking the UI
             self.send_path_async(path)
-            self.handle_game_outcome()
+            self.handle_game_outcome()        
        
     def handle_game_outcome(self):
 
@@ -491,8 +508,8 @@ class GamePageController(QObject):
                     self.wait_for_threads()
                     self.send_path_async(path)
                 
-                # Hide the waiting dialog before showing the checkmate dialog
-                self.waiting_dialog.hide()
+                # Hide the waiting indicator before showing the checkmate dialog
+                self.view.turn_indicator.hide_waiting()
                 result = checkmate_dialog.exec()
 
             else : 
@@ -602,8 +619,8 @@ class GamePageController(QObject):
         self.chess_game.make_move(move)
         self.update_score()
 
-        turn = self.chess_game.get_turn()
-        self.view.turn_indicator.setStyleSheet(f"background-color:{turn}")
+        turn = "white" if self.chess_game.get_turn() else "black"
+        self.view.turn_indicator.update_turn(turn)
 
         return path
 
@@ -892,7 +909,6 @@ class GridButton(QPushButton):
         sizePolicy.setHeightForWidth(True)
         self.setSizePolicy(sizePolicy)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-
 
     def heightForWidth(self, width):
         return width  
