@@ -347,7 +347,11 @@ class GamePageController(QObject):
         self.board_widget.clear_trajectory()
 
         cam_result = self.cam.process_image()
-        move = chess.Move.from_uci(cam_result['move']['uci'])
+        try:
+            move = chess.Move.from_uci(cam_result['move']['uci'])
+        except Exception as e:
+            print(f"Caught error while parsing move from camera result: {str(e)}. Camera result was: {cam_result}")
+            return
         if self.chess_game.validate_move(move):
             moved_piece = self.chess_game.get_board().piece_at(move.from_square)
             piece = moved_piece.symbol().upper() if moved_piece is not None else "?"
@@ -364,7 +368,7 @@ class GamePageController(QObject):
         else:
             print(f"Camera processing result: Invalid move detected: {move.uci()}. Waiting for valid move.")
             # Show error message and wait for next button press
-            self._start_button_wait("Invalid move detected!\nPlease press the button again to try a valid move.")
+            # self._start_button_wait("Invalid move detected!\nPlease press the button again to try a valid move.")
 
     def on_wait_button_error(self, error_msg):
         """Handler when waiting for button press fails or times out."""
