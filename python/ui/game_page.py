@@ -325,6 +325,10 @@ class GamePageController(QObject):
 
     def wait_for_button_press_async(self):
         """Wait for physical button press asynchronously without blocking the UI."""
+        self._start_button_wait("Waiting for button press...\nPlease play your move.")
+
+    def _start_button_wait(self, message: str):
+        """Internal method to start waiting for button press with a custom message."""
         self.wait_for_button_thread()
 
         self.wait_button_worker = WaitForButtonWorker(self.communication)
@@ -343,6 +347,8 @@ class GamePageController(QObject):
     def on_send_path_finished(self):
         """Handler when send_path completes successfully."""
         print("Path sent successfully to device")
+        self.view.white_clock.toggle_timer()
+        self.view.black_clock.toggle_timer()
         self.wait_for_button_press_async()
 
     def on_send_path_error(self, error_msg):
@@ -360,7 +366,11 @@ class GamePageController(QObject):
         self.board_widget.clear_trajectory()
 
         cam_result = self.cam.process_image()
-        move = chess.Move.from_uci(cam_result['move']['uci'])
+        try:
+            move = chess.Move.from_uci(cam_result['move']['uci'])
+        except Exception as e:
+            print(f"Caught error while parsing move from camera result: {str(e)}. Camera result was: {cam_result}")
+            return
         if self.chess_game.validate_move(move):
             moved_piece = self.chess_game.get_board().piece_at(move.from_square)
             piece = moved_piece.symbol().upper() if moved_piece is not None else "?"
@@ -376,6 +386,8 @@ class GamePageController(QObject):
                 self.computer_move()
         else:
             print(f"Camera processing result: Invalid move detected: {move.uci()}. Waiting for valid move.")
+            # Show error message and wait for next button press
+            # self._start_button_wait("Invalid move detected!\nPlease press the button again to try a valid move.")
 
     def on_wait_button_error(self, error_msg):
         """Handler when waiting for button press fails or times out."""
