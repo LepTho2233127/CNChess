@@ -1,9 +1,10 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
                              QLabel, QSlider, QPushButton, QDoubleSpinBox, QApplication,
                              QStyleOption, QStyle)
-from PyQt6.QtCore import QLine, QPoint, Qt, pyqtSignal, QObject
+from PyQt6.QtCore import QLine, QPoint, Qt, pyqtSignal, QObject, QThread
 from PyQt6.QtGui import QPainter, QPen, QPixmap
 from Control import Position
+from ui.dialog_ui import WaitingDialog
 
 import sys
 import os
@@ -13,6 +14,24 @@ import cv2
 SQUARE_SIZE_MM = 50.8
 grid_width_mm = 8*SQUARE_SIZE_MM
 grid_height_mm = 8*SQUARE_SIZE_MM
+
+class SendPositionWorker(QObject):
+    """Worker thread to send position commands without blocking the UI."""
+    finished = pyqtSignal()
+    error = pyqtSignal(str)
+    
+    def __init__(self, communication, position):
+        super().__init__()
+        self.communication = communication
+        self.position = position
+    
+    def run(self):
+        """Execute send_position in the worker thread."""
+        try:
+            self.communication.send_position(self.position, relative=False)
+            self.finished.emit()
+        except Exception as e:
+            self.error.emit(str(e))
 
 class SettingsView(QWidget):
 
@@ -291,13 +310,51 @@ class SettingsController(QObject):
         self.view = view
         self.com = com
         self.cam = cam
+        
+        # Initialize worker thread and waiting dialog
+        self.send_position_worker = None
+        self.send_position_thread = None
+        self.waiting_dialog = WaitingDialog(self.view)
 
     def quit(self):
         self.game_page_signal.emit(True)
 
+    def send_position_async(self, position):
+        """Send position to device asynchronously without blocking the UI."""
+        # Wait for any previous thread to finish before starting a new one
+        if self.send_position_thread is not None and self.send_position_thread.isRunning():
+            self.send_position_thread.quit()
+            self.send_position_thread.wait()
+
+        # Create worker and thread
+        self.send_position_worker = SendPositionWorker(self.com, position)
+        self.send_position_thread = QThread(parent=self)
+        self.send_position_worker.moveToThread(self.send_position_thread)
+        
+        # Connect signals
+        self.send_position_thread.started.connect(self.send_position_worker.run)
+        self.send_position_worker.finished.connect(self.on_send_position_finished)
+        self.send_position_worker.finished.connect(self.send_position_thread.quit)
+        self.send_position_worker.error.connect(self.on_send_position_error)
+        self.send_position_worker.error.connect(self.send_position_thread.quit)
+        
+        # Show waiting dialog and start thread
+        self.waiting_dialog.set_message("Sending position to device...\nPlease wait.")
+        self.waiting_dialog.show()
+        self.send_position_thread.start()
+
+    def on_send_position_finished(self):
+        """Handler when send_position completes successfully."""
+        self.waiting_dialog.hide()
+
+    def on_send_position_error(self, error_msg):
+        """Handler when send_position encounters an error."""
+        self.waiting_dialog.hide()
+        print(f"Error sending position: {error_msg}")
+
     def go(self):
-        pos = Position(float(self.view.x_spinner.value() + 0.5*SQUARE_SIZE_MM), float(self.view.y_spinner.value()+0.5*SQUARE_SIZE_MM))
-        self.com.send_position(pos, relative=False)
+        pos = Position(float(self.view.x_spinner.value() + SQUARE_SIZE_MM), float(self.view.y_spinner.value()+SQUARE_SIZE_MM))
+        self.send_position_async(pos)
 
     def home(self):
         self.com.go_home()
