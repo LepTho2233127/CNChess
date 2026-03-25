@@ -221,8 +221,8 @@ class ChessBoardSquares:
     def get_square_region(self, warped_image: np.ndarray, square_index: int, 
                          padding_ratio: float = 0.2) -> np.ndarray:
         """Extracts the region of a specific square"""
-        row = (square_index - 1) // self.COLS
-        col = (square_index - 1) % self.COLS
+        row = self.COLS - 1 - (square_index) // self.COLS
+        col = (square_index) % self.COLS
         
         full_region = warped_image[
             row * self.square_height : (row + 1) * self.square_height,
@@ -319,6 +319,7 @@ class PieceDetection:
     def _get_piece_color(self, square_index: int, min_pixel_ratio: float = 0.02) -> str:
         """Detects the color of the piece"""
         square_region = self.board_squares.get_square_region(self.warped_image, square_index, padding_ratio=0.33)
+
         if square_region.shape[2] != 3:
             return 'empty'
         
@@ -358,16 +359,16 @@ class PieceDetection:
         # if self.baseline_variance is None:
         #     self.calculate_baseline_variance()
         
-        for i in range(1, 65):
+        for i in range(64):
             color = self._get_piece_color(i, ratio)
             
             if color != 'empty':
-                self.piece_place[i-1] = 1
-                self.piece_color[i-1] = color
+                self.piece_place[i] = 1
+                self.piece_color[i] = color
                 # print(f"Square {i}: PIECE DETECTED with color {color}")
             else:
-                self.piece_place[i-1] = 0
-
+                self.piece_place[i] = 0
+                self.piece_color[i] = 'empty'
 
 # ============================================================================
 # CLASS: MoveDetection
@@ -378,9 +379,28 @@ class MoveDetection:
     def __init__(self, chess_game):
         self.chess_game = chess_game
         self.old_piece_place = [0] * 64
-        self.old_piece_color = [0] * 64
+        self.old_piece_color = ['empty'] * 64
         self.move_start = 0
         self.move_end = 0
+        
+    def init_from_board(self):
+        """Initialize piece state from the current chess board"""
+        board = self.chess_game.get_board()
+        
+        # Iterate through all 64 squares
+        for square_index in range(64):
+            piece = board.piece_at(square_index)
+            
+            if piece is None:
+                # Empty square
+                self.old_piece_place[square_index] = 0
+                self.old_piece_color[square_index] = 'empty'
+            else:
+                # Occupied square
+                self.old_piece_place[square_index] = 1
+                # Color: 0 for black/captured, use 1 for white, 2 for black (or map to 'white'/'black')
+                # For compatibility with camera detection: 'yellow' or 'green'
+                self.old_piece_color[square_index] = 'yellow' if piece.color == chess.WHITE else 'green'
 
     def detect_castling(self, new_piece_place: list, new_piece_color: list) -> dict:
         """Detects castling moves"""
@@ -407,35 +427,41 @@ class MoveDetection:
     def detect_move(self, new_piece_place: list, new_piece_color: list) -> dict:
         """Detects moves by comparing with the previous state"""
         analyses = [0] * 64
-            
+        
+        self.init_from_board()
+        # # Reset move detection for this frame
+        self.move_start = 0
+        self.move_end = 0
+        
         # Check for castling first
         castling_move = self.detect_castling(new_piece_place, new_piece_color)
         if castling_move is not None:
-            
-            self.old_piece_place = new_piece_place
-            self.old_piece_color = new_piece_color
-           
             return castling_move
         
-        # Detect normal moves
+        # Detect normal moves - track all possible changes
+        piece_disappearances = []
+        piece_appearances = []
+        
         for i in range(len(new_piece_place)):
             analyses[i] = new_piece_place[i] + self.old_piece_place[i]
             
+            # Piece was captured and replaced
             if analyses[i] == 2 and self.old_piece_color[i] != new_piece_color[i]:
-                self.move_end = i+1
-            
-            if analyses[i] == 1:
-                if new_piece_place[i] == 1:
-                    self.move_end = i+1
-                else:
-                    self.move_start = i+1
+                piece_appearances.append(i+1)
+            # Piece appeared (0->1)
+            elif analyses[i] == 1 and new_piece_place[i] == 1:
+                piece_appearances.append(i+1)
+            # Piece disappeared (1->0)
+            elif analyses[i] == 1 and new_piece_place[i] == 0:
+                piece_disappearances.append(i+1)
         
-        # # Validate and update state only if we have a valid move
+        # Set move_start and move_end from detected changes
+        if piece_disappearances:
+            self.move_start = piece_disappearances[0]
+        if piece_appearances:
+            self.move_end = piece_appearances[0]
+        
         uci_move = self.get_uci_move()
-
-        self.old_piece_place = new_piece_place
-        self.old_piece_color = new_piece_color
-   
         
         return {
             'move_start': self.move_start,
@@ -447,7 +473,7 @@ class MoveDetection:
         """Converts positions to UCI notation"""
         
         files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
-        ranks = ['8', '7', '6', '5', '4', '3', '2', '1']
+        ranks = ['1', '2', '3', '4', '5', '6', '7', '8']
         start_file = files[(self.move_start - 1) % 8]
         start_rank = ranks[(self.move_start - 1) // 8]
         end_file = files[(self.move_end - 1) % 8]
@@ -472,6 +498,8 @@ class Cam:
         self.calibration = None
         self.squares = ChessBoardSquares(board_size)
         self.move_detector = MoveDetection(chess_game)
+        # Initialize move detector with current board state
+        self.move_detector.init_from_board()
         self.piece_detector = None
         self.transform = None
         self.cap = None
@@ -637,14 +665,14 @@ class Cam:
 # ============================================================================
 if __name__ == "__main__":
     # Import chess game module (adjust import based on your structure)
-    import chess  # or from your_module import ChessGame
+    import chess, CNChess  # or from your_module import ChessGame
     
     # Create a chess game instance
-    chess_game = chess.Board()
+    chess_game = CNChess.CNChess()  # Adjust constructor as needed
     
     # Option 1: Calibration from camera, then analyze a single frame
     cam = Cam(chess_game=chess_game, board_size=1200, camera_id=1)
-    cam.initialize_camera(calibrate=False)
+    cam.initialize_camera(calibrate=True)
     
     # Analyser une photo capturée
     result = cam.process_image()
