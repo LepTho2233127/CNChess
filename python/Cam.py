@@ -3,6 +3,7 @@ import numpy as np
 import json
 import ctypes
 import chess
+import time
 
 ## Extracting Chess Squares with Perspective Transformation (image --> fen format)
 
@@ -502,6 +503,8 @@ class Cam:
         self.piece_detector = None
         self.transform = None
         self.cap = None
+        self.frame_history = []
+        self.max_history = 3
     
     def initialize_camera(self, calibrate: bool = False):
         """Initializes the camera with maximum quality"""
@@ -587,28 +590,57 @@ class Cam:
     
     def process_frame(self) -> dict:
         """Processes a frame captured from the camera"""
-        frame = self.capture_frame()
-        if frame is None:
-            return None
-        
-        # Convertir en RGB (même flux que CamDetect)
-        rgb_image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        
-        # Appliquer transformation perspective
-        warped = self.transform.apply_transform(rgb_image)
-        
-        # Appliquer masque couleur
-        masked_warped, mask = ColorMask.create_color_mask(warped)
-        
-        # Détecter les pièces
-        self.piece_detector = PieceDetection(masked_warped, self.squares)
-        self.piece_detector.detect_all_pieces()
-        
+        timout = 5
+        start_time = time.time()
+        while True:
+            if time.time() - start_time > timout:
+                print("[ERROR] Timeout while waiting for stable frames")
+                return None
+
+            frame = self.capture_frame()
+            if frame is None:
+                return None
+            
+            time.sleep(0.2) # Time to wait between frames (in seconds)
+            # Convertir en RGB (même flux que CamDetect)
+            rgb_image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            
+            # Appliquer transformation perspective
+            warped = self.transform.apply_transform(rgb_image)
+            
+            # Appliquer masque couleur
+            masked_warped, mask = ColorMask.create_color_mask(warped)
+            
+            # Détecter les pièces
+            self.piece_detector = PieceDetection(masked_warped, self.squares)
+            self.piece_detector.detect_all_pieces()
+
+            current_state = {
+                'piece_place': self.piece_detector.piece_place.copy(),
+                'piece_color': self.piece_detector.piece_color.copy()  
+            }
+
+            self.frame_history.append(current_state)
+            if len(self.frame_history) > self.max_history:
+                self.frame_history.pop(0)
+            
+            frame_stable = False
+            if len(self.frame_history) == self.max_history:
+                if(self.frame_history[0]['piece_place'] == self.frame_history[1]['piece_place'] == self.frame_history[2]['piece_place'] and
+                self.frame_history[0]['piece_color'] == self.frame_history[1]['piece_color'] == self.frame_history[2]['piece_color']):
+                    print("[INFO] Stable state detected across 3 frames, proceeding with move detection")
+                    frame_stable = True
+                    break
+                
+
         # Detect moves
-        move_info = self.move_detector.detect_move(
-            self.piece_detector.piece_place,
-            self.piece_detector.piece_color
-        )
+        if frame_stable:
+            move_info = self.move_detector.detect_move(
+                self.piece_detector.piece_place,
+                self.piece_detector.piece_color
+            )
+        else:
+            move_info = {'move_start': 0, 'move_end': 0, 'uci': 'unknown'}
         
         return {
             'original_frame': frame,
