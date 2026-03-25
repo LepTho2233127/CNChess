@@ -279,6 +279,14 @@ class SettingsController(QObject):
                 self.send_position_thread.wait()
             self.send_position_thread = None
             self.send_position_worker = None
+        
+        if self.send_home_thread is not None:
+            if self.send_home_thread.isRunning():
+                print("[INFO] Stopping send_home thread...")
+                self.send_home_thread.quit()
+                self.send_home_thread.wait()
+            self.send_home_thread = None
+            self.send_home_worker = None
     
     def quit(self):
         self.cleanup_threads()
