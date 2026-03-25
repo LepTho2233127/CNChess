@@ -1,6 +1,5 @@
 /* CNChess Custom QSS Theme */
 
-
 QWidget {
     background-color: #2a1818;
     color: #fff0f0;

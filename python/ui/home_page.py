@@ -28,7 +28,7 @@ class HomeView(QWidget):
     def init_ui(self):
 
         logo_label = QLabel(self)
-        logo_pixmap = QPixmap(os.path.join(os.path.dirname(__file__), "assets/logo_pixel.png"))
+        logo_pixmap = QPixmap(os.path.join(os.path.dirname(__file__), "assets/CNChess_logo.png"))
         if not logo_pixmap.isNull():
             logo_pixmap = logo_pixmap.scaled(800, 400, Qt.AspectRatioMode.KeepAspectRatio)
         logo_label.setPixmap(logo_pixmap)
