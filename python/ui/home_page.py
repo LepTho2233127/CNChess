@@ -4,7 +4,7 @@ It contains buttons to choose difficulty, start a new game, and view settings ""
 import os
 import sys
 import chess
-from PyQt6.QtWidgets import QWidget, QPushButton, QApplication, QLabel, QVBoxLayout, QHBoxLayout
+from PyQt6.QtWidgets import QWidget, QPushButton, QApplication, QLabel, QVBoxLayout, QHBoxLayout, QRadioButton, QButtonGroup
 from PyQt6.QtGui import QIcon, QPixmap
 from PyQt6.QtCore import QObject, QSize, Qt, pyqtSignal
 from PyQt6 import uic
@@ -72,31 +72,40 @@ class HomeView(QWidget):
         
         level_button_size = QSize(175, 175)
 
-        easy_button = QPushButton(self)
+        easy_button = QRadioButton(self)
         easy_path = os.path.join(os.path.dirname(__file__), "assets", "beginner_icon.png")
         easy_pixmap = QPixmap(easy_path)
         easy_icon = QIcon(easy_pixmap)
         easy_button.setIcon(easy_icon)
         easy_button.setIconSize(level_button_size)
-        easy_button.setFixedSize(level_button_size)
-        medium_button = QPushButton(self)
+        # easy_button.setFixedSize(level_button_size)
+
+        medium_button = QRadioButton(self)
         medium_path = os.path.join(os.path.dirname(__file__), "assets", "intermediate_icon.png")
         medium_pixmap = QPixmap(medium_path)
         medium_icon = QIcon(medium_pixmap)
         medium_button.setIcon(medium_icon)
         medium_button.setIconSize(level_button_size)
-        medium_button.setFixedSize(level_button_size)
-        hard_button = QPushButton(self)
+        # medium_button.setFixedSize(level_button_size)
+
+        hard_button = QRadioButton(self)
         hard_path = os.path.join(os.path.dirname(__file__), "assets", "expert_icon.png")
         hard_pixmap = QPixmap(hard_path)
         hard_icon = QIcon(hard_pixmap)
         hard_button.setIcon(hard_icon)
         hard_button.setIconSize(level_button_size)
-        hard_button.setFixedSize(level_button_size)
+        # hard_button.setFixedSize(level_button_size)
 
         easy_button.clicked.connect(self.home_page_controller.easy_button_clicked)
         medium_button.clicked.connect(self.home_page_controller.medium_button_clicked)
         hard_button.clicked.connect(self.home_page_controller.hard_button_clicked)
+
+        level_group = QButtonGroup(self)
+        level_group.addButton(easy_button)
+        level_group.addButton(medium_button)
+        level_group.addButton(hard_button)
+        level_group.setExclusive(True)
+        easy_button.setChecked(True)
 
         layout = QHBoxLayout()
         layout.addStretch(50)
@@ -111,23 +120,30 @@ class HomeView(QWidget):
 
         color_button_size = QSize(100, 100)
 
-        white_button = QPushButton(self)
+        white_button = QRadioButton(self)
         white_path = os.path.join(os.path.dirname(__file__), "assets", "chess_assets", "pieces_png", "white-pawn.png")
         white_pixmap = QPixmap(white_path)
         white_icon = QIcon(white_pixmap)
         white_button.setIcon(white_icon)
         white_button.setIconSize(color_button_size)
-        white_button.setFixedSize(color_button_size)
-        black_button = QPushButton(self)
+        # white_button.setFixedSize(color_button_size)
+
+        black_button = QRadioButton(self)
         black_path = os.path.join(os.path.dirname(__file__), "assets", "chess_assets", "pieces_png", "black-pawn.png")
         black_pixmap = QPixmap(black_path)
         black_icon = QIcon(black_pixmap)
         black_button.setIcon(black_icon)
         black_button.setIconSize(color_button_size)
-        black_button.setFixedSize(color_button_size)
+        # black_button.setFixedSize(color_button_size)
 
         white_button.clicked.connect(self.home_page_controller.white_button_clicked)
         black_button.clicked.connect(self.home_page_controller.black_button_clicked)
+
+        color_group = QButtonGroup(self)
+        color_group.addButton(white_button)
+        color_group.addButton(black_button)
+        color_group.setExclusive(True)
+        white_button.setChecked(True)
 
         layout = QHBoxLayout()
         layout.addWidget(white_button)
@@ -196,4 +212,4 @@ if __name__ == "__main__":
         print(f"Warning: QSS theme file not found at {qss_path}")
     home_view = HomeView(None)
     home_view.show()
-    sys.exit(app.exec())       
+    sys.exit(app.exec())

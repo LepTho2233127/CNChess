@@ -32,6 +32,39 @@ QPushButton#quitBtn:hover {
     background-color: #f61f0f;
 }
 
+QRadioButton {
+    background-color: #f61f0f;
+    color: #fff0f0;
+    border-radius: 8px;
+    padding: 8px 18px;
+    font-weight: bold;
+    font-size: 15px;
+    border: none;
+}
+QRadioButton::indicator,
+QRadioButton::indicator:checked,
+QRadioButton::indicator:unchecked {
+    width: 0;
+    height: 0;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: none;
+}
+
+QRadioButton:hover {
+    background-color: #d91a0d;
+}
+QRadioButton:pressed, QRadioButton:checked {
+    background-color: #a1140a;
+}
+QRadioButton#quitBtn {
+    background-color: #a1140a;
+}
+QRadioButton#quitBtn:hover {
+    background-color: #f61f0f;
+}
+
 /* Override for chess board buttons - no rounding */
 GridButton {
     border-radius: 0px !important;
