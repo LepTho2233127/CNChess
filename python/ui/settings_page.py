@@ -9,10 +9,12 @@ import sys
 import os
 import cv2 
 
-class SettingsView(QWidget):
 
-    grid_width_mm = 431.8
-    grid_height_mm = 406.4
+SQUARE_SIZE_MM = 50.8
+grid_width_mm = 8*SQUARE_SIZE_MM
+grid_height_mm = 8*SQUARE_SIZE_MM
+
+class SettingsView(QWidget):
 
     def __init__(self, com=None, cam=None):
         super().__init__()
@@ -295,7 +297,7 @@ class SettingsController(QObject):
         self.game_page_signal.emit(True)
 
     def go(self):
-        pos = Position(float(self.view.x_spinner.value()), float(self.view.y_spinner.value()))
+        pos = Position(float(self.view.x_spinner.value() + 0.5*SQUARE_SIZE_MM), float(self.view.y_spinner.value()+0.5*SQUARE_SIZE_MM))
         self.com.send_position(pos, relative=False)
 
     def home(self):
@@ -328,8 +330,6 @@ class SettingsController(QObject):
         
 class GridView(QWidget):
 
-    grid_width_mm = 431.8
-    grid_height_mm = 406.4
     x = 0
     y = 0
 
