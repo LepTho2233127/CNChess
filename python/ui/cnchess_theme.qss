@@ -1,0 +1,104 @@
+/* CNChess Custom QSS Theme */
+
+
+QWidget {
+    background-color: #2a1818;
+    color: #fff0f0;
+    font-family: 'Segoe UI', 'Arial', sans-serif;
+    font-size: 15px;
+}
+
+
+QPushButton {
+    background-color: #f61f0f;
+    color: #fff0f0;
+    border-radius: 8px;
+    padding: 8px 18px;
+    font-weight: bold;
+    font-size: 15px;
+    border: none;
+}
+QPushButton:hover {
+    background-color: #d91a0d;
+}
+QPushButton:pressed {
+    background-color: #a1140a;
+}
+QPushButton#quitBtn {
+    background-color: #a1140a;
+}
+QPushButton#quitBtn:hover {
+    background-color: #f61f0f;
+}
+
+
+QLabel {
+    color: #fff0f0;
+    font-size: 15px;
+}
+
+
+QFrame {
+    background-color: #3a1818;
+    border: 2px solid #f61f0f;
+    border-radius: 15px;
+}
+
+
+QDoubleSpinBox, QSpinBox {
+    background: #2a1818;
+    color: #fff0f0;
+    border: 1px solid #f61f0f;
+    width: 20px;
+    border-radius: 6px;
+    padding: 4px 8px;
+}
+
+
+QSlider::groove:vertical {
+    background: #f61f0f;
+    border-radius: 4px;
+    width: 8px;
+}
+QSlider::handle:vertical {
+    background: #a1140a;
+    border-radius: 8px;
+    height: 24px;
+}
+
+QGridLayout, QVBoxLayout, QHBoxLayout {
+    margin: 8px;
+    spacing: 8px;
+}
+
+/* Chessboard squares */
+QPushButton.square {
+    border: none;
+    font-size: 18px;
+}
+QPushButton.square[highlighted="true"] {
+    background-color: #ffe082;
+}
+QPushButton.square[highlighted="false"] {
+    background-color: #bdbdbd;
+}
+
+/* Clock label */
+QLabel#clockLabel {
+    background-color: #3b2f2f;
+    color: #f3e5ab;
+    border: 4px solid #8b5a2b;
+    border-radius: 5px;
+    padding: 20px;
+    font-family: 'Georgia', serif;
+    font-size: 32px;
+    font-weight: bold;
+}
+
+/* Turn indicator */
+QLabel#turnIndicator {
+    border-radius: 10px;
+    min-width: 40px;
+    min-height: 40px;
+    border: 2px solid #34495e;
+}
