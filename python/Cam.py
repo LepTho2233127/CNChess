@@ -589,7 +589,8 @@ class Cam:
         cv2.imwrite("captured_frame.jpg", frame)
         return frame
     
-    def process_frame(self) -> dict:
+    
+    def process_image(self) -> dict:
         """Processes a frame captured from the camera"""
         timout = 5
         start_time = time.time()
@@ -603,16 +604,17 @@ class Cam:
                 return None
             
             time.sleep(0.05) # Time to wait between frames (in seconds)
-            # Convertir en RGB (même flux que CamDetect)
+            # Convert to RGB for processing
             rgb_image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             
-            # Appliquer transformation perspective
+
+            # Apply perspective transformation
             warped = self.transform.apply_transform(rgb_image)
             
-            # Appliquer masque couleur
+            # Apply color mask to isolate pieces
             masked_warped, mask = ColorMask.create_color_mask(warped)
             
-            # Détecter les pièces
+            # Detect pieces on the masked image
             self.piece_detector = PieceDetection(masked_warped, self.squares)
             self.piece_detector.detect_all_pieces()
 
@@ -633,7 +635,6 @@ class Cam:
                     frame_stable = True
                     break
                 
-
         # Detect moves
         if frame_stable:
             cv2.imwrite("processed_image.jpg", cv2.cvtColor(masked_warped, cv2.COLOR_RGB2BGR))
@@ -646,39 +647,6 @@ class Cam:
         
         return {
             'original_frame': frame,
-            'warped_image': masked_warped,
-            'piece_place': self.piece_detector.piece_place,
-            'piece_color': self.piece_detector.piece_color,
-            'move': move_info
-        }
-    
-    def process_image(self, image_path: str = None) -> dict:
-        """Processes an image (file or camera)"""
-        if image_path:
-            # Charger depuis un fichier
-            orig_image = cv2.imread(image_path)
-            rgb_image = cv2.cvtColor(orig_image, cv2.COLOR_BGR2RGB)
-        else:
-            # Capturer depuis la caméra
-            return self.process_frame()
-        
-        # Appliquer transformation perspective
-        warped = self.transform.apply_transform(rgb_image)
-        
-        # Appliquer masque couleur
-        masked_warped, mask = ColorMask.create_color_mask(warped)
-        
-        # Détecter les pièces
-        self.piece_detector = PieceDetection(masked_warped, self.squares)
-        self.piece_detector.detect_all_pieces()
-        
-        # Détecter les mouvements
-        move_info = self.move_detector.detect_move(
-            self.piece_detector.piece_place,
-            self.piece_detector.piece_color
-        )
-        
-        return {
             'warped_image': masked_warped,
             'piece_place': self.piece_detector.piece_place,
             'piece_color': self.piece_detector.piece_color,
