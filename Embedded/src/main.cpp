@@ -19,6 +19,7 @@
 #define DIR_PIN_1 D1
 #define STEP_PIN_2 D2
 #define DIR_PIN_2 D3
+#define PLAY_PIN D7
 
 #define SERVO_PIN D6
 #define MOVE_BUTTON D7
@@ -34,10 +35,10 @@ AccelStepper stepper1(AccelStepper::DRIVER, STEP_PIN_1, DIR_PIN_1); // step, dir
 AccelStepper stepper2(AccelStepper::DRIVER, STEP_PIN_2, DIR_PIN_2); // step, dir pins
 MultiStepper steppers;
 
-int servoGrabPosition = -3; // Servo position to grab piece0
-int servoReleasePosition = 85; // Servo position to release piece
+int servoGrabPosition = 130; // Servo position to grab piece0
+int servoReleasePosition = 200; // Servo position to release piece
 static bool isFastHome = false;
-
+bool button_pressed = false;
 struct Position{
     float x;
     float y;
@@ -51,6 +52,11 @@ Position current_position;
 Position drop_position = {0.5, 5.5};
 
 std::pair<float, float> get_steps(float delta_x, float delta_y);
+
+void IRAM_ATTR onPlayButtonPress() {
+    // This function will be called when the play button is pressed
+    button_pressed = true;
+}
 
 void go_to_position (Position pos);
 void goHome();
@@ -69,6 +75,7 @@ void setup() {
     pinMode(LIMIT_SWITCH_2, INPUT);
     pinMode(LED_PIN, OUTPUT);
     pinMode(SERVO_PIN, OUTPUT);
+    pinMode(PLAY_PIN, INPUT_PULLDOWN);
     
     stepper1.setMaxSpeed(MOVE_SPEED);
     stepper1.setAcceleration(500);
@@ -77,11 +84,10 @@ void setup() {
     steppers.addStepper(stepper1);
     steppers.addStepper(stepper2);
 
+    attachInterrupt(PLAY_PIN, onPlayButtonPress, RISING);
     myServo.attach(SERVO_PIN);
     goHome();
     myServo.write(servoReleasePosition); // Ensure servo is in release position
-    // reset_position();
-
 }
 
 enum CommandType {
@@ -142,6 +148,24 @@ bool parseCoordinates(String data, float& x, float& y, bool& magnet) {
     return true;
 }
 
+Position parsePosition(String data) {
+    // Remove leading '|' if present
+    if (data.length() > 0 && data[0] == '|') {
+        data = data.substring(1);
+    }
+    
+    // Parse pipe-separated format: "x|y"
+    int pipeIndex = data.indexOf('|');
+    if (pipeIndex == -1) {
+        return {0, 0}; // Invalid format
+    }
+    
+    float x = data.substring(0, pipeIndex).toFloat();
+    float y = data.substring(pipeIndex + 1).toFloat();
+
+    return {x, y};
+}
+
 // Helper function to parse PATH command with multiple coordinate sets
 std::vector<std::string> splitByPipe(String input) {
     std::vector<std::string> result;
@@ -161,6 +185,11 @@ std::vector<std::string> splitByPipe(String input) {
 }
 
 void loop() {
+    if (button_pressed){
+        Serial.println("PLAYED");
+        button_pressed = false;
+    }
+
     if (Serial.available() > 0) 
     {
         String input = Serial.readStringUntil('\n');
@@ -169,6 +198,7 @@ void loop() {
         // Extract command (uppercase letters at start)
         String commandString = extractCommand(input);
         CommandType commandType = parseCommand(commandString);
+        String dataString = input.substring(commandString.length());
 
         float posX = current_position.x;
         float posY = current_position.y;
@@ -183,7 +213,6 @@ void loop() {
                 for (const auto& segment : segments) {
                     if (segment.empty()) continue;
                     
-
                     String segStr(segment.c_str());
                     if (parseCoordinates(segStr, posX, posY, magnetState)) {
                         posX = posX * SQUARE_SIZE_MM;
@@ -196,7 +225,7 @@ void loop() {
                         digitalWrite(LED_PIN, magnetState);
                     }
                 }
-                Serial.print("DONE");
+                Serial.println("DONE");
                 break;
             }
             
@@ -214,49 +243,52 @@ void loop() {
                     grab_piece(magnetState);
                     digitalWrite(LED_PIN, magnetState);
                 }
-                Serial.print("DONE");
+                Serial.println("DONE");
                 break;
             }
 
             case CommandType::MOVE:
-                go_to_position({posX, posY});
-                Serial.print("DONE");
+                Position targetPos; 
+                targetPos = parsePosition(dataString);
+                go_to_position({targetPos.x, targetPos.y});
+                Serial.println("DONE");
                 break;    
 
             case CommandType::JOG:
-                move_distance(posX, posY);
-                Serial.print("DONE");
+                Position deltaPos;
+                deltaPos = parsePosition(dataString);
+                move_distance(deltaPos.x, deltaPos.y);
+                Serial.println("DONE");
                 break;
         
             case CommandType::HOME:
                 grab_piece(false);
                 goHome();
-                Serial.print("HOMED");
+                Serial.println("HOMED");
                 break;
 
             case CommandType::STOP:
                 grab_piece(false);
                 stepper1.stop();
                 stepper2.stop();
-                Serial.print("STOPPED");
+                Serial.println("STOPPED");
                 break;
             
             case CommandType::SERVO:
                 // Get magnet state from input
-                magnetState = input.substring(5).toInt() != 0;
+                magnetState = input.substring(6).toInt() != 0;
                 grab_piece(magnetState);
-                Serial.print("SERVO");
+                Serial.println("SERVO");
                 break;
         }
     }
-
 }
 
 void reset_position() {
     
     stepper1.setCurrentPosition(0);
     stepper2.setCurrentPosition(0);
-    current_position = {0.5*SQUARE_SIZE_MM, 0.5*SQUARE_SIZE_MM}; // Set to center of the board
+    current_position = {0.5*SQUARE_SIZE_MM, 0.5*SQUARE_SIZE_MM}; 
 }
 
 void grab_piece(bool state) {
@@ -316,7 +348,6 @@ void move_distance(float delta_x, float delta_y) {
     current_position.x += delta_x;
     current_position.y += delta_y;
 }
-
 
 void goHome() {
 
