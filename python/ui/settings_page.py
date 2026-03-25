@@ -353,7 +353,7 @@ class SettingsController(QObject):
         print(f"Error sending position: {error_msg}")
 
     def go(self):
-        pos = Position(float(self.view.x_spinner.value() + SQUARE_SIZE_MM), float(self.view.y_spinner.value()+SQUARE_SIZE_MM))
+        pos = Position(float(self.view.x_spinner.value() + 0.5*SQUARE_SIZE_MM), float(self.view.y_spinner.value()+0.5*SQUARE_SIZE_MM))
         self.send_position_async(pos)
 
     def home(self):
