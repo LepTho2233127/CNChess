@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
                              QLabel, QSlider, QPushButton, QDoubleSpinBox, QApplication,
                              QStyleOption, QStyle)
-from PyQt6.QtCore import Qt, pyqtSignal, QObject
+from PyQt6.QtCore import QLine, QPoint, Qt, pyqtSignal, QObject
 from PyQt6.QtGui import QPainter, QPen, QPixmap
 from Control import Position
 
@@ -23,7 +23,13 @@ class SettingsView(QWidget):
     def init_ui(self):
         back_button = QPushButton("Back", self)
         back_button.clicked.connect(self.controller.quit)
-        back_button.setFixedSize(80, 30)
+        back_button.setStyleSheet("""
+                                  background-color: blue;
+                                  color: white;
+                                  font-weight: bold;
+                                  width: 60px;
+                                  height: 20px;
+                                  """)
         # layout_speed = self.build_speed()
         grid = self.build_grid()
         layout_coord = self.build_coord()
@@ -54,26 +60,63 @@ class SettingsView(QWidget):
 
         up_button = QPushButton("+Y", self)
         up_button.clicked.connect(self.move_up)
+        up_button.setStyleSheet("""
+                                  background-color: blue;
+                                  color: white;
+                                  font-weight: bold;
+                                  height: 40px;
+                                  """)
 
         down_button = QPushButton("-Y", self)
         down_button.clicked.connect(self.move_down)
+        down_button.setStyleSheet("""
+                                  background-color: blue;
+                                  color: white;
+                                  font-weight: bold;
+                                  height: 40px;
+                                  """)
 
         left_button = QPushButton("-X", self)
         left_button.clicked.connect(self.move_left)
+        left_button.setStyleSheet("""
+                                  background-color: blue;
+                                  color: white;
+                                  font-weight: bold;
+                                  height: 40px;
+                                  """)
 
         right_button = QPushButton("+X", self)
         right_button.clicked.connect(self.move_right)
+        right_button.setStyleSheet("""
+                                  background-color: blue;
+                                  color: white;
+                                  font-weight: bold;
+                                  height: 40px;
+                                  """)
 
         self.step_spinner = QDoubleSpinBox(self)
         self.step_spinner.setRange(0.0, 100.0)
         self.step_spinner.setSingleStep(1.0)
         self.step_spinner.setValue(5.0)
         self.step_spinner.setSuffix(" mm")
+        self.step_spinner.setFixedHeight(40)
 
         z_up_button = QPushButton("+Z", self)
         z_up_button.clicked.connect(self.controller.z_move_up)
+        z_up_button.setStyleSheet("""
+                                  background-color: blue;
+                                  color: white;
+                                  font-weight: bold;
+                                  height: 40px;
+                                  """)
         z_down_button = QPushButton("-Z", self)
         z_down_button.clicked.connect(self.controller.z_move_down)
+        z_down_button.setStyleSheet("""
+                                  background-color: blue;
+                                  color: white;
+                                  font-weight: bold;
+                                  height: 40px;
+                                  """)
 
         grid_layout = QGridLayout()
         grid_layout.addWidget(up_button, 0, 1)
@@ -96,13 +139,28 @@ class SettingsView(QWidget):
 
         home_button = QPushButton("HOME", self)
         home_button.clicked.connect(self.controller.home)
+        home_button.setFixedWidth(150)
+        home_button.setStyleSheet("""
+                                  background-color: green;
+                                  color: white;
+                                  font-weight: bold;
+                                  height: 40px;
+                                  """)
 
         stop_button = QPushButton("STOP", self)
         stop_button.clicked.connect(self.controller.stop)
+        stop_button.setFixedWidth(150)
+        stop_button.setStyleSheet("""
+                                  background-color: red;
+                                  color: white;
+                                  font-weight: bold;
+                                  height: 40px;
+                                  """)
 
         layout = QVBoxLayout()
         layout.addWidget(home_button)
         layout.addWidget(stop_button)
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         return layout
     
@@ -114,6 +172,7 @@ class SettingsView(QWidget):
         self.x_spinner.setValue(0.0)
         self.x_spinner.setPrefix("X: ")
         self.x_spinner.valueChanged.connect(self.on_spinner_changed)
+        self.x_spinner.setFixedHeight(40)
 
         self.y_spinner = QDoubleSpinBox(self)
         self.y_spinner.setRange(0.0, self.grid_height_mm)
@@ -121,9 +180,16 @@ class SettingsView(QWidget):
         self.y_spinner.setValue(0.0)
         self.y_spinner.setPrefix("Y: ")
         self.y_spinner.valueChanged.connect(self.on_spinner_changed)
+        self.y_spinner.setFixedHeight(40)
 
         go_button = QPushButton("GO", self)
         go_button.clicked.connect(self.controller.go)
+        go_button.setStyleSheet("""
+                                  background-color: green;
+                                  color: white;
+                                  font-weight: bold;
+                                  height: 40px;
+                                  """)
 
         layout = QHBoxLayout()
         layout.addWidget(self.x_spinner)
@@ -166,6 +232,12 @@ class SettingsView(QWidget):
 
         pic_button = QPushButton("Take Picture", self)
         pic_button.clicked.connect(self.controller.take_picture)
+        pic_button.setStyleSheet("""
+                                  background-color: green;
+                                  color: white;
+                                  font-weight: bold;
+                                  height: 40px;
+                                  """)
 
         layout = QVBoxLayout()
         layout.addWidget(self.last_pic, alignment=Qt.AlignmentFlag.AlignHCenter)
@@ -276,9 +348,21 @@ class GridView(QWidget):
         opt.initFrom(self)
         painter = QPainter(self)
         self.style().drawPrimitive(QStyle.PrimitiveElement.PE_Widget, opt, painter, self)
-        pen = QPen(Qt.GlobalColor.red, 5)
-        painter.setPen(pen)
+        dot_pen = QPen(Qt.GlobalColor.red, 5)
+        painter.setPen(dot_pen)
         painter.drawPoint(int(getattr(self, 'x', 0)), int(getattr(self, 'y', 0)))
+        grid_pen = QPen(Qt.GlobalColor.black, 1)
+        painter.setPen(grid_pen)
+        for i in range(0, round(self.grid_width_mm), round(self.grid_width_mm/8.0)):
+            start_point = QPoint(i, 0)
+            end_point = QPoint(i, round(self.grid_height_mm))
+            v_line = QLine(start_point, end_point)
+            painter.drawLine(v_line)
+        for j in range(0, round(self.grid_height_mm), round(self.grid_height_mm/8.0)):
+            start_point = QPoint(0, j)
+            end_point = QPoint(round(self.grid_width_mm), j)
+            h_line = QLine(start_point, end_point)
+            painter.drawLine(h_line)
         painter.end()
 
     def mousePressEvent(self, event):
