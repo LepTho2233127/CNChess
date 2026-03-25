@@ -602,7 +602,7 @@ class Cam:
             if frame is None:
                 return None
             
-            time.sleep(0.1) # Time to wait between frames (in seconds)
+            time.sleep(0.05) # Time to wait between frames (in seconds)
             # Convertir en RGB (même flux que CamDetect)
             rgb_image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             
@@ -636,6 +636,7 @@ class Cam:
 
         # Detect moves
         if frame_stable:
+            cv2.imwrite("processed_image.jpg", cv2.cvtColor(masked_warped, cv2.COLOR_RGB2BGR))
             move_info = self.move_detector.detect_move(
                 self.piece_detector.piece_place,
                 self.piece_detector.piece_color

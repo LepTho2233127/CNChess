@@ -75,7 +75,7 @@ class WaitForButtonWorker(QObject):
 
 class ChessClock(QWidget):
 
-    outOfTime_signal = pyqtSignal(int)
+    outOfTime_signal = pyqtSignal(str)  # Signal to indicate which player ran out of time ("white" or "black")
 
     def __init__(self, initial_time, clock_label, color="white"):
         """Initial time in seconds"""
@@ -191,8 +191,8 @@ class GameView(QWidget):
         right_layout.insertWidget(1,resize_board)
         self.board = resize_board.board_widget
         
-        self.white_clock = ChessClock(initial_time=600, clock_label=self.white_timer_display, color="white")
-        self.black_clock = ChessClock(initial_time=600, clock_label=self.black_timer_display, color="black")
+        self.white_clock = ChessClock(initial_time=6, clock_label=self.white_timer_display, color="white")
+        self.black_clock = ChessClock(initial_time=6, clock_label=self.black_timer_display, color="black")
         self.game_page_controller = GamePageController(chess_game,self, self.control, communication, self.cam)
 
         settings_button.clicked.connect(self.game_page_controller.settings_button_clicked)     
@@ -390,7 +390,7 @@ class GamePageController(QObject):
         else:
             print(f"Camera processing result: Invalid move detected: {move.uci()}. Waiting for valid move.")
             # Show error message and wait for next button press
-            # self._start_button_wait("Invalid move detected!\nPlease press the button again to try a valid move.")
+            self._start_button_wait("Invalid move detected!\nPlease press the button again to try a valid move.")
 
     def on_wait_button_error(self, error_msg):
         """Handler when waiting for button press fails or times out."""
@@ -530,7 +530,7 @@ class GamePageController(QObject):
     
     def outOfTime(self, losing_color):
 
-        color = "white" if losing_color == "white" else "black"
+        color = "black" if losing_color == "white" else "white"
 
         self.stop_clocks()
         timeout_dialog = WinnerDialog(winner_color=color, reason="timeout")
