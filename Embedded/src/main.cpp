@@ -35,8 +35,8 @@ AccelStepper stepper1(AccelStepper::DRIVER, STEP_PIN_1, DIR_PIN_1); // step, dir
 AccelStepper stepper2(AccelStepper::DRIVER, STEP_PIN_2, DIR_PIN_2); // step, dir pins
 MultiStepper steppers;
 
-int servoGrabPosition = -3; // Servo position to grab piece0
-int servoReleasePosition = 85; // Servo position to release piece
+int servoGrabPosition = 130; // Servo position to grab piece0
+int servoReleasePosition = 200; // Servo position to release piece
 static bool isFastHome = false;
 bool button_pressed = false;
 struct Position{
@@ -56,7 +56,6 @@ std::pair<float, float> get_steps(float delta_x, float delta_y);
 void IRAM_ATTR onPlayButtonPress() {
     // This function will be called when the play button is pressed
     button_pressed = true;
-
 }
 
 void go_to_position (Position pos);
@@ -89,8 +88,6 @@ void setup() {
     myServo.attach(SERVO_PIN);
     goHome();
     myServo.write(servoReleasePosition); // Ensure servo is in release position
-    // reset_position();
-
 }
 
 enum CommandType {
@@ -99,7 +96,8 @@ enum CommandType {
     HOME,
     JOG,
     STOP,
-    PATH
+    PATH,
+    SERVO
 };
 
 CommandType parseCommand(String cmd) {
@@ -109,6 +107,7 @@ CommandType parseCommand(String cmd) {
     if (cmd == "STOP") return STOP;
     if (cmd == "JOG")  return JOG;
     if (cmd == "PATH")  return PATH;
+    if(cmd == "SERVO") return SERVO;
 
     return STOP;
 }
@@ -149,6 +148,24 @@ bool parseCoordinates(String data, float& x, float& y, bool& magnet) {
     return true;
 }
 
+Position parsePosition(String data) {
+    // Remove leading '|' if present
+    if (data.length() > 0 && data[0] == '|') {
+        data = data.substring(1);
+    }
+    
+    // Parse pipe-separated format: "x|y"
+    int pipeIndex = data.indexOf('|');
+    if (pipeIndex == -1) {
+        return {0, 0}; // Invalid format
+    }
+    
+    float x = data.substring(0, pipeIndex).toFloat();
+    float y = data.substring(pipeIndex + 1).toFloat();
+
+    return {x, y};
+}
+
 // Helper function to parse PATH command with multiple coordinate sets
 std::vector<std::string> splitByPipe(String input) {
     std::vector<std::string> result;
@@ -181,6 +198,7 @@ void loop() {
         // Extract command (uppercase letters at start)
         String commandString = extractCommand(input);
         CommandType commandType = parseCommand(commandString);
+        String dataString = input.substring(commandString.length());
 
         float posX = current_position.x;
         float posY = current_position.y;
@@ -195,7 +213,6 @@ void loop() {
                 for (const auto& segment : segments) {
                     if (segment.empty()) continue;
                     
-
                     String segStr(segment.c_str());
                     if (parseCoordinates(segStr, posX, posY, magnetState)) {
                         posX = posX * SQUARE_SIZE_MM;
@@ -231,12 +248,16 @@ void loop() {
             }
 
             case CommandType::MOVE:
-                go_to_position({posX, posY});
+                Position targetPos; 
+                targetPos = parsePosition(dataString);
+                go_to_position({targetPos.x, targetPos.y});
                 Serial.println("DONE");
                 break;    
 
             case CommandType::JOG:
-                move_distance(posX, posY);
+                Position deltaPos;
+                deltaPos = parsePosition(dataString);
+                move_distance(deltaPos.x, deltaPos.y);
                 Serial.println("DONE");
                 break;
         
@@ -253,16 +274,21 @@ void loop() {
                 Serial.println("STOPPED");
                 break;
             
+            case CommandType::SERVO:
+                // Get magnet state from input
+                magnetState = input.substring(6).toInt() != 0;
+                grab_piece(magnetState);
+                Serial.println("SERVO");
+                break;
         }
     }
-
 }
 
 void reset_position() {
     
     stepper1.setCurrentPosition(0);
     stepper2.setCurrentPosition(0);
-    current_position = {0.5*SQUARE_SIZE_MM, 0.5*SQUARE_SIZE_MM}; // Set to center of the board
+    current_position = {0.5*SQUARE_SIZE_MM, 0.5*SQUARE_SIZE_MM}; 
 }
 
 void grab_piece(bool state) {
@@ -322,7 +348,6 @@ void move_distance(float delta_x, float delta_y) {
     current_position.x += delta_x;
     current_position.y += delta_y;
 }
-
 
 void goHome() {
 

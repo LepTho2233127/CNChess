@@ -472,6 +472,7 @@ class MoveDetection:
     
     def get_uci_move(self) -> str:
         """Converts positions to UCI notation"""
+        
         files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
         ranks = ['1', '2', '3', '4', '5', '6', '7', '8']
         start_file = files[(self.move_start - 1) % 8]
@@ -601,7 +602,7 @@ class Cam:
             if frame is None:
                 return None
             
-            time.sleep(0.1) # Time to wait between frames (in seconds)
+            time.sleep(0.05) # Time to wait between frames (in seconds)
             # Convertir en RGB (même flux que CamDetect)
             rgb_image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             
@@ -635,6 +636,7 @@ class Cam:
 
         # Detect moves
         if frame_stable:
+            cv2.imwrite("processed_image.jpg", cv2.cvtColor(masked_warped, cv2.COLOR_RGB2BGR))
             move_info = self.move_detector.detect_move(
                 self.piece_detector.piece_place,
                 self.piece_detector.piece_color

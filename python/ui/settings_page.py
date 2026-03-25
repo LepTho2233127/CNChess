@@ -1,26 +1,71 @@
+import os
+import sys
+import cv2 
+
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
                              QLabel, QSlider, QPushButton, QDoubleSpinBox, QApplication,
                              QStyleOption, QStyle)
-from PyQt6.QtCore import QObject, Qt, pyqtSignal
+from PyQt6.QtCore import QLine, QPoint, Qt, pyqtSignal, QObject, QThread
 from PyQt6.QtGui import QPainter, QPen, QPixmap
-import sys
-import os
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from ui.dialog_ui import WaitingDialog
+from Control import Position
+
+SQUARE_SIZE_MM = 50.8
+grid_width_mm = 8*SQUARE_SIZE_MM
+grid_height_mm = 8*SQUARE_SIZE_MM
+
+class SendPositionWorker(QObject):
+    """Worker thread to send position commands without blocking the UI."""
+    finished = pyqtSignal()
+    error = pyqtSignal(str)
+    
+    def __init__(self, communication, position):
+        super().__init__()
+        self.communication = communication
+        self.position = position
+    
+    def run(self):
+        """Execute send_position in the worker thread."""
+        try:
+            self.communication.send_position(self.position, relative=False)
+            self.finished.emit()
+        except Exception as e:
+            self.error.emit(str(e))
+
+class SendHomeWorker(QObject):
+    """Worker thread to send home command without blocking the UI."""
+    finished = pyqtSignal()
+    error = pyqtSignal(str)
+    
+    def __init__(self, communication):
+        super().__init__()
+        self.communication = communication
+    
+    def run(self):
+        """Execute go_home in the worker thread."""
+        try:
+            self.communication.go_home()
+            self.finished.emit()
+        except Exception as e:
+            self.error.emit(str(e))
 
 class SettingsView(QWidget):
 
-    grid_width_mm = 431.8
-    grid_height_mm = 406.4
-
-    def __init__(self, com=None):
+    def __init__(self, com=None, cam=None):
         super().__init__()
         self._updating_spinners = False
-        self.controller = SettingsController(self, com)
+        self.controller = SettingsController(self, com, cam)
         self.init_ui()
+    
+    def cleanup_threads(self):
+        """Clean up all worker threads in the settings page."""
+        self.controller.cleanup_threads()
 
     def init_ui(self):
         back_button = QPushButton("Back", self)
         back_button.clicked.connect(self.controller.quit)
-        back_button.setFixedSize(80, 30)
         # layout_speed = self.build_speed()
         grid = self.build_grid()
         layout_coord = self.build_coord()
@@ -36,7 +81,7 @@ class SettingsView(QWidget):
         middle_layout.addLayout(layout_coord)
         middle_layout.addLayout(layout_remoteXY)
         middle_layout.addLayout(layout_controls)
-        
+
         main_layout = QHBoxLayout()
         main_layout.addLayout(left_layout)
         main_layout.addLayout(middle_layout)
@@ -65,7 +110,6 @@ class SettingsView(QWidget):
         self.step_spinner.setRange(0.0, 100.0)
         self.step_spinner.setSingleStep(1.0)
         self.step_spinner.setValue(5.0)
-        self.step_spinner.setSuffix(" mm")
 
         z_up_button = QPushButton("+Z", self)
         z_up_button.clicked.connect(self.controller.z_move_up)
@@ -106,14 +150,14 @@ class SettingsView(QWidget):
     def build_coord(self):
 
         self.x_spinner = QDoubleSpinBox(self)
-        self.x_spinner.setRange(0.0, self.grid_width_mm)
+        self.x_spinner.setRange(0.0, grid_width_mm)
         self.x_spinner.setSingleStep(1.0)
         self.x_spinner.setValue(0.0)
         self.x_spinner.setPrefix("X: ")
         self.x_spinner.valueChanged.connect(self.on_spinner_changed)
 
         self.y_spinner = QDoubleSpinBox(self)
-        self.y_spinner.setRange(0.0, self.grid_height_mm)
+        self.y_spinner.setRange(0.0, grid_height_mm)
         self.y_spinner.setSingleStep(1.0)
         self.y_spinner.setValue(0.0)
         self.y_spinner.setPrefix("Y: ")
@@ -153,25 +197,39 @@ class SettingsView(QWidget):
         return self.grid
 
     def build_camera(self):
-        last_pic = QLabel(self)
-        img_path = os.path.join(os.path.dirname(__file__), 'assets', 'temp_img.jpg')
+        self.last_pic = QLabel(self)
+        img_path = os.path.join(os.path.dirname(__file__), 'assets', 'captured_image.jpg')
 
-        last_pic.setPixmap(QPixmap(img_path))
-        last_pic.setFixedSize(400, 300)
+        image = QPixmap(img_path)
+        if not image.isNull():
+            image = image.scaled(640, 480, Qt.AspectRatioMode.KeepAspectRatio)
+        self.last_pic.setPixmap(image)
 
-        pic_button = QPushButton("Take Picture", self)
+        pic_button = QPushButton("TAKE PICTURE", self)
         pic_button.clicked.connect(self.controller.take_picture)
+        pic_button.setObjectName("camera_button")
+
+        calib_button = QPushButton("CALIBRATE CAMERA", self)
+        calib_button.clicked.connect(self.controller.calibrate_camera)
+        calib_button.setObjectName("camera_button")
 
         layout = QVBoxLayout()
-        layout.addWidget(last_pic, alignment=Qt.AlignmentFlag.AlignHCenter)
-        layout.addWidget(pic_button)
+        layout.addWidget(self.last_pic, alignment=Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(pic_button, alignment=Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(calib_button, alignment=Qt.AlignmentFlag.AlignHCenter)
 
         return layout
 
-    def update_coord(self, x, y):
-        self._updating_spinners = True
+    def update_coord(self, x, y, computer_move=False):
+        self.view_updating_spinners = True
         self.x_spinner.setValue(float(x))
-        self.y_spinner.setValue(abs(float(y)-self.grid_height_mm))
+        if not computer_move:
+            self.y_spinner.setValue(grid_height_mm - float(y))
+           
+        else :
+            self.y_spinner.setValue(y)     
+            y = grid_height_mm - float(y)
+        
         self._updating_spinners = False
         self.grid.update_dot(x, y)
     
@@ -179,42 +237,153 @@ class SettingsView(QWidget):
         if self._updating_spinners:
             return
         x = self.x_spinner.value()
-        y = abs(self.y_spinner.value() - self.grid_height_mm)
+        y = abs(self.y_spinner.value() - grid_height_mm)
         self.grid.update_dot(x, y)
 
     def move_up(self):
-        current_value = abs(self.y_spinner.value() - self.grid_height_mm)
+        current_value = abs(self.y_spinner.value() - grid_height_mm)
         self.update_coord(self.x_spinner.value(), current_value - self.step_spinner.value())
 
     def move_down(self):
-        current_value = abs(self.y_spinner.value() - self.grid_height_mm)
+        current_value = abs(self.y_spinner.value() - grid_height_mm)
         self.update_coord(self.x_spinner.value(), current_value + self.step_spinner.value())
     
     def move_left(self):
         current_value = self.x_spinner.value()
-        self.update_coord(current_value - self.step_spinner.value(), abs(self.y_spinner.value() - self.grid_height_mm))
+        self.update_coord(current_value - self.step_spinner.value(), abs(self.y_spinner.value() - grid_height_mm))
     
     def move_right(self):
         current_value = self.x_spinner.value()
-        self.update_coord(current_value + self.step_spinner.value(), abs(self.y_spinner.value() - self.grid_height_mm))
+        self.update_coord(current_value + self.step_spinner.value(), abs(self.y_spinner.value() - grid_height_mm))
 
 class SettingsController(QObject):
 
     game_page_signal = pyqtSignal(bool)
 
-    def __init__(self, view, com):
+    def __init__(self, view, com, cam):
         super().__init__()
         self.view = view
         self.com = com
+        self.cam = cam
+        
+        # Initialize worker thread and waiting dialog
+        self.send_position_worker = None
+        self.send_position_thread = None
+        self.send_home_worker = None
+        self.send_home_thread = None
+        self.waiting_dialog = WaitingDialog(self.view)
+        self.active_operations = 0  # Counter to track concurrent operations
 
+    def cleanup_threads(self):
+        """Clean up all worker threads in the controller."""
+        if self.send_position_thread is not None:
+            if self.send_position_thread.isRunning():
+                print("[INFO] Stopping send_position thread...")
+                self.send_position_thread.quit()
+                self.send_position_thread.wait()
+            self.send_position_thread = None
+            self.send_position_worker = None
+        
+        if self.send_home_thread is not None:
+            if self.send_home_thread.isRunning():
+                print("[INFO] Stopping send_home thread...")
+                self.send_home_thread.quit()
+                self.send_home_thread.wait()
+            self.send_home_thread = None
+            self.send_home_worker = None
+    
     def quit(self):
+        self.cleanup_threads()
         self.game_page_signal.emit(True)
 
+    def send_position_async(self, position):
+        """Send position to device asynchronously without blocking the UI."""
+        # Wait for any previous thread to finish before starting a new one
+        if self.send_position_thread is not None and self.send_position_thread.isRunning():
+            self.send_position_thread.quit()
+            self.send_position_thread.wait()
+
+        # Create worker and thread
+        self.send_position_worker = SendPositionWorker(self.com, position)
+        self.send_position_thread = QThread(parent=self)
+        self.send_position_worker.moveToThread(self.send_position_thread)
+        
+        # Connect signals
+        self.send_position_thread.started.connect(self.send_position_worker.run)
+        self.send_position_worker.finished.connect(self.on_send_position_finished)
+        self.send_position_worker.finished.connect(self.send_position_thread.quit)
+        self.send_position_worker.error.connect(self.on_send_position_error)
+        self.send_position_worker.error.connect(self.send_position_thread.quit)
+        
+        # Show waiting dialog and start thread
+        self.active_operations += 1
+        self.waiting_dialog.set_message("Sending position to device...\nPlease wait.")
+        self.waiting_dialog.show()
+        self.send_position_thread.start()
+
+    def on_send_position_finished(self):
+        """Handler when send_position completes successfully."""
+        self.active_operations -= 1
+        if self.active_operations <= 0:
+            self.active_operations = 0
+            self.waiting_dialog.hide()
+
+    def on_send_position_error(self, error_msg):
+        """Handler when send_position encounters an error."""
+        self.active_operations -= 1
+        if self.active_operations <= 0:
+            self.active_operations = 0
+            self.waiting_dialog.hide()
+        print(f"Error sending position: {error_msg}")
+
     def go(self):
-        self.com.send_position(self.view.x_spinner.value(), self.view.y_spinner.value())
+        pos = Position(float(self.view.x_spinner.value() + 0.5*SQUARE_SIZE_MM), float(self.view.y_spinner.value()+0.5*SQUARE_SIZE_MM))
+        self.send_position_async(pos)
+
+    def send_home_async(self):
+        """Send home command to device asynchronously without blocking the UI."""
+        # Wait for any previous thread to finish before starting a new one
+        if self.send_home_thread is not None and self.send_home_thread.isRunning():
+            self.send_home_thread.quit()
+            self.send_home_thread.wait()
+
+        # Create worker and thread
+        self.send_home_worker = SendHomeWorker(self.com)
+        self.send_home_thread = QThread(parent=self)
+        self.send_home_worker.moveToThread(self.send_home_thread)
+        
+        # Connect signals
+        self.send_home_thread.started.connect(self.send_home_worker.run)
+        self.send_home_worker.finished.connect(self.on_send_home_finished)
+        self.send_home_worker.finished.connect(self.send_home_thread.quit)
+        self.send_home_worker.error.connect(self.on_send_home_error)
+        self.send_home_worker.error.connect(self.send_home_thread.quit)
+        
+        # Show waiting dialog and start thread
+        self.active_operations += 1
+        self.waiting_dialog.set_message("Sending home command...\nPlease wait.")
+        self.waiting_dialog.show()
+        self.send_home_thread.start()
+
+    def on_send_home_finished(self):
+        """Handler when send_home completes successfully."""
+        self.active_operations -= 1
+        if self.active_operations <= 0:
+            self.active_operations = 0
+            self.waiting_dialog.hide()
+
+    def on_send_home_error(self, error_msg):
+        """Handler when send_home encounters an error."""
+        self.active_operations -= 1
+        if self.active_operations <= 0:
+            self.active_operations = 0
+            self.waiting_dialog.hide()
+        print(f"Error sending home command: {error_msg}")
 
     def home(self):
-        self.com.go_home()
+        self.x_spinner.setValue(0.0)
+        self.y_spinner.setValue(0.0)
+        self.send_home_async()
 
     def stop(self):
         self.com.stop()
@@ -230,14 +399,24 @@ class SettingsController(QObject):
     #     print(f"Speed set to {value}%")
     
     def take_picture(self):
-        print("take picture")
+        image = self.cam.process_image()["warped_image"]
+        display_image_with_grid = self.cam.squares.draw_grid(image, color=(0, 255, 0), thickness=2)
 
+        img_path = os.path.join(os.path.dirname(__file__), 'assets', 'captured_image.jpg')
+        cv2.imwrite(img_path, cv2.cvtColor(display_image_with_grid, cv2.COLOR_RGB2BGR))
+
+        image = QPixmap(img_path)
+        image = image.scaled(640, 480, Qt.AspectRatioMode.KeepAspectRatio)
+
+        self.view.last_pic.setPixmap(image)
+    
+    def calibrate_camera(self):
+        self.cam.initialize_camera(calibrate=True)
+        
 class GridView(QWidget):
 
-    grid_width_mm = 431.8
-    grid_height_mm = 406.4
     x = 0
-    y = 0
+    y = grid_height_mm
 
     positionChanged = pyqtSignal(int, int)
 
@@ -246,17 +425,38 @@ class GridView(QWidget):
         self.init()
 
     def init(self):
-        self.setFixedSize(int(self.grid_width_mm), int(self.grid_height_mm))
-        self.setStyleSheet("background-color: white; border: 1px solid black;")
+        self.setFixedSize(int(grid_width_mm), int(grid_height_mm))
+        self.setStyleSheet("border: 2px solid white;")
 
     def paintEvent(self, event):
-        opt = QStyleOption()
-        opt.initFrom(self)
         painter = QPainter(self)
-        self.style().drawPrimitive(QStyle.PrimitiveElement.PE_Widget, opt, painter, self)
-        pen = QPen(Qt.GlobalColor.red, 5)
-        painter.setPen(pen)
+        # Paint background
+        painter.fillRect(self.rect(), Qt.GlobalColor.black)
+        
+        # Paint border
+        border_pen = QPen(Qt.GlobalColor.white, 2)
+        painter.setPen(border_pen)
+        painter.drawRect(0, 0, self.width() - 1, self.height() - 1)
+        
+        # Paint grid lines
+        grid_pen = QPen(Qt.GlobalColor.white, 1)
+        painter.setPen(grid_pen)
+        for i in range(0, round(grid_width_mm), round(grid_width_mm/8.0)):
+            start_point = QPoint(i, 0)
+            end_point = QPoint(i, round(grid_height_mm))
+            v_line = QLine(start_point, end_point)
+            painter.drawLine(v_line)
+        for j in range(0, round(grid_height_mm), round(grid_height_mm/8.0)):
+            start_point = QPoint(0, j)
+            end_point = QPoint(round(grid_width_mm), j)
+            h_line = QLine(start_point, end_point)
+            painter.drawLine(h_line)
+        
+        # Paint the red dot for current position
+        dot_pen = QPen(Qt.GlobalColor.red, 6)
+        painter.setPen(dot_pen)
         painter.drawPoint(int(getattr(self, 'x', 0)), int(getattr(self, 'y', 0)))
+        
         painter.end()
 
     def mousePressEvent(self, event):
@@ -272,6 +472,12 @@ class GridView(QWidget):
 if __name__ == "__main__":
 
     app = QApplication(sys.argv)
+    qss_path = os.path.join(os.path.dirname(__file__), "cnchess_theme.qss")
+    if os.path.exists(qss_path):
+        with open(qss_path, "r", encoding="utf-8") as f:
+            app.setStyleSheet(f.read())
+    else:
+        print(f"Warning: QSS theme file not found at {qss_path}")
     settings_view = SettingsView()
     settings_view.show()
     sys.exit(app.exec())

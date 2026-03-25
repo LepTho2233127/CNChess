@@ -3,6 +3,10 @@ The main window is responsible for switching between the different pages and man
 a QStackedWidget."""
 
 from PyQt6.QtWidgets import QMainWindow, QStackedWidget
+from PyQt6.QtCore import Qt
+import os
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from ui.home_page import HomeView
 from ui.game_page import GameView
@@ -20,6 +24,14 @@ class MainUI(QMainWindow):
 
         self.setWindowTitle("CNChess")
 
+        # Load and apply global QSS stylesheet
+        qss_path = os.path.join(os.path.dirname(__file__), "cnchess_theme.qss")
+        if os.path.exists(qss_path):
+            with open(qss_path, "r", encoding="utf-8") as f:
+                self.setStyleSheet(f.read())
+        else:
+            print(f"Warning: QSS theme file not found at {qss_path}")
+
         # Create the stacked widget to hold the different pages
         self.stacked_widget = QStackedWidget()
         self.setCentralWidget(self.stacked_widget)
@@ -27,7 +39,7 @@ class MainUI(QMainWindow):
         # Create the different pages
         self.home_page = HomeView(chess_model)
         self.game_page = GameView(chess_model,self.control, communication, self.cam)
-        self.settings_page = SettingsView(communication)
+        self.settings_page = SettingsView(communication, cam)
 
         # Add the pages to the stacked widget
         self.stacked_widget.addWidget(self.home_page)
@@ -36,9 +48,12 @@ class MainUI(QMainWindow):
 
         # Connect controller signals to page-switching methods
         self.home_page.home_page_controller.start_game_signal.connect(self.switch_to_game_page)
+        self.home_page.home_page_controller.settings_signal.connect(self.switch_to_settings_page)
         self.game_page.game_page_controller.show_settings_signal.connect(self.switch_to_settings_page)
         self.game_page.game_page_controller.return_home_signal.connect(self.switch_to_home_page)
         self.settings_page.controller.game_page_signal.connect(self.switch_to_game_page)
+        self.game_page.game_page_controller.send_gantry_position.connect(self.settings_page.update_coord)
+
 
     def switch_to_home_page(self):
         self.stacked_widget.setCurrentWidget(self.home_page)
@@ -51,3 +66,24 @@ class MainUI(QMainWindow):
       
     def switch_to_settings_page(self):
         self.stacked_widget.setCurrentWidget(self.settings_page)
+    
+    def closeEvent(self, event):
+        """Clean up all threads when the application window is closed."""
+        print("[INFO] Closing application and terminating all threads...")
+        self.cleanup_all_threads()
+        event.accept()
+    
+    def cleanup_all_threads(self):
+        """Terminate all worker threads in all pages before closing."""
+        # Clean up game page threads
+        self.game_page.cleanup_threads()
+        
+        # Clean up settings page threads
+        self.settings_page.cleanup_threads()
+    
+    def __del__(self):
+        """Destructor to ensure cleanup on object destruction."""
+        try:
+            self.cleanup_all_threads()
+        except:
+            pass  # Ignore errors during destruction
