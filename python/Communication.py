@@ -102,7 +102,6 @@ class Communication:
                 if self.ser.in_waiting == 0:
                     continue
                 response = self.ser.readline().decode('utf-8', errors='ignore').strip()
-                print("Received from serial:", response)
             except Exception as e:
                 print("Error reading response from serial:", e)
                 return False

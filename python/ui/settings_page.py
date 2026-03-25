@@ -34,6 +34,23 @@ class SendPositionWorker(QObject):
         except Exception as e:
             self.error.emit(str(e))
 
+class SendHomeWorker(QObject):
+    """Worker thread to send home command without blocking the UI."""
+    finished = pyqtSignal()
+    error = pyqtSignal(str)
+    
+    def __init__(self, communication):
+        super().__init__()
+        self.communication = communication
+    
+    def run(self):
+        """Execute go_home in the worker thread."""
+        try:
+            self.communication.go_home()
+            self.finished.emit()
+        except Exception as e:
+            self.error.emit(str(e))
+
 class SettingsView(QWidget):
 
     def __init__(self, com=None, cam=None):
@@ -41,6 +58,10 @@ class SettingsView(QWidget):
         self._updating_spinners = False
         self.controller = SettingsController(self, com, cam)
         self.init_ui()
+    
+    def cleanup_threads(self):
+        """Clean up all worker threads in the settings page."""
+        self.controller.cleanup_threads()
 
     def init_ui(self):
         back_button = QPushButton("Back", self)
@@ -248,9 +269,31 @@ class SettingsController(QObject):
         # Initialize worker thread and waiting dialog
         self.send_position_worker = None
         self.send_position_thread = None
+        self.send_home_worker = None
+        self.send_home_thread = None
         self.waiting_dialog = WaitingDialog(self.view)
+        self.active_operations = 0  # Counter to track concurrent operations
 
+    def cleanup_threads(self):
+        """Clean up all worker threads in the controller."""
+        if self.send_position_thread is not None:
+            if self.send_position_thread.isRunning():
+                print("[INFO] Stopping send_position thread...")
+                self.send_position_thread.quit()
+                self.send_position_thread.wait()
+            self.send_position_thread = None
+            self.send_position_worker = None
+        
+        if self.send_home_thread is not None:
+            if self.send_home_thread.isRunning():
+                print("[INFO] Stopping send_home thread...")
+                self.send_home_thread.quit()
+                self.send_home_thread.wait()
+            self.send_home_thread = None
+            self.send_home_worker = None
+    
     def quit(self):
+        self.cleanup_threads()
         self.game_page_signal.emit(True)
 
     def send_position_async(self, position):
@@ -273,27 +316,74 @@ class SettingsController(QObject):
         self.send_position_worker.error.connect(self.send_position_thread.quit)
         
         # Show waiting dialog and start thread
+        self.active_operations += 1
         self.waiting_dialog.set_message("Sending position to device...\nPlease wait.")
         self.waiting_dialog.show()
         self.send_position_thread.start()
 
     def on_send_position_finished(self):
         """Handler when send_position completes successfully."""
-        self.waiting_dialog.hide()
+        self.active_operations -= 1
+        if self.active_operations <= 0:
+            self.active_operations = 0
+            self.waiting_dialog.hide()
 
     def on_send_position_error(self, error_msg):
         """Handler when send_position encounters an error."""
-        self.waiting_dialog.hide()
+        self.active_operations -= 1
+        if self.active_operations <= 0:
+            self.active_operations = 0
+            self.waiting_dialog.hide()
         print(f"Error sending position: {error_msg}")
 
     def go(self):
         pos = Position(float(self.view.x_spinner.value() + 0.5*SQUARE_SIZE_MM), float(self.view.y_spinner.value()+0.5*SQUARE_SIZE_MM))
         self.send_position_async(pos)
 
+    def send_home_async(self):
+        """Send home command to device asynchronously without blocking the UI."""
+        # Wait for any previous thread to finish before starting a new one
+        if self.send_home_thread is not None and self.send_home_thread.isRunning():
+            self.send_home_thread.quit()
+            self.send_home_thread.wait()
+
+        # Create worker and thread
+        self.send_home_worker = SendHomeWorker(self.com)
+        self.send_home_thread = QThread(parent=self)
+        self.send_home_worker.moveToThread(self.send_home_thread)
+        
+        # Connect signals
+        self.send_home_thread.started.connect(self.send_home_worker.run)
+        self.send_home_worker.finished.connect(self.on_send_home_finished)
+        self.send_home_worker.finished.connect(self.send_home_thread.quit)
+        self.send_home_worker.error.connect(self.on_send_home_error)
+        self.send_home_worker.error.connect(self.send_home_thread.quit)
+        
+        # Show waiting dialog and start thread
+        self.active_operations += 1
+        self.waiting_dialog.set_message("Sending home command...\nPlease wait.")
+        self.waiting_dialog.show()
+        self.send_home_thread.start()
+
+    def on_send_home_finished(self):
+        """Handler when send_home completes successfully."""
+        self.active_operations -= 1
+        if self.active_operations <= 0:
+            self.active_operations = 0
+            self.waiting_dialog.hide()
+
+    def on_send_home_error(self, error_msg):
+        """Handler when send_home encounters an error."""
+        self.active_operations -= 1
+        if self.active_operations <= 0:
+            self.active_operations = 0
+            self.waiting_dialog.hide()
+        print(f"Error sending home command: {error_msg}")
+
     def home(self):
         self.x_spinner.setValue(0.0)
         self.y_spinner.setValue(0.0)
-        self.com.go_home()
+        self.send_home_async()
 
     def stop(self):
         self.com.stop()
@@ -339,13 +429,16 @@ class GridView(QWidget):
         self.setStyleSheet("border: 2px solid white;")
 
     def paintEvent(self, event):
-        opt = QStyleOption()
-        opt.initFrom(self)
         painter = QPainter(self)
-        self.style().drawPrimitive(QStyle.PrimitiveElement.PE_Widget, opt, painter, self)
-        dot_pen = QPen(Qt.GlobalColor.red, 6)
-        painter.setPen(dot_pen)
-        painter.drawPoint(int(getattr(self, 'x', 0)), int(getattr(self, 'y', 0)))
+        # Paint background
+        painter.fillRect(self.rect(), Qt.GlobalColor.black)
+        
+        # Paint border
+        border_pen = QPen(Qt.GlobalColor.white, 2)
+        painter.setPen(border_pen)
+        painter.drawRect(0, 0, self.width() - 1, self.height() - 1)
+        
+        # Paint grid lines
         grid_pen = QPen(Qt.GlobalColor.white, 1)
         painter.setPen(grid_pen)
         for i in range(0, round(grid_width_mm), round(grid_width_mm/8.0)):
@@ -358,6 +451,12 @@ class GridView(QWidget):
             end_point = QPoint(round(grid_width_mm), j)
             h_line = QLine(start_point, end_point)
             painter.drawLine(h_line)
+        
+        # Paint the red dot for current position
+        dot_pen = QPen(Qt.GlobalColor.red, 6)
+        painter.setPen(dot_pen)
+        painter.drawPoint(int(getattr(self, 'x', 0)), int(getattr(self, 'y', 0)))
+        
         painter.end()
 
     def mousePressEvent(self, event):
