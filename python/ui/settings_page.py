@@ -42,6 +42,11 @@ class SettingsView(QWidget):
         self._updating_spinners = False
         self.controller = SettingsController(self, com, cam)
         self.init_ui()
+    
+    def cleanup_threads(self):
+        """Clean up all worker threads in the settings page."""
+        if hasattr(self, 'controller'):
+            self.controller.cleanup_threads()
 
     def init_ui(self):
         back_button = QPushButton("Back", self)
@@ -246,7 +251,18 @@ class SettingsController(QObject):
         self.send_position_thread = None
         self.waiting_dialog = WaitingDialog(self.view)
 
+    def cleanup_threads(self):
+        """Clean up all worker threads in the controller."""
+        if self.send_position_thread is not None:
+            if self.send_position_thread.isRunning():
+                print("[INFO] Stopping send_position thread...")
+                self.send_position_thread.quit()
+                self.send_position_thread.wait()
+            self.send_position_thread = None
+            self.send_position_worker = None
+    
     def quit(self):
+        self.cleanup_threads()
         self.game_page_signal.emit(True)
 
     def send_position_async(self, position):
