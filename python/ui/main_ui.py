@@ -3,6 +3,9 @@ The main window is responsible for switching between the different pages and man
 a QStackedWidget."""
 
 from PyQt6.QtWidgets import QMainWindow, QStackedWidget
+import os
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from ui.home_page import HomeView
 from ui.game_page import GameView
@@ -19,6 +22,14 @@ class MainUI(QMainWindow):
         self.cam = cam
 
         self.setWindowTitle("CNChess")
+
+        # Load and apply global QSS stylesheet
+        qss_path = os.path.join(os.path.dirname(__file__), "cnchess_theme.qss")
+        if os.path.exists(qss_path):
+            with open(qss_path, "r", encoding="utf-8") as f:
+                self.setStyleSheet(f.read())
+        else:
+            print(f"Warning: QSS theme file not found at {qss_path}")
 
         # Create the stacked widget to hold the different pages
         self.stacked_widget = QStackedWidget()

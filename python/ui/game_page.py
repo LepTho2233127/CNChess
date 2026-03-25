@@ -360,9 +360,6 @@ class GamePageController(QObject):
         else:
             print(f"Camera processing result: Invalid move detected: {move.uci()}. Waiting for valid move.")
 
-        self.view.white_clock.toggle_timer()
-        self.view.black_clock.toggle_timer()
-
     def on_wait_button_error(self, error_msg):
         """Handler when waiting for button press fails or times out."""
         self.waiting_dialog.hide()
