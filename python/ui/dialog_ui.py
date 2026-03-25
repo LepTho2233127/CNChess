@@ -1,6 +1,6 @@
 import sys
 from PyQt6.QtWidgets import (QApplication, QDialog, QLabel, 
-                             QPushButton, QVBoxLayout, QHBoxLayout, QFrame, QWidget)
+                             QPushButton, QVBoxLayout, QHBoxLayout, QFrame, QWidget, QSizePolicy)
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QPixmap,  QTransform, QPainter
 
@@ -259,14 +259,17 @@ class TurnIndicatorWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFixedHeight(80)
+        # Set a maximum and minimum width to prevent the widget from stretching when gear/message appear
+        self.setMinimumWidth(200)
+        self.setMaximumWidth(400)
         self.current_turn = "white"  # "white" or "black"
         self.is_waiting = False
         self.waiting_message = ""
         
-        # Main layout
+        # Main layout - no stretches to prevent expansion
         self.main_layout = QHBoxLayout(self)
         self.main_layout.setContentsMargins(10, 10, 10, 10)
-        self.main_layout.setSpacing(15)
+        self.main_layout.setSpacing(10)
         
         # Turn text label
         self.turn_label = QLabel("White's Turn")
@@ -284,16 +287,18 @@ class TurnIndicatorWidget(QWidget):
         self.message_label = QLabel("")
         self.message_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.message_label.setVisible(False)
+        self.message_label.setMaximumWidth(250)  # Limit width to prevent stretching
+        self.message_label.setMinimumHeight(40)
+        self.message_label.setWordWrap(True)
+        self.message_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         font = self.message_label.font()
         font.setPointSize(10)
         self.message_label.setFont(font)
         
-        # Add widgets to layout
-        self.main_layout.addStretch()
-        self.main_layout.addWidget(self.turn_label)
-        self.main_layout.addWidget(self.spinning_gear)
-        self.main_layout.addWidget(self.message_label)
-        self.main_layout.addStretch()
+        # Add widgets to layout - centered with limited expansion
+        self.main_layout.addWidget(self.turn_label, 1, Qt.AlignmentFlag.AlignCenter)
+        self.main_layout.addWidget(self.spinning_gear, 0, Qt.AlignmentFlag.AlignCenter)
+        self.main_layout.addWidget(self.message_label, 0, Qt.AlignmentFlag.AlignCenter)
         
         # Set initial background color and text color
         self.update_turn("white")
