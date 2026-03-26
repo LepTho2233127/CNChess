@@ -27,14 +27,18 @@ if __name__ == "__main__":
 
     communication = Communication()
     # Create the Qt application
-    app = QApplication(sys.argv) 
-    
+    app = QApplication(sys.argv)
+
     ui = MainUI(game, control, communication, cam)
-    
+    app.aboutToQuit.connect(ui.cleanup_all_threads)
+
     # Show the window
     ui.show()
-    
-    # Run the application event loop
-    sys.exit(app.exec())
 
-    cam.release()
+    # Run the application event loop and always cleanup resources.
+    exit_code = 0
+    try:
+        exit_code = app.exec()
+    finally:
+        ui.cleanup_all_threads()
+    sys.exit(exit_code)

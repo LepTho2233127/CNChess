@@ -6,6 +6,7 @@ import os
 import sys
 import chess
 import re
+import threading
 
 import math
 
@@ -40,11 +41,19 @@ class SendPathWorker(QObject):
         super().__init__()
         self.communication = communication
         self.path = path
+        self._stop_event = threading.Event()
+
+    def cancel(self):
+        self._stop_event.set()
     
     def run(self):
         """Execute send_path in the worker thread."""
         try:
-            result = self.communication.send_path(self.path)
+            if self._stop_event.is_set():
+                return
+            result = self.communication.send_path(self.path, stop_event=self._stop_event)
+            if self._stop_event.is_set():
+                return
             if not result:
                 self.error.emit("Failed to send path to device")
             else:
@@ -61,11 +70,19 @@ class WaitForButtonWorker(QObject):
     def __init__(self, communication):
         super().__init__()
         self.communication = communication
+        self._stop_event = threading.Event()
+
+    def cancel(self):
+        self._stop_event.set()
 
     def run(self):
         """Execute wait_for_button_press in the worker thread."""
         try:
-            result = self.communication.wait_for_button_press()
+            if self._stop_event.is_set():
+                return
+            result = self.communication.wait_for_button_press(stop_event=self._stop_event)
+            if self._stop_event.is_set():
+                return
             if result:
                 self.finished.emit()
             else:
@@ -191,8 +208,8 @@ class GameView(QWidget):
         right_layout.insertWidget(1,resize_board)
         self.board = resize_board.board_widget
         
-        self.white_clock = ChessClock(initial_time=6, clock_label=self.white_timer_display, color="white")
-        self.black_clock = ChessClock(initial_time=6, clock_label=self.black_timer_display, color="black")
+        self.white_clock = ChessClock(initial_time=600, clock_label=self.white_timer_display, color="white")
+        self.black_clock = ChessClock(initial_time=600, clock_label=self.black_timer_display, color="black")
         self.game_page_controller = GamePageController(chess_game,self, self.control, communication, self.cam)
 
         settings_button.clicked.connect(self.game_page_controller.settings_button_clicked)     
@@ -204,9 +221,10 @@ class GameView(QWidget):
     
     def cleanup_threads(self):
         """Clean up all worker threads in the game page."""
-        self.game_page_controller.wait_for_threads()
+        self.game_page_controller.shutdown()
 
     def setup_board(self):
+        self.game_page_controller.prepare_for_new_game()
         color = self.chess_game.get_player_color()
         self.board.set_player_color(color)
         self.chess_game.reset_game()
@@ -258,6 +276,7 @@ class GamePageController(QObject):
         self.send_path_thread = None
         self.wait_button_worker = None
         self.wait_button_thread = None
+        self._is_shutting_down = False
 
         self.board_widget = self.view.board
         self.board = []
@@ -279,24 +298,29 @@ class GamePageController(QObject):
         self.show_settings_signal.emit()
 
     def quit_game(self):
-        self.wait_for_threads()
+        self.stop_active_workers()
+        self._is_shutting_down = False
         self.return_home_signal.emit()
 
     def wait_for_thread(self):
         """Wait for any running send_path thread to fully finish."""
         if self.send_path_thread is not None:
+            if self.send_path_worker is not None:
+                self.send_path_worker.cancel()
             if self.send_path_thread.isRunning():
                 self.send_path_thread.quit()
-                self.send_path_thread.wait()
+                self.send_path_thread.wait(2000)
             self.send_path_thread = None
             self.send_path_worker = None
 
     def wait_for_button_thread(self):
         """Wait for any running button-wait thread to fully finish."""
         if self.wait_button_thread is not None:
+            if self.wait_button_worker is not None:
+                self.wait_button_worker.cancel()
             if self.wait_button_thread.isRunning():
                 self.wait_button_thread.quit()
-                self.wait_button_thread.wait()
+                self.wait_button_thread.wait(2000)
             self.wait_button_thread = None
             self.wait_button_worker = None
 
@@ -305,8 +329,27 @@ class GamePageController(QObject):
         self.wait_for_thread()
         self.wait_for_button_thread()
 
+    def shutdown(self):
+        """Stop async workers and prevent new operations during app shutdown."""
+        self._is_shutting_down = True
+        self.stop_active_workers()
+
+    def stop_active_workers(self):
+        """Stop current game async operations without locking the controller permanently."""
+        self.view.turn_indicator.hide_waiting()
+        self.stop_clocks()
+        self.wait_for_threads()
+
+    def prepare_for_new_game(self):
+        """Re-arm async operations when entering a fresh game."""
+        self._is_shutting_down = False
+        self.view.turn_indicator.hide_waiting()
+
     def send_path_async(self, path):
         """Send path to device asynchronously without blocking the UI."""
+        if self._is_shutting_down:
+            return
+
         # Wait for any previous thread to finish before starting a new one
         self.wait_for_thread()
 
@@ -328,10 +371,15 @@ class GamePageController(QObject):
 
     def wait_for_button_press_async(self):
         """Wait for physical button press asynchronously without blocking the UI."""
+        if self._is_shutting_down:
+            return
         self._start_button_wait("Waiting for button press...\nPlease play your move.")
 
     def _start_button_wait(self, message: str):
         """Internal method to start waiting for button press with a custom message."""
+        if self._is_shutting_down:
+            return
+
         self.wait_for_button_thread()
 
         self.wait_button_worker = WaitForButtonWorker(self.communication)
@@ -349,6 +397,8 @@ class GamePageController(QObject):
 
     def on_send_path_finished(self):
         """Handler when send_path completes successfully."""
+        if self._is_shutting_down:
+            return
         print("Path sent successfully to device")
         self.view.white_clock.toggle_timer()
         self.view.black_clock.toggle_timer()
@@ -356,6 +406,8 @@ class GamePageController(QObject):
 
     def on_send_path_error(self, error_msg):
         """Handler when send_path encounters an error."""
+        if self._is_shutting_down:
+            return
         self.view.turn_indicator.hide_waiting()
         self.view.white_clock.toggle_timer()
         self.view.black_clock.toggle_timer()
@@ -363,6 +415,8 @@ class GamePageController(QObject):
 
     def on_wait_button_finished(self):
         """Handler when the ESP button press is detected."""
+        if self._is_shutting_down:
+            return
         print("Button press detected")
 
         self.view.turn_indicator.hide_waiting()
@@ -394,6 +448,8 @@ class GamePageController(QObject):
 
     def on_wait_button_error(self, error_msg):
         """Handler when waiting for button press fails or times out."""
+        if self._is_shutting_down:
+            return
         self.view.turn_indicator.hide_waiting()
         self.cam.process_image()
         self.view.white_clock.toggle_timer()
@@ -523,8 +579,10 @@ class GamePageController(QObject):
             if result : 
                 self.return_home_signal.emit()
             else : 
-                self.wait_for_threads()
-                sys.exit()    
+                self.shutdown()
+                app = QApplication.instance()
+                if app is not None:
+                    app.quit()
 
         return game_outcome       
     
@@ -539,8 +597,10 @@ class GamePageController(QObject):
         if result : 
             self.return_home_signal.emit()
         else : 
-            self.wait_for_threads()
-            sys.exit()
+            self.shutdown()
+            app = QApplication.instance()
+            if app is not None:
+                app.quit()
 
     def update_chess_board(self):
 

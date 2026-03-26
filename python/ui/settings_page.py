@@ -1,6 +1,7 @@
 import os
 import sys
 import cv2 
+import threading
 
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
                              QLabel, QSlider, QPushButton, QDoubleSpinBox, QApplication)
@@ -24,11 +25,19 @@ class SendPositionWorker(QObject):
         super().__init__()
         self.communication = communication
         self.position = position
+        self._stop_event = threading.Event()
+
+    def cancel(self):
+        self._stop_event.set()
     
     def run(self):
         """Execute send_position in the worker thread."""
         try:
-            self.communication.send_position(self.position, relative=False)
+            if self._stop_event.is_set():
+                return
+            self.communication.send_position(self.position, relative=False, stop_event=self._stop_event)
+            if self._stop_event.is_set():
+                return
             self.finished.emit()
         except Exception as e:
             self.error.emit(str(e))
@@ -41,11 +50,19 @@ class SendHomeWorker(QObject):
     def __init__(self, communication):
         super().__init__()
         self.communication = communication
+        self._stop_event = threading.Event()
+
+    def cancel(self):
+        self._stop_event.set()
     
     def run(self):
         """Execute go_home in the worker thread."""
         try:
-            self.communication.go_home()
+            if self._stop_event.is_set():
+                return
+            self.communication.go_home(stop_event=self._stop_event)
+            if self._stop_event.is_set():
+                return
             self.finished.emit()
         except Exception as e:
             self.error.emit(str(e))
@@ -272,22 +289,30 @@ class SettingsController(QObject):
         self.send_home_thread = None
         self.waiting_dialog = WaitingDialog(self.view)
         self.active_operations = 0  # Counter to track concurrent operations
+        self._is_shutting_down = False
 
     def cleanup_threads(self):
         """Clean up all worker threads in the controller."""
+        self._is_shutting_down = True
+        self.waiting_dialog.hide()
+
         if self.send_position_thread is not None:
+            if self.send_position_worker is not None:
+                self.send_position_worker.cancel()
             if self.send_position_thread.isRunning():
                 print("[INFO] Stopping send_position thread...")
                 self.send_position_thread.quit()
-                self.send_position_thread.wait()
+                self.send_position_thread.wait(2000)
             self.send_position_thread = None
             self.send_position_worker = None
         
         if self.send_home_thread is not None:
+            if self.send_home_worker is not None:
+                self.send_home_worker.cancel()
             if self.send_home_thread.isRunning():
                 print("[INFO] Stopping send_home thread...")
                 self.send_home_thread.quit()
-                self.send_home_thread.wait()
+                self.send_home_thread.wait(2000)
             self.send_home_thread = None
             self.send_home_worker = None
     
@@ -297,10 +322,15 @@ class SettingsController(QObject):
 
     def send_position_async(self, position):
         """Send position to device asynchronously without blocking the UI."""
+        if self._is_shutting_down:
+            return
+
         # Wait for any previous thread to finish before starting a new one
         if self.send_position_thread is not None and self.send_position_thread.isRunning():
+            if self.send_position_worker is not None:
+                self.send_position_worker.cancel()
             self.send_position_thread.quit()
-            self.send_position_thread.wait()
+            self.send_position_thread.wait(2000)
 
         # Create worker and thread
         self.send_position_worker = SendPositionWorker(self.com, position)
@@ -322,6 +352,8 @@ class SettingsController(QObject):
 
     def on_send_position_finished(self):
         """Handler when send_position completes successfully."""
+        if self._is_shutting_down:
+            return
         self.active_operations -= 1
         if self.active_operations <= 0:
             self.active_operations = 0
@@ -329,6 +361,8 @@ class SettingsController(QObject):
 
     def on_send_position_error(self, error_msg):
         """Handler when send_position encounters an error."""
+        if self._is_shutting_down:
+            return
         self.active_operations -= 1
         if self.active_operations <= 0:
             self.active_operations = 0
@@ -341,10 +375,15 @@ class SettingsController(QObject):
 
     def send_home_async(self):
         """Send home command to device asynchronously without blocking the UI."""
+        if self._is_shutting_down:
+            return
+
         # Wait for any previous thread to finish before starting a new one
         if self.send_home_thread is not None and self.send_home_thread.isRunning():
+            if self.send_home_worker is not None:
+                self.send_home_worker.cancel()
             self.send_home_thread.quit()
-            self.send_home_thread.wait()
+            self.send_home_thread.wait(2000)
 
         # Create worker and thread
         self.send_home_worker = SendHomeWorker(self.com)
@@ -366,6 +405,8 @@ class SettingsController(QObject):
 
     def on_send_home_finished(self):
         """Handler when send_home completes successfully."""
+        if self._is_shutting_down:
+            return
         self.active_operations -= 1
         if self.active_operations <= 0:
             self.active_operations = 0
@@ -373,6 +414,8 @@ class SettingsController(QObject):
 
     def on_send_home_error(self, error_msg):
         """Handler when send_home encounters an error."""
+        if self._is_shutting_down:
+            return
         self.active_operations -= 1
         if self.active_operations <= 0:
             self.active_operations = 0

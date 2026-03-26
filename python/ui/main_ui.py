@@ -20,7 +20,9 @@ class MainUI(QMainWindow):
         super().__init__()
         self.chess_model = chess_model
         self.control = control
+        self.communication = communication
         self.cam = cam
+        self._cleaned_up = False
 
         self.setWindowTitle("CNChess")
 
@@ -74,12 +76,36 @@ class MainUI(QMainWindow):
         event.accept()
     
     def cleanup_all_threads(self):
-        """Terminate all worker threads in all pages before closing."""
+        """Terminate all worker threads and release resources before closing."""
+        if self._cleaned_up:
+            return
+        self._cleaned_up = True
+
+        # First signal communication shutdown so blocked workers can exit quickly.
+        if self.communication is not None:
+            try:
+                self.communication.shutdown()
+            except Exception as e:
+                print(f"[WARN] Communication shutdown failed: {e}")
+
         # Clean up game page threads
-        self.game_page.cleanup_threads()
+        try:
+            self.game_page.cleanup_threads()
+        except Exception as e:
+            print(f"[WARN] Game page cleanup failed: {e}")
         
         # Clean up settings page threads
-        self.settings_page.cleanup_threads()
+        try:
+            self.settings_page.cleanup_threads()
+        except Exception as e:
+            print(f"[WARN] Settings page cleanup failed: {e}")
+
+        # Release camera handle at shutdown.
+        if self.cam is not None:
+            try:
+                self.cam.release()
+            except Exception as e:
+                print(f"[WARN] Camera release failed: {e}")
     
     def __del__(self):
         """Destructor to ensure cleanup on object destruction."""
