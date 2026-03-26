@@ -184,6 +184,21 @@ class Communication:
         
         return self.validate_send_command(expected_responses=("SERVO",), stop_event=stop_event)
 
+    def clear_input_buffer(self):
+        """Clear pending serial input to avoid re-processing stale messages."""
+        if self.ser is None:
+            return
+
+        try:
+            self.ser.reset_input_buffer()
+        except Exception:
+            # Fallback for drivers/environments where reset_input_buffer can fail.
+            try:
+                while self.ser.in_waiting > 0:
+                    self.ser.readline()
+            except Exception:
+                pass
+
     def wait_for_button_press(self, stop_event=None, timeout_seconds=600):
         """
         Wait for a button press signal from ESP-32. This is used to detect when the user has placed a piece on the board.
@@ -192,6 +207,9 @@ class Communication:
         if self.ser is None:
             print("Error: serial port not available")
             return False
+
+        # Drop stale lines (e.g. an old PLAYED) before waiting for a fresh press.
+        self.clear_input_buffer()
 
         start_time = time()
         while True:

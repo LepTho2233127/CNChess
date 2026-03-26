@@ -509,7 +509,7 @@ class Cam:
     
     def initialize_camera(self, calibrate: bool = False):
         """Initializes the camera with maximum quality"""
-        self.cap = cv2.VideoCapture("/dev/video4", cv2.CAP_V4L2)
+        self.cap = cv2.VideoCapture("/dev/video0", cv2.CAP_V4L2)
         
         if not self.cap.isOpened():
             print("[ERROR] Unable to open the camera")

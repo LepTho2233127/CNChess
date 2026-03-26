@@ -7,6 +7,8 @@ import sys
 import chess
 import re
 import threading
+import copy
+
 
 import math
 
@@ -426,7 +428,8 @@ class GamePageController(QObject):
         try:
             move = chess.Move.from_uci(cam_result['move']['uci'])
         except Exception as e:
-            print(f"Caught error while parsing move from camera result: {str(e)}. Camera result was: {cam_result}")
+            print(f"Caught error while parsing move from camera result: {str(e)}.")
+            self._start_button_wait("Error detecting move!\nPlease press the button again to try a valid move.")
             return
         if self.chess_game.validate_move(move):
             moved_piece = self.chess_game.get_board().piece_at(move.from_square)
@@ -443,8 +446,17 @@ class GamePageController(QObject):
                 self.computer_move()
         else:
             print(f"Camera processing result: Invalid move detected: {move.uci()}. Waiting for valid move.")
+            temp_board = chess.Board(self.chess_game.get_board_state())
+            temp_board.push(move)
+            self.control.update_board_state(temp_board.fen())
+            temp = move.from_square
+            move.from_square = move.to_square
+            move.to_square = temp
+            path = self.control.get_path(move, self.chess_game.get_board())
+
+            self.control.print_path(path)
+            self.send_path_async(path)
             # Show error message and wait for next button press
-            self._start_button_wait("Invalid move detected!\nPlease press the button again to try a valid move.")
 
     def on_wait_button_error(self, error_msg):
         """Handler when waiting for button press fails or times out."""
