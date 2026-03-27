@@ -3,7 +3,7 @@ import sys
 import cv2 
 
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
-                             QLabel, QSlider, QPushButton, QDoubleSpinBox, QApplication)
+                             QLabel, QPushButton, QDoubleSpinBox, QApplication)
 from PyQt6.QtCore import QLine, QPoint, Qt, pyqtSignal, QObject, QThread
 from PyQt6.QtGui import QPainter, QPen, QPixmap
 

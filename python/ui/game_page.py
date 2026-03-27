@@ -11,16 +11,15 @@ import math
 
 from PyQt6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QApplication, QSizePolicy, QListWidget, QListWidgetItem, QDialog
 from PyQt6.QtCore import QObject, pyqtSignal, QSize, QThread, Qt, QPointF, QTimer
-from PyQt6.QtGui import QPixmap, QIcon, QColor, QPainter, QPen, QPolygonF
+from PyQt6.QtGui import QIcon, QColor, QPainter, QPen, QPolygonF
 from PyQt6 import uic
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
 
-from Communication import Communication
 from Control import Control
-from ui.dialog_ui import WinnerDialog, DrawDialog, WaitingDialog, TurnIndicatorWidget
+from ui.dialog_ui import WinnerDialog, DrawDialog, TurnIndicatorWidget
 
 
 LIGHT_SQUARE_COLOR = "#F0D9B5"
@@ -522,6 +521,7 @@ class GamePageController(QObject):
             #If want to play again switch to home page
             if result : 
                 self.return_home_signal.emit()
+                self.reset_board()
             else : 
                 self.wait_for_threads()
                 sys.exit()    
@@ -629,10 +629,14 @@ class GamePageController(QObject):
 
     def reset_board(self):
         self.chess_game.reset_game()
+        state = self.chess_game.get_board_state()
         self.reset_score()
         self.clear_list()
         self.board_widget.clear_trajectory()
-        self.board_widget.update_board(self.chess_game.get_board_state())
+        self.board_positions = []
+        self.board_positions.append(state)  # Store the initial board state
+        self.board_positions_index = 0
+        self.board_widget.update_board(state)
         self.board_widget.paint_board()
         self.selected_square = None  # Reset selected square when resetting the board
         self.view.white_clock.reset_clock()
