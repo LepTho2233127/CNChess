@@ -509,7 +509,7 @@ class Cam:
     
     def initialize_camera(self, calibrate: bool = False):
         """Initializes the camera with maximum quality"""
-        self.cap = cv2.VideoCapture("/dev/video0", cv2.CAP_V4L2)
+        self.cap = cv2.VideoCapture("/dev/video4", cv2.CAP_V4L2)
         
         if not self.cap.isOpened():
             print("[ERROR] Unable to open the camera")
@@ -543,6 +543,14 @@ class Cam:
         
         return True
     
+    def recalibrate_from_UI(self):
+
+        self.calibrate_from_camera()
+        
+        calibration_points = self.load_calibration()
+        self.transform = ChessBoardTransform(calibration_points, self.board_size)
+        self.transform.compute_transform_matrix()
+
     def calibrate_from_camera(self):
         """Launches calibration from camera on a single photo"""
         print("[INFO] Starting calibration from camera...")

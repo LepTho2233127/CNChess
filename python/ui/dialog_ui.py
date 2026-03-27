@@ -288,10 +288,10 @@ class TurnIndicatorWidget(QWidget):
         self.message_label = QLabel("")
         self.message_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.message_label.setVisible(False)
-        self.message_label.setMaximumWidth(400)  # Limit width to prevent stretching
-        self.message_label.setMinimumHeight(40)
-        self.message_label.setStyleSheet("border: none;")  # Light text color for visibility on both backgrounds
-        #self.message_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.message_label.setWordWrap(True)
+        self.message_label.setMinimumHeight(60)
+        self.message_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.message_label.setStyleSheet("border: none;")
         font = self.message_label.font()
         font.setPointSize(10)
         self.message_label.setFont(font)
@@ -347,12 +347,7 @@ class TurnIndicatorWidget(QWidget):
         def __init__(self):
             super().__init__()
             self.setFixedSize(50, 50)
-            original_image = QPixmap("ui/assets/gear_icon.png")
-            self.gear_image = original_image.scaled(
-                50, 50, 
-                Qt.AspectRatioMode.KeepAspectRatio, 
-                Qt.TransformationMode.SmoothTransformation
-            )
+            self.set_image("ui/assets/gear_icon.png")
             self.angle = 0
             
             # Animation timer
@@ -378,6 +373,74 @@ class TurnIndicatorWidget(QWidget):
             offset_y = int(-self.gear_image.height() / 2)
             painter.drawPixmap(offset_x, offset_y, self.gear_image)
 
+        def set_image(self, image_path):
+            """Update the gear image (optional method for future use)."""
+            original_image = QPixmap(image_path)
+            self.gear_image = original_image.scaled(
+                50, 50, 
+                Qt.AspectRatioMode.KeepAspectRatio, 
+                Qt.TransformationMode.SmoothTransformation
+            )
+
+
+class InvalidMoveDialog(QDialog):
+    """Dialog showing invalid move message that automatically closes after 2 seconds."""
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Dialog)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.setFixedSize(300, 150)
+        self.setModal(True)
+        
+        self.container = QFrame(self)
+        self.container.setFixedSize(self.width(), self.height())
+        
+        # --- Custom Styling ---
+        self.container.setStyleSheet("""
+            QFrame {
+                background-color: #8B0000; /* Dark red background */
+                border: 2px solid #FF4444; /* Red border */
+                border-radius: 15px;       
+            }
+            QLabel {
+                color: #ffffff;
+                border: none;
+            }
+        """)
+        
+        main_layout = QVBoxLayout(self.container)
+        
+        self.label = QLabel("INVALID MOVE")
+        self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        font = self.label.font()
+        font.setPointSize(18)
+        font.setBold(True)
+        self.label.setFont(font)
+        
+        main_layout.addWidget(self.label)
+        
+        dialog_layout = QVBoxLayout(self)
+        dialog_layout.setContentsMargins(0, 0, 0, 0)
+        dialog_layout.addWidget(self.container)
+        
+        # Timer to auto-close after 2 seconds
+        self.close_timer = QTimer(self)
+        self.close_timer.timeout.connect(self.reject)
+        self.close_timer.setSingleShot(True)
+        self.close_timer.start(2000)  # 2000 milliseconds = 2 seconds
+        
+        # Center the dialog on parent
+        if parent:
+            parent_geometry = parent.geometry()
+            self.move(
+                parent_geometry.left() + (parent_geometry.width() - 300) // 2,
+                parent_geometry.top() + (parent_geometry.height() - 150) // 2
+            )
+
+
 # --- Example Usage ---
 if __name__ == "__main__":
     app = QApplication(sys.argv)
@@ -388,4 +451,7 @@ if __name__ == "__main__":
     result = dialog.exec()
 
     dialog = WaitingDialog()
+    result = dialog.exec()
+
+    dialog = InvalidMoveDialog()
     result = dialog.exec()

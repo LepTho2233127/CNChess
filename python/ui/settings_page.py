@@ -453,7 +453,7 @@ class SettingsController(QObject):
         self.view.last_pic.setPixmap(image)
     
     def calibrate_camera(self):
-        self.cam.initialize_camera(calibrate=True)
+        self.cam.recalibrate_from_UI()
         
 class GridView(QWidget):
 

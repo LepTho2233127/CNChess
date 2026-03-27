@@ -23,7 +23,7 @@ if parent_dir not in sys.path:
 
 from Communication import Communication
 from Control import Control
-from ui.dialog_ui import WinnerDialog, DrawDialog, WaitingDialog, TurnIndicatorWidget
+from ui.dialog_ui import WinnerDialog, DrawDialog, WaitingDialog, TurnIndicatorWidget, InvalidMoveDialog
 
 
 LIGHT_SQUARE_COLOR = "#F0D9B5"
@@ -291,6 +291,7 @@ class GamePageController(QObject):
         self.communication = communication
 
         self.selected_piece = None  # Track the currently selected piece for move selection
+        self.last_path_was_move = False  # Track if last send_path was a valid move or move reversal
         self.board_widget.squared_clicked_signal.connect(self.handle_square_click)
         self.start_game_black_signal.connect(self.computer_move)
         self.view.white_clock.outOfTime_signal.connect(self.outOfTime)
@@ -347,10 +348,17 @@ class GamePageController(QObject):
         self._is_shutting_down = False
         self.view.turn_indicator.hide_waiting()
 
-    def send_path_async(self, path):
-        """Send path to device asynchronously without blocking the UI."""
+    def send_path_async(self, path, is_valid_move=True):
+        """Send path to device asynchronously without blocking the UI.
+        
+        Args:
+            path: The path to send to the device
+            is_valid_move: True if this is a valid move path, False if it's a move reversal
+        """
         if self._is_shutting_down:
             return
+        
+        self.last_path_was_move = is_valid_move
 
         # Wait for any previous thread to finish before starting a new one
         self.wait_for_thread()
@@ -402,9 +410,15 @@ class GamePageController(QObject):
         if self._is_shutting_down:
             return
         print("Path sent successfully to device")
-        self.view.white_clock.toggle_timer()
-        self.view.black_clock.toggle_timer()
-        self.wait_for_button_press_async()
+        
+        # Only toggle timers if this was a valid move path, not a move reversal
+        if self.last_path_was_move:
+            self.view.white_clock.toggle_timer()
+            self.view.black_clock.toggle_timer()
+            self.wait_for_button_press_async()
+        else:
+            # This was a move reversal for an invalid move - just wait for next button press
+            self._start_button_wait("Invalid move reversed.\nPlease press button to try again.")
 
     def on_send_path_error(self, error_msg):
         """Handler when send_path encounters an error."""
@@ -445,6 +459,8 @@ class GamePageController(QObject):
             if not game_outcome :
                 self.computer_move()
         else:
+            invalid_dialog = InvalidMoveDialog()
+            invalid_dialog.exec()
             print(f"Camera processing result: Invalid move detected: {move.uci()}. Waiting for valid move.")
             temp_board = chess.Board(self.chess_game.get_board_state())
             temp_board.push(move)
@@ -455,8 +471,8 @@ class GamePageController(QObject):
             path = self.control.get_path(move, self.chess_game.get_board())
 
             self.control.print_path(path)
-            self.send_path_async(path)
-            # Show error message and wait for next button press
+            # Send the reversal path but mark it as NOT a valid move (so timers won't be toggled)
+            self.send_path_async(path, is_valid_move=False)
 
     def on_wait_button_error(self, error_msg):
         """Handler when waiting for button press fails or times out."""
