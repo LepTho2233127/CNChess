@@ -21,6 +21,7 @@ class MainUI(QMainWindow):
         self.chess_model = chess_model
         self.control = control
         self.cam = cam
+        self.last_page = "home"
 
         self.setWindowTitle("CNChess")
 
@@ -51,21 +52,28 @@ class MainUI(QMainWindow):
         self.home_page.home_page_controller.settings_signal.connect(self.switch_to_settings_page)
         self.game_page.game_page_controller.show_settings_signal.connect(self.switch_to_settings_page)
         self.game_page.game_page_controller.return_home_signal.connect(self.switch_to_home_page)
-        self.settings_page.controller.game_page_signal.connect(self.switch_to_game_page)
+        self.settings_page.controller.back_button_signal.connect(self.back_button_settings_page)
         self.game_page.game_page_controller.send_gantry_position.connect(self.settings_page.update_coord)
 
 
     def switch_to_home_page(self):
+        self.last_page = "home"
         self.stacked_widget.setCurrentWidget(self.home_page)
         self.game_page.game_page_controller.reset_board()
 
-    def switch_to_game_page(self, game_started=False):
+    def switch_to_game_page(self):
+        self.last_page = "game"
         self.stacked_widget.setCurrentWidget(self.game_page)
-        if not game_started:
-            self.game_page.setup_board()
+        self.game_page.setup_board()
       
     def switch_to_settings_page(self):
         self.stacked_widget.setCurrentWidget(self.settings_page)
+
+    def back_button_settings_page(self):
+        if self.last_page == "game":
+            self.stacked_widget.setCurrentWidget(self.game_page)    
+        else :
+            self.stacked_widget.setCurrentWidget(self.home_page)    
     
     def closeEvent(self, event):
         """Clean up all threads when the application window is closed."""
