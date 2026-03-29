@@ -15,9 +15,11 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout_GameMain" stretch="0,0">
-     <item>
-      <layout class="QVBoxLayout" name="layout_Left">
+    <widget class="QFrame" name="mainGameFrame">
+     <layout class="QHBoxLayout" name="horizontalLayout_GameMain" stretch="0,0">
+      <item>
+       <widget class="QFrame" name="leftPanelFrame">
+        <layout class="QVBoxLayout" name="layout_Left">
        <item>
         <widget class="QLabel" name="labelHistory">
          <property name="text">
@@ -84,9 +86,11 @@ QPushButton:pressed {
         </layout>
        </item>
       </layout>
-     </item>
-     <item>
-      <layout class="QVBoxLayout" name="rightLayout" stretch="0,0,0">
+       </widget>
+      </item>
+      <item>
+       <widget class="QFrame" name="rightPanelFrame">
+        <layout class="QVBoxLayout" name="rightLayout" stretch="0,0,0">
        <item>
         <layout class="QHBoxLayout" name="layout_Timers" stretch="0,0,1,0,0,0">
          <property name="spacing">
@@ -182,8 +186,10 @@ QPushButton:pressed {
         </layout>
        </item>
       </layout>
-     </item>
-    </layout>
+       </widget>
+      </item>
+     </layout>
+    </widget>
    </item>
   </layout>
  </widget>
