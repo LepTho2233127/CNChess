@@ -4,17 +4,10 @@ It contains buttons to choose difficulty, start a new game, and view settings ""
 import os
 import sys
 import chess
-from PyQt6.QtWidgets import QWidget, QPushButton, QApplication, QLabel, QVBoxLayout, QHBoxLayout, QRadioButton, QButtonGroup
-from PyQt6.QtGui import QIcon, QPixmap
-from PyQt6.QtCore import QObject, QSize, Qt, pyqtSignal
+from PyQt6.QtWidgets import QWidget, QPushButton, QApplication, QLabel, QVBoxLayout, QHBoxLayout, QRadioButton, QButtonGroup, QToolButton
+from PyQt6.QtGui import QIcon, QPixmap, QImage, QPainter, QColor
+from PyQt6.QtCore import QObject, QSize, Qt, pyqtSignal, QTimer
 from PyQt6 import uic
-
-# Ensure the parent package (python/) is on sys.path so CNChess can be imported
-parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-if parent_dir not in sys.path:
-    sys.path.insert(0, parent_dir)
-
-# from CNChess import CNChess
 
 class HomeView(QWidget):
 
@@ -23,6 +16,17 @@ class HomeView(QWidget):
         super().__init__()
         self.chess_model = chess_model
         self.home_page_controller = HomePageController(chess_model)
+        self._difficulty_buttons: list[QToolButton] = []
+        self._difficulty_icon_paths: dict[str, str] = {}
+        self._difficulty_trimmed_images: dict[str, QImage] = {}
+        self._difficulty_icon_cache: dict[tuple[str, int, bool], QIcon] = {}
+        self._difficulty_last_side: int | None = None
+        self._difficulty_last_checked: dict[str, bool] = {}
+
+        self._difficulty_update_pending = False
+        self._difficulty_update_timer = QTimer(self)
+        self._difficulty_update_timer.setSingleShot(True)
+        self._difficulty_update_timer.timeout.connect(self._update_difficulty_buttons)
         self.init_ui()
     
     def init_ui(self):
@@ -37,7 +41,6 @@ class HomeView(QWidget):
         color_layout = self.build_color_buttons()
         menu_layout = self.build_menu_buttons()
         
-
         hbox_layout = QHBoxLayout()
         hbox_layout.addStretch(20)
         hbox_layout.addLayout(color_layout)
@@ -53,48 +56,160 @@ class HomeView(QWidget):
         main_layout.addLayout(hbox_layout)
         self.setLayout(main_layout)
 
-        # Load the UI from the .ui file
-        # ui_path = os.path.join(os.path.dirname(__file__), 'homePage.ui')
+        self._update_difficulty_buttons()
 
-        # if not os.path.exists(ui_path):
-        #     raise FileNotFoundError(f"UI file not found at path: {ui_path}")
+    def _get_trimmed_image(self, image_path: str) -> QImage | None:
+        cached = self._difficulty_trimmed_images.get(image_path)
+        if cached is not None:
+            return cached
 
-        # uic.loadUi(ui_path, self)
+        pixmap = QPixmap(image_path)
+        if pixmap.isNull():
+            return None
 
-        # easy_button = self.findChild(QPushButton, "easyButton")
-        # medium_button = self.findChild(QPushButton, "intermediateButton")
-        # hard_button = self.findChild(QPushButton, "hardButton")
-        # white_button = self.findChild(QPushButton, "whiteButton")
-        # black_button = self.findChild(QPushButton, "blackButton")
-        # startButton = self.findChild(QPushButton, "startButton")
+        image = pixmap.toImage().convertToFormat(QImage.Format.Format_ARGB32)
+        rect = image.rect()
+        left = rect.right()
+        right = rect.left()
+        top = rect.bottom()
+        bottom = rect.top()
+        found = False
+
+        alpha_threshold = 10
+        for y in range(rect.top(), rect.bottom() + 1):
+            for x in range(rect.left(), rect.right() + 1):
+                if image.pixelColor(x, y).alpha() > alpha_threshold:
+                    found = True
+                    if x < left:
+                        left = x
+                    if x > right:
+                        right = x
+                    if y < top:
+                        top = y
+                    if y > bottom:
+                        bottom = y
+
+        if found and right >= left and bottom >= top:
+            image = image.copy(left, top, (right - left + 1), (bottom - top + 1))
+
+        self._difficulty_trimmed_images[image_path] = image
+        return image
+
+    def _make_filled_square_icon(self, image_path: str, target_size: QSize, *, darken: bool = False) -> QIcon:
+        side = int(target_size.width())
+        cache_key = (image_path, side, darken)
+        cached_icon = self._difficulty_icon_cache.get(cache_key)
+        if cached_icon is not None:
+            return cached_icon
+
+        trimmed = self._get_trimmed_image(image_path)
+        if trimmed is None:
+            return QIcon()
+
+        pixmap = QPixmap.fromImage(trimmed)
+
+        scaled = pixmap.scaled(
+            target_size,
+            Qt.AspectRatioMode.KeepAspectRatioByExpanding,
+            Qt.TransformationMode.SmoothTransformation,
+        )
+
+        x = max(0, (scaled.width() - target_size.width()) // 2)
+        y = max(0, (scaled.height() - target_size.height()) // 2)
+        cropped = scaled.copy(x, y, target_size.width(), target_size.height())
+
+        if darken:
+            painter = QPainter(cropped)
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceAtop)
+            painter.fillRect(cropped.rect(), QColor(0, 0, 0, 110))
+            painter.end()
+
+        icon = QIcon(cropped)
+        self._difficulty_icon_cache[cache_key] = icon
+        return icon
+
+    def _update_difficulty_buttons(self) -> None:
+        self._difficulty_update_pending = False
+        if not self._difficulty_buttons:
+            return
+
+        # Estimate a responsive square size based on current window width.
+        # Keep it within a sensible range so it doesn't get huge.
+        side = int((self.width() - 200) / 3)
+        side = max(90, min(220, side))
+        target = QSize(side, side)
+
+        checked_now = {b.objectName(): b.isChecked() for b in self._difficulty_buttons}
+        if self._difficulty_last_side == side and self._difficulty_last_checked == checked_now:
+            return
+
+        self._difficulty_last_side = side
+        self._difficulty_last_checked = checked_now
+
+        for button in self._difficulty_buttons:
+            button.setFixedSize(target)
+            button.setIconSize(target)
+            path = self._difficulty_icon_paths.get(button.objectName())
+            if path:
+                button.setIcon(self._make_filled_square_icon(path, target, darken=button.isChecked()))
+
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        # Coalesce frequent resize events
+        if not self._difficulty_update_pending:
+            self._difficulty_update_pending = True
+        self._difficulty_update_timer.start(40)
 
     def build_level_buttons(self):
         
         level_button_size = QSize(175, 175)
 
-        easy_button = QRadioButton(self)
-        easy_path = os.path.join(os.path.dirname(__file__), "assets", "beginner_icon.png")
-        easy_pixmap = QPixmap(easy_path)
-        easy_icon = QIcon(easy_pixmap)
+        easy_button = QToolButton(self)
+        easy_button.setObjectName("difficultyEasy")
+        easy_button.setCheckable(True)
+        easy_button.setAutoRaise(True)
+        easy_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
+        easy_path = os.path.join(os.path.dirname(__file__), "assets", "easy_icon.png")
+        self._difficulty_icon_paths[easy_button.objectName()] = easy_path
+        easy_icon = self._make_filled_square_icon(easy_path, level_button_size)
         easy_button.setIcon(easy_icon)
         easy_button.setIconSize(level_button_size)
-        # easy_button.setFixedSize(level_button_size)
+        easy_button.setFixedSize(level_button_size)
+        easy_button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
-        medium_button = QRadioButton(self)
+        medium_button = QToolButton(self)
+        medium_button.setObjectName("difficultyMedium")
+        medium_button.setCheckable(True)
+        medium_button.setAutoRaise(True)
+        medium_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
         medium_path = os.path.join(os.path.dirname(__file__), "assets", "intermediate_icon.png")
-        medium_pixmap = QPixmap(medium_path)
-        medium_icon = QIcon(medium_pixmap)
+        self._difficulty_icon_paths[medium_button.objectName()] = medium_path
+        medium_icon = self._make_filled_square_icon(medium_path, level_button_size)
         medium_button.setIcon(medium_icon)
         medium_button.setIconSize(level_button_size)
-        # medium_button.setFixedSize(level_button_size)
+        medium_button.setFixedSize(level_button_size)
+        medium_button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
-        hard_button = QRadioButton(self)
-        hard_path = os.path.join(os.path.dirname(__file__), "assets", "expert_icon.png")
-        hard_pixmap = QPixmap(hard_path)
-        hard_icon = QIcon(hard_pixmap)
+        hard_button = QToolButton(self)
+        hard_button.setObjectName("difficultyHard")
+        hard_button.setCheckable(True)
+        hard_button.setAutoRaise(True)
+        hard_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
+        hard_path = os.path.join(os.path.dirname(__file__), "assets", "hard_icon.png")
+        self._difficulty_icon_paths[hard_button.objectName()] = hard_path
+        hard_icon = self._make_filled_square_icon(hard_path, level_button_size)
         hard_button.setIcon(hard_icon)
         hard_button.setIconSize(level_button_size)
-        # hard_button.setFixedSize(level_button_size)
+        hard_button.setFixedSize(level_button_size)
+        hard_button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+
+        self._difficulty_buttons = [easy_button, medium_button, hard_button]
+
+        # Update icons whenever selection changes (checked state)
+        easy_button.toggled.connect(lambda _checked: self._update_difficulty_buttons())
+        medium_button.toggled.connect(lambda _checked: self._update_difficulty_buttons())
+        hard_button.toggled.connect(lambda _checked: self._update_difficulty_buttons())
 
         easy_button.clicked.connect(self.home_page_controller.easy_button_clicked)
         medium_button.clicked.connect(self.home_page_controller.medium_button_clicked)
@@ -126,7 +241,6 @@ class HomeView(QWidget):
         white_icon = QIcon(white_pixmap)
         white_button.setIcon(white_icon)
         white_button.setIconSize(color_button_size)
-        # white_button.setFixedSize(color_button_size)
 
         black_button = QRadioButton(self)
         black_path = os.path.join(os.path.dirname(__file__), "assets", "chess_assets", "pieces_png", "black-pawn.png")
@@ -134,7 +248,6 @@ class HomeView(QWidget):
         black_icon = QIcon(black_pixmap)
         black_button.setIcon(black_icon)
         black_button.setIconSize(color_button_size)
-        # black_button.setFixedSize(color_button_size)
 
         white_button.clicked.connect(self.home_page_controller.white_button_clicked)
         black_button.clicked.connect(self.home_page_controller.black_button_clicked)
@@ -200,7 +313,6 @@ class HomePageController(QObject):
 
 if __name__ == "__main__":
 
-    # game = CNChess()
     controller = HomePageController(None)
 
     app = QApplication(sys.argv)
