@@ -4,6 +4,7 @@ a QStackedWidget."""
 
 from PyQt6.QtWidgets import QMainWindow, QStackedWidget
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QKeySequence, QShortcut
 import os
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -67,7 +68,39 @@ class MainUI(QMainWindow):
         self.settings_page.controller.back_button_signal.connect(self.back_button_settings_page)
         self.game_page.game_page_controller.send_gantry_position.connect(self.settings_page.update_coord)
 
+        QShortcut(QKeySequence.StandardKey.Quit, self, activated=self.close)
+        QShortcut(QKeySequence("F11"), self, activated=self.toggle_fullscreen)
+
         self.showFullScreen()
+
+    def toggle_fullscreen(self):
+        """Toggle fullscreen mode for the main window.
+
+        Args:
+            None
+
+        Return:
+            None
+        """
+        if self.isFullScreen():
+            self.showNormal()
+        else:
+            self.showFullScreen()
+
+    def keyPressEvent(self, event):
+        """Handle key presses for fullscreen escape.
+
+        Args:
+            event: QKeyEvent instance.
+
+        Return:
+            None
+        """
+       
+        if event.key() == Qt.Key.Key_Escape and self.isFullScreen():
+            self.close()
+            return
+        super().keyPressEvent(event)
 
     def switch_to_home_page(self):
         """Switch the main window display to the home page and reset the game board.
