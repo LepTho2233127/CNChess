@@ -7,28 +7,65 @@ import chess
 
 # Here is all the object for a* pathfinding algorithm
 class Position:
+    """Represents a 2D position point with x and y coordinates."""
     x: float
     y: float
 
     def __init__(self, x: float, y: float):
+        """Initialize position with x and y coordinates.
+        
+        Args:
+            x (float): X coordinate value.
+            y (float): Y coordinate value.
+        
+        Return:
+            None
+        """
         self.x = x
         self.y = y
 
     def __eq__(self, value):
+        """Compare two positions for equality.
+        
+        Args:
+            value (Position): Position to compare with.
+        
+        Return:
+            bool: True if positions are equal, False otherwise.
+        """
         return self.x == value.x and self.y == value.y
 
     def __hash__(self):
+        """Return hash of position for use in sets/dicts during pathfinding.
+        
+        Args:
+            None
+        
+        Return:
+            int: Hash value of the position.
+        """
         return hash((self.x, self.y))
     
 class Command:
+    """Represents a movement command with position and magnet state."""
     position: Position
     magnet_state: bool
+    
     def __init__(self, position: Position = Position(0.0, 0.0), magnet_state: bool = False):
+        """Initialize command with position and magnet state.
+        
+        Args:
+            position (Position): Target position for movement.
+            magnet_state (bool): Magnet state (True for on, False for off).
+        
+        Return:
+            None
+        """
         self.position = position
         self.magnet_state = magnet_state
 
 class Node:
-
+    """Represents a node in A* pathfinding grid with costs and neighbors."""
     position: Position
     gCost: float
     hCost: float
@@ -37,6 +74,14 @@ class Node:
     neighbors: list['Node']
 
     def __init__(self, position: Position = Position(0.0, 0.0)):
+        """Initialize pathfinding node with position and costs.
+        
+        Args:
+            position (Position): Node position on grid.
+        
+        Return:
+            None
+        """
         self.position = position
         self.gCost = 0.0
         self.hCost = 0.0
@@ -45,19 +90,44 @@ class Node:
         self.neighbors = []
 
     def __eq__(self, value):
+        """Compare nodes by position.
+        
+        Args:
+            value (Node): Node to compare with.
+        
+        Return:
+            bool: True if positions are equal, False otherwise.
+        """
         return self.position == value.position
 
     def __hash__(self):
-        # Hash by position so Nodes can live in sets/dicts during pathfinding
+        """Return hash of node by position for set/dict storage.
+        
+        Args:
+            None
+        
+        Return:
+            int: Hash value of the node's position.
+        """
         return hash(self.position)
 
-class Grid:   
+class Grid:
+    """A* pathfinding grid for motion planning on chess board."""
     nodes: list[list[Node]]
     width: int
     height: int
     obstacle_remove_position: Position
 
     def __init__(self, width: int, height: int):
+        """Initialize A* pathfinding grid with nodes.
+        
+        Args:
+            width (int): Grid width in squares.
+            height (int): Grid height in squares.
+        
+        Return:
+            None
+        """
         self.obstacle_remove_position = Position(0.5, 5.5)  # Position to remove obstacle for captured pieces
         self.width = width * 2 + 1
         self.height = height * 2 + 1
@@ -65,11 +135,27 @@ class Grid:
         self.nodes = [[Node(Position((x + 1) / 2, (y + 1) / 2)) for x in range(self.width)] for y in range(self.height)]
     
     def get_node(self, position: Position) -> Node:
+        """Return node at given position, or None if out of bounds.
+        
+        Args:
+            position (Position): Position to retrieve node from.
+        
+        Return:
+            Node: Node at position, or None if invalid.
+        """
         if position.x < 0.5 or position.x > self.width/2 or position.y < 0.5 or position.y > self.height/2:
             return None
         return self.nodes[int(position.y*2)-1][int(position.x*2)-1]
     
     def get_neighbors(self, node: Node) -> list[Node]:
+        """Get neighboring nodes for pathfinding (4-directional or 8-directional).
+        
+        Args:
+            node (Node): Node to get neighbors for.
+        
+        Return:
+            list[Node]: List of valid neighboring nodes.
+        """
         neighbors = []
         if (node.position.x % 1 == 0 and node.position.y % 1 != 0) or (node.position.x % 1 != 0 and node.position.y % 1 == 0):
             # direction without diagonals
@@ -89,25 +175,67 @@ class Grid:
         return neighbors
 
     def initialize_links(self):
+        """Set up neighbor relationships for all nodes in grid.
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
         for i in range(self.height):
             for j in range(self.width):
                 node = self.nodes[i][j]
                 node.neighbors = self.get_neighbors(node)
 
     def add_obstacle(self, position: Position):
+        """Add obstacle by removing all neighbors from node.
+        
+        Args:
+            position (Position): Position to add obstacle at.
+        
+        Return:
+            None
+        """
         node = self.get_node(position)
         if node:
             node.neighbors = []  # Remove all neighbors to create an obstacle
     
     def remove_obstacle(self, position: Position):
+        """Remove obstacle by restoring neighbors to node.
+        
+        Args:
+            position (Position): Position to remove obstacle from.
+        
+        Return:
+            None
+        """
         node = self.get_node(position)
         if node:
             node.neighbors = self.get_neighbors(node)  # Restore neighbors to remove obstacle
 
     def heuristic(a: Node, b: Node) -> float:
+        """Calculate Euclidean heuristic distance between two nodes.
+        
+        Args:
+            a (Node): First node.
+            b (Node): Second node.
+        
+        Return:
+            float: Heuristic distance between nodes.
+        """
         return np.sqrt((a.position.x - b.position.x) ** 2 + (a.position.y - b.position.y) ** 2)
     
     def a_star(self, start_pos: Position, end_pos: Position) -> list[Position]:
+        """Perform A* pathfinding algorithm between start and end positions.
+        
+        Args:
+            start_pos (Position): Starting position.
+            end_pos (Position): Ending position.
+        
+        Return:
+            list[Position]: List of positions forming the path, or empty list if no path exists.
+        """
         start_node = self.get_node(start_pos)
         end_node = self.get_node(end_pos)
 
@@ -162,6 +290,14 @@ class Grid:
         return []  # No path found
     
     def update_obstacles(self, boardState: str):
+        """Update obstacles in grid based on current board state.
+        
+        Args:
+            boardState (str): FEN notation of board state.
+        
+        Return:
+            None
+        """
         board = chess.Board(boardState)
         for i in range(8):
             for j in range(8):
@@ -173,22 +309,56 @@ class Grid:
                     self.remove_obstacle(position)
 
     def is_obstacle(self, position: Position) -> bool:
+        """Check if position contains an obstacle.
+        
+        Args:
+            position (Position): Position to check.
+        
+        Return:
+            bool: True if position is an obstacle, False otherwise.
+        """
         node = self.get_node(position)
         if node:
             return len(node.neighbors) == 0
         return False
 
 class Control:
+    """Physical control system for chess board movement and pathfinding."""
     grid: Grid
 
     def __init__(self):
+        """Initialize control system with 8x8 grid for pathfinding.
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
         self.grid = Grid(8, 8)
         self.grid.initialize_links()
 
     def update_board_state(self, boardState: str):
+        """Update grid obstacles from board state.
+        
+        Args:
+            boardState (str): FEN notation of board state.
+        
+        Return:
+            None
+        """
         self.grid.update_obstacles(boardState)
     
     def get_path(self, move: chess.Move, board: chess.Board) -> list[Command]:
+        """Generate movement commands for a chess move using pathfinding.
+        
+        Args:
+            move (chess.Move): Chess move to generate path for.
+            board (chess.Board): Current board state.
+        
+        Return:
+            list[Command]: List of commands with positions and magnet states to execute move.
+        """
         start_x = chess.square_file(move.from_square) + 1
         start_y = chess.square_rank(move.from_square) + 1
         end_x = chess.square_file(move.to_square) + 1
@@ -254,6 +424,14 @@ class Control:
     
 
     def optimize_path(self, path: list[Command]) -> list[Command]:
+        """Remove unnecessary waypoints from path by eliminating collinear points.
+        
+        Args:
+            path (list[Command]): Input path with all waypoints.
+        
+        Return:
+            list[Command]: Optimized path with collinear points removed.
+        """
         if not path:
             return []
         
@@ -274,6 +452,14 @@ class Control:
         return optimized_path
 
     def print_path(self, path: list[Command]):
+        """Print path waypoints for debugging purposes.
+        
+        Args:
+            path (list[Command]): Path to print.
+        
+        Return:
+            None
+        """
         for cmd in path:
             pos = cmd.position
             print(f"({pos.x}, {pos.y})", end=" -> ")

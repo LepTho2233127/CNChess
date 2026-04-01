@@ -8,8 +8,6 @@ import chess
 import re
 import threading
 import copy
-
-
 import math
 
 from PyQt6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QApplication, QSizePolicy, QListWidget, QListWidgetItem, QDialog, QToolButton
@@ -92,11 +90,20 @@ class WaitForButtonWorker(QObject):
             self.error.emit(f"Error while waiting for button press: {str(e)}")
 
 class ChessClock(QWidget):
-
+    """Chess clock widget with automatic countdown timer."""
     outOfTime_signal = pyqtSignal(str)  # Signal to indicate which player ran out of time ("white" or "black")
 
     def __init__(self, initial_time, clock_label, color="white"):
-        """Initial time in seconds"""
+        """Initialize chess clock with initial time and display label.
+        
+        Args:
+            initial_time (int): Initial time in seconds.
+            clock_label (QLabel): Label widget to display time.
+            color (str): Clock color identification ("white" or "black").
+        
+        Return:
+            None
+        """
         super().__init__()
         self.timer = QTimer()
         self.time_left = initial_time
@@ -118,44 +125,89 @@ class ChessClock(QWidget):
     """)
 
     def tick(self):
+        """Decrement time and emit signal when time runs out.
         
+        Args:
+            None
+        
+        Return:
+            None
+        """
         if self.time_left > 0:
             self.time_left -= 1
             self.update_display()
-        else :
+        else:
             self.timer.stop()
             self.clock_label.setText("00:00")
             self.outOfTime_signal.emit(self.color)
-
             print("No time left")    
 
     def update_display(self):
-
+        """Update clock display with current time.
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
         minutes, seconds = divmod(self.time_left, 60)
         self.clock_label.setText(f"{minutes:02d}:{seconds:02d}")
 
     def toggle_timer(self):
-
+        """Start or stop the chess clock timer.
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
         if self.timer.isActive():
             self.timer.stop()
-        else :
-            self.timer.start(1000) #Every second
+        else:
+            self.timer.start(1000)  # Every second
          
     def reset_clock(self):
+        """Reset clock to initial time.
         
+        Args:
+            None
+        
+        Return:
+            None
+        """
         self.stop()
         self.time_left = self.initial_time
         self.update_display()
 
     def stop(self):
-
+        """Stop the timer.
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
         if self.timer.isActive():
             self.timer.stop()    
 
 class GameView(QWidget):
+    """Game page view containing chess board, clocks, and move history."""
 
     def __init__(self, chess_game, control, communication, cam):
-
+        """Initialize game view with chess game and hardware instances.
+        
+        Args:
+            chess_game: Chess game model instance.
+            control: Control instance for pathfinding.
+            communication: Communication instance for device control.
+            cam: Camera instance for board detection.
+        
+        Return:
+            None
+        """
         super().__init__()
 
         self.chess_game = chess_game
@@ -225,6 +277,14 @@ class GameView(QWidget):
         self.game_page_controller.shutdown()
 
     def setup_board(self):
+        """Set up board for new game by preparing controller and resetting state.
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
         self.game_page_controller.prepare_for_new_game()
         color = self.chess_game.get_player_color()
         self.board.set_player_color(color)
@@ -233,7 +293,14 @@ class GameView(QWidget):
         self.board.update_board(self.chess_game.get_board_state())
 
     def start_time(self):
-
+        """Start the chess clocks and initiate game based on player color.
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
         color = self.chess_game.get_player_color()
 
         self.white_clock.reset_clock()
@@ -252,21 +319,40 @@ class GameView(QWidget):
         self.white_clock.toggle_timer()
         
     def update_highlighted_squares(self, squares):
-        """Highlight the given squares on the board."""
-
+        """Highlight the given squares on the board.
+        
+        Args:
+            squares (list): List of (row, col) tuples to highlight.
+        
+        Return:
+            None
+        """
         self.board.paint_board()  # Clear existing highlights before applying new ones
 
         for row, col in squares:
             self.board.update_square_highlight(row, col)    
         
 class GamePageController(QObject):
+    """Controller for game page interactions and move execution."""
     # Define signals for navigation
     show_settings_signal = pyqtSignal()
-    start_game_black_signal = pyqtSignal() #Signal for start of game as black
+    start_game_black_signal = pyqtSignal()  # Signal for start of game as black
     return_home_signal = pyqtSignal()
     send_gantry_position = pyqtSignal(float, float, bool)
 
     def __init__(self, chess_game, view=None, control=None, communication=None, cam=None):
+        """Initialize game page controller with chess game and hardware instances.
+        
+        Args:
+            chess_game: Chess game model instance.
+            view (GameView): Game view widget.
+            control: Control instance for pathfinding.
+            communication: Communication instance for device control.
+            cam: Camera instance for board detection.
+        
+        Return:
+            None
+        """
         super().__init__()
         self.chess_game = chess_game
         self.view = view
@@ -297,9 +383,25 @@ class GamePageController(QObject):
         self.view.black_clock.outOfTime_signal.connect(self.outOfTime)
   
     def settings_button_clicked(self):
+        """Emit settings signal to navigate to settings page.
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
         self.show_settings_signal.emit()
 
     def quit_game(self):
+        """Stop workers and return to home page.
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
         self.stop_active_workers()
         self._is_shutting_down = False
         self.return_home_signal.emit()
@@ -582,6 +684,14 @@ class GamePageController(QObject):
             self.view.update_highlighted_squares([(row, col)])  # Clear highlights if no piece or opponent's piece is selected                
 
     def computer_move(self):
+        """Execute computer's best move on the board and update UI.
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
         best_move = self.chess_game.get_next_best_move()
         if best_move and best_move != chess.Move.null():
 
@@ -604,7 +714,14 @@ class GamePageController(QObject):
             self.handle_game_outcome()        
        
     def handle_game_outcome(self):
-
+        """Check game outcome and show appropriate end-game dialog.
+        
+        Args:
+            None
+        
+        Return:
+            str: Game outcome ("white", "black", "draw", or None).
+        """
         game_outcome = self.chess_game.check_game_outcome()
 
         if game_outcome :
@@ -645,7 +762,14 @@ class GamePageController(QObject):
         return game_outcome       
     
     def outOfTime(self, losing_color):
-
+        """Handle timeout condition and show outcome dialog.
+        
+        Args:
+            losing_color (str): Color of player that ran out of time.
+        
+        Return:
+            None
+        """
         color = "black" if losing_color == "white" else "white"
 
         self.stop_clocks()
@@ -746,6 +870,14 @@ class GamePageController(QObject):
         return path
 
     def reset_board(self):
+        """Reset board to starting position and clear all UI elements.
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
         self.chess_game.reset_game()
         state = self.chess_game.get_board_state()
         self.reset_score()
@@ -760,7 +892,15 @@ class GamePageController(QObject):
         self.view.white_clock.reset_clock()
         self.view.black_clock.reset_clock()
 
-    def stop_clocks(self) :
+    def stop_clocks(self):
+        """Stop both white and black chess clocks.
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
         self.view.white_clock.stop()
         self.view.black_clock.stop()
 

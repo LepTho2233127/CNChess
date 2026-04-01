@@ -1,13 +1,14 @@
-# This file contains the main logic to start the CNChess application and manage its components.
+"""Main entry point for CNChess application.Initializes game components including the chess engine, control system, camera, communication interface, and PyQt UI. Manages application lifecycle and cleanup."""
+
 import sys
 import chess
+
 from PyQt6.QtWidgets import QApplication
 
 from CNChess import CNChess
 from Control import Control
 from Cam import Cam
 from Communication import Communication
-
 from ui.main_ui import MainUI
 
 if __name__ == "__main__":

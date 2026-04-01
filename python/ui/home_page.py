@@ -10,9 +10,17 @@ from PyQt6.QtCore import QObject, QSize, Qt, pyqtSignal, QTimer
 from PyQt6 import uic
 
 class HomeView(QWidget):
+    """Home page view for difficulty selection and game initialization."""
 
     def __init__(self, chess_model):
+        """Initialize home page view with chess model instance.
         
+        Args:
+            chess_model: Chess game model instance.
+        
+        Return:
+            None
+        """
         super().__init__()
         self.chess_model = chess_model
         self.home_page_controller = HomePageController(chess_model)
@@ -30,7 +38,14 @@ class HomeView(QWidget):
         self.init_ui()
     
     def init_ui(self):
-
+        """Initialize home page UI layout with logo, difficulty, and color buttons.
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
         logo_label = QLabel(self)
         logo_pixmap = QPixmap(os.path.join(os.path.dirname(__file__), "assets/CNChess_logo.png"))
         if not logo_pixmap.isNull():
@@ -59,6 +74,14 @@ class HomeView(QWidget):
         self._update_difficulty_buttons()
 
     def _get_trimmed_image(self, image_path: str) -> QImage | None:
+        """Get image with transparent areas trimmed.
+        
+        Args:
+            image_path (str): Path to image file.
+        
+        Return:
+            QImage: Trimmed image or None if image not found.
+        """
         cached = self._difficulty_trimmed_images.get(image_path)
         if cached is not None:
             return cached
@@ -96,6 +119,16 @@ class HomeView(QWidget):
         return image
 
     def _make_filled_square_icon(self, image_path: str, target_size: QSize, *, darken: bool = False) -> QIcon:
+        """Create filled square icon from image file.
+        
+        Args:
+            image_path (str): Path to image file.
+            target_size (QSize): Target size for icon.
+            darken (bool): Whether to darken icon (default False).
+        
+        Return:
+            QIcon: Generated icon.
+        """
         side = int(target_size.width())
         cache_key = (image_path, side, darken)
         cached_icon = self._difficulty_icon_cache.get(cache_key)
@@ -129,6 +162,14 @@ class HomeView(QWidget):
         return icon
 
     def _update_difficulty_buttons(self) -> None:
+        """Update difficulty button icons based on current window size and selection state.
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
         self._difficulty_update_pending = False
         if not self._difficulty_buttons:
             return
@@ -155,6 +196,14 @@ class HomeView(QWidget):
 
 
     def resizeEvent(self, event):
+        """Handle window resize events and coalesce frequent updates.
+        
+        Args:
+            event: Resize event.
+        
+        Return:
+            None
+        """
         super().resizeEvent(event)
         # Coalesce frequent resize events
         if not self._difficulty_update_pending:
@@ -162,7 +211,14 @@ class HomeView(QWidget):
         self._difficulty_update_timer.start(40)
 
     def build_level_buttons(self):
+        """Build difficulty level selection buttons (Easy, Medium, Hard).
         
+        Args:
+            None
+        
+        Return:
+            QHBoxLayout: Layout containing difficulty buttons.
+        """
         level_button_size = QSize(175, 175)
 
         easy_button = QToolButton(self)
@@ -232,7 +288,14 @@ class HomeView(QWidget):
         return layout
     
     def build_color_buttons(self):
-
+        """Build player color selection buttons (White, Black).
+        
+        Args:
+            None
+        
+        Return:
+            QHBoxLayout: Layout containing color selection buttons.
+        """
         color_button_size = QSize(100, 100)
 
         white_button = QRadioButton(self)
@@ -265,7 +328,14 @@ class HomeView(QWidget):
         return layout
     
     def build_menu_buttons(self):
-
+        """Build menu buttons (Start Game, Settings).
+        
+        Args:
+            None
+        
+        Return:
+            QVBoxLayout: Layout containing menu buttons.
+        """
         start_button = QPushButton("START GAME", self)
         start_button.clicked.connect(self.home_page_controller.start_game)
         start_button.setObjectName("menu_button")
@@ -281,34 +351,99 @@ class HomeView(QWidget):
         return layout
 
 class HomePageController(QObject):
+    """Controller for home page user interactions and difficulty/color selection."""
     # Define signals that will be emitted when user wants to navigate
     start_game_signal = pyqtSignal()
     settings_signal = pyqtSignal()
 
     def __init__(self, chess_model):
+        """Initialize home page controller with chess model.
+        
+        Args:
+            chess_model: Chess game model instance.
+        
+        Return:
+            None
+        """
         super().__init__()
         self.chess_model = chess_model
 
     def easy_button_clicked(self):
+        """Handle easy difficulty selection.
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
         self.chess_model.set_difficulty("easy")
 
     def medium_button_clicked(self):
+        """Handle medium difficulty selection.
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
         self.chess_model.set_difficulty("medium")
 
     def hard_button_clicked(self):
+        """Handle hard difficulty selection.
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
         self.chess_model.set_difficulty("hard")    
 
     def white_button_clicked(self):
+        """Handle white color selection for player.
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
         self.chess_model.set_player_color(chess.WHITE)
 
     def black_button_clicked(self):
+        """Handle black color selection for player.
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
         self.chess_model.set_player_color(chess.BLACK)
 
     def start_game(self):
+        """Emit start game signal to navigate to game page.
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
         # Emit the signal instead of directly calling a method
         self.start_game_signal.emit()    
     
     def settings_button_clicked(self):
+        """Emit settings signal to navigate to settings page.
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
         self.settings_signal.emit()
 
 if __name__ == "__main__":

@@ -11,6 +11,14 @@ class Communication:
     SEND_COMMAND_TIMEOUT = 30  # Timeout for sending commands in seconds
     ser: serial.Serial
     def __init__(self):
+        """Initialize serial connection to ESP-32 microcontroller.
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
         self._shutdown_event = threading.Event()
         try:
             # Short timeout keeps shutdown responsive when a worker is blocked on read.
@@ -21,6 +29,14 @@ class Communication:
         # time.sleep(2) # attendre reset Arduino
 
     def _should_stop(self, stop_event=None):
+        """Check if shutdown or stop event is set.
+        
+        Args:
+            stop_event (threading.Event, optional): External stop event to check.
+        
+        Return:
+            bool: True if shutdown or stop event is set, False otherwise.
+        """
         return self._shutdown_event.is_set() or (stop_event is not None and stop_event.is_set())
 
     def send_command(self, command: Command, stop_event=None):

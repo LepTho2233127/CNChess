@@ -10,6 +10,15 @@ import time
 class ImageCalibration:
     
     def __init__(self, image_path: str, scale: float = 1.0):
+        """Initialize calibration with image path and scale factor.
+        
+        Args:
+            image_path (str): Path to calibration image file.
+            scale (float): Scale factor for image display (default 1.0).
+        
+        Return:
+            None
+        """
         self.image_path = image_path
         self.scale = scale
         self.points = []
@@ -126,9 +135,18 @@ class ImageCalibration:
 
 
 class ChessBoardTransform:
-    """Manages perspective transformation of the board"""
+    """Manages perspective transformation of the chess board image."""
 
     def __init__(self, calibration_points: dict, board_size: int = 1200):
+        """Initialize transform with calibration points and board size.
+        
+        Args:
+            calibration_points (dict): Dictionary with corner points (top_left, top_right, bottom_right, bottom_left).
+            board_size (int): Target board size in pixels (default 1200).
+        
+        Return:
+            None
+        """
         self.top_left = tuple(calibration_points["top_left"])
         self.top_right = tuple(calibration_points["top_right"])
         self.bottom_right = tuple(calibration_points["bottom_right"])
@@ -490,6 +508,17 @@ class Cam:
     """Main class integrating all functionalities"""
     
     def __init__(self, chess_game, board_size: int = 1200, camera_id: int = 0, scale: float = 1.0):
+        """Initialize camera instance with game model and configuration.
+        
+        Args:
+            chess_game: Chess game model instance.
+            board_size (int): Target board size in pixels (default 1200).
+            camera_id (int): Camera device ID (default 0).
+            scale (float): Scale factor for image processing (default 1.0).
+        
+        Return:
+            None
+        """
         self.chess_game = chess_game
         self.board_size = board_size
         self.scale = scale

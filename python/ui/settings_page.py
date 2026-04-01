@@ -22,6 +22,15 @@ class SendPositionWorker(QObject):
     error = pyqtSignal(str)
     
     def __init__(self, communication, position):
+        """Initialize worker with communication and target position.
+        
+        Args:
+            communication: Communication instance for sending commands.
+            position (Position): Target position to send.
+        
+        Return:
+            None
+        """
         super().__init__()
         self.communication = communication
         self.position = position
@@ -48,15 +57,28 @@ class SendHomeWorker(QObject):
     error = pyqtSignal(str)
     
     def __init__(self, communication):
+        """Initialize worker with communication instance.
+        
+        Args:
+            communication: Communication instance for sending commands.
+        
+        Return:
+            None
+        """
         super().__init__()
         self.communication = communication
         self._stop_event = threading.Event()
 
     def cancel(self):
+        """Cancel current home operation.
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
         self._stop_event.set()
-    
-    def run(self):
-        """Execute go_home in the worker thread."""
         try:
             if self._stop_event.is_set():
                 return
@@ -70,6 +92,15 @@ class SendHomeWorker(QObject):
 class SettingsView(QWidget):
 
     def __init__(self, com=None, cam=None):
+        """Initialize settings view with communication and camera instances.
+        
+        Args:
+            com: Communication instance for device control.
+            cam: Camera instance for image capture.
+        
+        Return:
+            None
+        """
         super().__init__()
         self._updating_spinners = False
         self.controller = SettingsController(self, com, cam)
@@ -80,6 +111,14 @@ class SettingsView(QWidget):
         self.controller.cleanup_threads()
 
     def init_ui(self):
+        """Initialize settings page UI layout.
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
         back_button = QPushButton("Back", self)
         back_button.clicked.connect(self.controller.quit)
         # layout_speed = self.build_speed()
@@ -109,7 +148,14 @@ class SettingsView(QWidget):
         self.setLayout(main_layout)
 
     def build_remoteXY(self):
-
+        """Build XY axis manual movement control panel.
+        
+        Args:
+            None
+        
+        Return:
+            QHBoxLayout: Layout containing movement buttons and step control.
+        """
         up_button = QPushButton("+Y", self)
         up_button.clicked.connect(self.move_up)
 
@@ -150,7 +196,14 @@ class SettingsView(QWidget):
         return layout
 
     def build_controls(self):
-
+        """Build home and stop control buttons.
+        
+        Args:
+            None
+        
+        Return:
+            QVBoxLayout: Layout containing HOME and STOP buttons.
+        """
         home_button = QPushButton("HOME", self)
         home_button.clicked.connect(self.controller.home)
 
@@ -164,7 +217,14 @@ class SettingsView(QWidget):
         return layout
     
     def build_coord(self):
-
+        """Build coordinate input spinners and GO button.
+        
+        Args:
+            None
+        
+        Return:
+            QHBoxLayout: Layout containing X/Y spinners and GO button.
+        """
         self.x_spinner = QDoubleSpinBox(self)
         self.x_spinner.setRange(0.0, grid_width_mm)
         self.x_spinner.setSingleStep(1.0)
@@ -208,11 +268,27 @@ class SettingsView(QWidget):
     #     return layout
     
     def build_grid(self):
+        """Build grid display widget.
+        
+        Args:
+            None
+        
+        Return:
+            GridView: Grid visualization widget.
+        """
         self.grid = GridView()
         self.grid.positionChanged.connect(self.update_coord)
         return self.grid
 
     def build_camera(self):
+        """Build camera display and calibration section.
+        
+        Args:
+            None
+        
+        Return:
+            QVBoxLayout: Layout containing camera image and control buttons.
+        """
         self.last_pic = QLabel(self)
         img_path = os.path.join(os.path.dirname(__file__), 'assets', 'captured_image.jpg')
 
@@ -237,6 +313,16 @@ class SettingsView(QWidget):
         return layout
 
     def update_coord(self, x, y, computer_move=False):
+        """Update coordinate spinners and grid position indicator.
+        
+        Args:
+            x (float): X coordinate value.
+            y (float): Y coordinate value.
+            computer_move (bool): Whether this is a computer move (affects Y transformation).
+        
+        Return:
+            None
+        """
         self.view_updating_spinners = True
         self.x_spinner.setValue(float(x))
         if not computer_move:
@@ -250,6 +336,14 @@ class SettingsView(QWidget):
         self.grid.update_dot(x, y)
     
     def on_spinner_changed(self):
+        """Handle coordinate spinner value changes.
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
         if self._updating_spinners:
             return
         x = self.x_spinner.value()
@@ -257,18 +351,50 @@ class SettingsView(QWidget):
         self.grid.update_dot(x, y)
 
     def move_up(self):
+        """Move gantry up (increase Y coordinate).
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
         current_value = abs(self.y_spinner.value() - grid_height_mm)
         self.update_coord(self.x_spinner.value(), current_value - self.step_spinner.value())
 
     def move_down(self):
+        """Move gantry down (decrease Y coordinate).
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
         current_value = abs(self.y_spinner.value() - grid_height_mm)
         self.update_coord(self.x_spinner.value(), current_value + self.step_spinner.value())
     
     def move_left(self):
+        """Move gantry left (decrease X coordinate).
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
         current_value = self.x_spinner.value()
         self.update_coord(current_value - self.step_spinner.value(), abs(self.y_spinner.value() - grid_height_mm))
     
     def move_right(self):
+        """Move gantry right (increase X coordinate).
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
         current_value = self.x_spinner.value()
         self.update_coord(current_value + self.step_spinner.value(), abs(self.y_spinner.value() - grid_height_mm))
 
@@ -277,6 +403,16 @@ class SettingsController(QObject):
     back_button_signal = pyqtSignal()
 
     def __init__(self, view, com, cam):
+        """Initialize settings controller with view and hardware instances.
+        
+        Args:
+            view (SettingsView): Settings view widget.
+            com: Communication instance for device control.
+            cam: Camera instance for image capture.
+        
+        Return:
+            None
+        """
         super().__init__()
         self.view = view
         self.com = com
@@ -317,6 +453,14 @@ class SettingsController(QObject):
             self.send_home_worker = None
     
     def quit(self):
+        """Cleanup and emit back button signal to return to previous page.
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
         self.cleanup_threads()
         self.back_button_signal.emit()
 
@@ -423,17 +567,49 @@ class SettingsController(QObject):
         print(f"Error sending home command: {error_msg}")
 
     def home(self):
+        """Home the gantry to origin position.
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
         self.x_spinner.setValue(0.0)
         self.y_spinner.setValue(0.0)
         self.send_home_async()
 
     def stop(self):
+        """Stop the gantry motor immediately.
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
         self.com.stop()
 
     def z_move_up(self):
+        """Move servo magnet up.
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
         self.com.move_servo(True)
 
     def z_move_down(self):
+        """Move servo magnet down.
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
         self.com.move_servo(False)
 
     # def update_speed(self, value):
@@ -441,6 +617,14 @@ class SettingsController(QObject):
     #     print(f"Speed set to {value}%")
     
     def take_picture(self):
+        """Capture image from camera and display it.
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
         image = self.cam.process_image()["warped_image"]
         display_image_with_grid = self.cam.squares.draw_grid(image, color=(0, 255, 0), thickness=2)
 
@@ -453,24 +637,55 @@ class SettingsController(QObject):
         self.view.last_pic.setPixmap(image)
     
     def calibrate_camera(self):
+        """Launch camera calibration from UI.
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
         self.cam.recalibrate_from_UI()
         
 class GridView(QWidget):
-
+    """Grid visualization widget for gantry position display."""
     x = 0
     y = grid_height_mm
-
     positionChanged = pyqtSignal(int, int)
 
     def __init__(self, parent=None):
+        """Initialize grid view widget.
+        
+        Args:
+            parent: Parent widget (optional).
+        
+        Return:
+            None
+        """
         super().__init__(parent)
         self.init()
 
     def init(self):
+        """Initialize grid dimensions and styling.
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
         self.setFixedSize(int(grid_width_mm), int(grid_height_mm))
         self.setStyleSheet("border: 2px solid white;")
 
     def paintEvent(self, event):
+        """Paint grid with lines and position indicator dot.
+        
+        Args:
+            event: Paint event.
+        
+        Return:
+            None
+        """
         painter = QPainter(self)
         # Paint background
         painter.fillRect(self.rect(), Qt.GlobalColor.black)
@@ -498,8 +713,36 @@ class GridView(QWidget):
         dot_pen = QPen(Qt.GlobalColor.red, 6)
         painter.setPen(dot_pen)
         painter.drawPoint(int(getattr(self, 'x', 0)), int(getattr(self, 'y', 0)))
+
+    def mousePressEvent(self, event):
+        """Handle mouse clicks on grid to move gantry.
         
-        painter.end()
+        Args:
+            event: Mouse press event.
+        
+        Return:
+            None
+        """
+        x = event.pos().x()
+        y = event.pos().y()
+        self.positionChanged.emit(x, y)
+        self.update_dot(x, y)
+
+    def update_dot(self, x, y):
+        """Update position indicator dot.
+        
+        Args:
+            x (int): X pixel coordinate.
+            y (int): Y pixel coordinate.
+        
+        Return:
+            None
+        """
+        self.x = x
+        self.y = y
+        self.update()
+        
+        self.painter.end()
 
     def mousePressEvent(self, event):
         self.x = int(event.position().x())

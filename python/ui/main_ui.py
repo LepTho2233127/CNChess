@@ -16,7 +16,17 @@ from Control import Control
 class MainUI(QMainWindow):
 
     def __init__(self, chess_model, control, communication, cam):
-
+        """Initialize the main application window with pages and signal connections.
+        
+        Args:
+            chess_model: Model instance for chess game state management.
+            control: Control instance for game control operations.
+            communication: Communication instance for hardware communication.
+            cam: Camera instance for board capture and analysis.
+        
+        Return:
+            None
+        """
         super().__init__()
         self.chess_model = chess_model
         self.control = control
@@ -57,34 +67,79 @@ class MainUI(QMainWindow):
         self.settings_page.controller.back_button_signal.connect(self.back_button_settings_page)
         self.game_page.game_page_controller.send_gantry_position.connect(self.settings_page.update_coord)
 
-
     def switch_to_home_page(self):
+        """Switch the main window display to the home page and reset the game board.
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
         self.last_page = "home"
         self.stacked_widget.setCurrentWidget(self.home_page)
         self.game_page.game_page_controller.reset_board()
 
     def switch_to_game_page(self):
+        """Switch the main window display to the game page and initialize the board.
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
         self.last_page = "game"
         self.stacked_widget.setCurrentWidget(self.game_page)
         self.game_page.setup_board()
       
     def switch_to_settings_page(self):
+        """Switch the main window display to the settings page.
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
         self.stacked_widget.setCurrentWidget(self.settings_page)
 
     def back_button_settings_page(self):
+        """Return to the previous page (game or home) from the settings page.
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
         if self.last_page == "game":
-            self.stacked_widget.setCurrentWidget(self.game_page)    
-        else :
+            self.stacked_widget.setCurrentWidget(self.game_page)
+        else:
             self.stacked_widget.setCurrentWidget(self.home_page)    
     
     def closeEvent(self, event):
-        """Clean up all threads when the application window is closed."""
+        """Handle application window close event and perform cleanup.
+        
+        Args:
+            event: QCloseEvent instance triggered by window closure.
+        
+        Return:
+            None
+        """
         print("[INFO] Closing application and terminating all threads...")
         self.cleanup_all_threads()
         event.accept()
     
     def cleanup_all_threads(self):
-        """Terminate all worker threads and release resources before closing."""
+        """Terminate all worker threads and release resources before closing.
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
         if self._cleaned_up:
             return
         self._cleaned_up = True
@@ -116,8 +171,15 @@ class MainUI(QMainWindow):
                 print(f"[WARN] Camera release failed: {e}")
     
     def __del__(self):
-        """Destructor to ensure cleanup on object destruction."""
+        """Destructor to ensure cleanup on object destruction.
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
         try:
             self.cleanup_all_threads()
-        except:
+        except Exception:
             pass  # Ignore errors during destruction
