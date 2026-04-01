@@ -4,7 +4,7 @@ It contains buttons to choose difficulty, start a new game, and view settings ""
 import os
 import sys
 import chess
-from PyQt6.QtWidgets import QWidget, QPushButton, QApplication, QLabel, QVBoxLayout, QHBoxLayout, QRadioButton, QButtonGroup, QToolButton
+from PyQt6.QtWidgets import QWidget, QPushButton, QApplication, QLabel, QVBoxLayout, QHBoxLayout, QRadioButton, QButtonGroup, QToolButton, QSizePolicy
 from PyQt6.QtGui import QIcon, QPixmap, QImage, QPainter, QColor
 from PyQt6.QtCore import QObject, QSize, Qt, pyqtSignal, QTimer
 from PyQt6 import uic
@@ -47,10 +47,25 @@ class HomeView(QWidget):
             None
         """
         logo_label = QLabel(self)
-        logo_pixmap = QPixmap(os.path.join(os.path.dirname(__file__), "assets/CNChess_logo.png"))
+        logo_path = os.path.join(os.path.dirname(__file__), "assets/CNChess_logo.png")
+        trimmed_logo = self._get_trimmed_image(logo_path)
+        if trimmed_logo is not None:
+            logo_pixmap = QPixmap.fromImage(trimmed_logo)
+        else:
+            logo_pixmap = QPixmap(logo_path)
         if not logo_pixmap.isNull():
-            logo_pixmap = logo_pixmap.scaled(800, 400, Qt.AspectRatioMode.KeepAspectRatio)
-        logo_label.setPixmap(logo_pixmap)
+            logo_pixmap = logo_pixmap.scaled(
+                800,
+                400,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
+            )
+            logo_label.setPixmap(logo_pixmap)
+            logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            # Prevent the logo label from expanding vertically when the window grows.
+            logo_label.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+            logo_label.setMinimumHeight(logo_pixmap.height())
+            logo_label.setMaximumHeight(logo_pixmap.height())
 
         level_layout = self.build_level_buttons()
         color_layout = self.build_color_buttons()
@@ -64,11 +79,14 @@ class HomeView(QWidget):
         hbox_layout.addStretch(20)
 
         main_layout = QVBoxLayout()
+        main_layout.addStretch(1)
         main_layout.addWidget(logo_label, alignment=Qt.AlignmentFlag.AlignHCenter)
-        main_layout.addSpacing(20)
+        main_layout.addSpacing(75)
         main_layout.addLayout(level_layout)
-        main_layout.addSpacing(20)
+        main_layout.addSpacing(75)
         main_layout.addLayout(hbox_layout)
+        # Ensure extra vertical space goes to the bottom when the window is large.
+        main_layout.addStretch(1)
         self.setLayout(main_layout)
 
         self._update_difficulty_buttons()
