@@ -805,7 +805,7 @@ class Cam:
             cv2.resizeWindow("Raw Frame Captured", frame.shape[1], frame.shape[0])
         return frame
     
-    def process_frame(self) -> dict:
+    def process_image(self) -> dict:
         """Process live camera frames until a stable board state is detected.
 
         Return:
@@ -868,46 +868,6 @@ class Cam:
         
         return {
             'original_frame': frame,
-            'warped_image': masked_warped,
-            'piece_place': piece_place,
-            'piece_color': piece_color,
-            'move': move_info
-        }
-    
-    def process_image(self, image_path: str = None) -> dict:
-        """Process a static image path or fallback to live frame processing.
-
-        Args:
-            image_path (str, optional): Input image path. If None, process live camera.
-
-        Return:
-            dict: Detection outputs including board state and move info.
-        """
-        if image_path:
-            # Load image from file.
-            orig_image = cv2.imread(image_path)
-            rgb_image = cv2.cvtColor(orig_image, cv2.COLOR_BGR2RGB)
-        else:
-            # Defer to live camera path.
-            return self.process_frame()
-        
-        # Warp camera view into normalized board space.
-        warped = self.transform.apply_transform(rgb_image)
-        
-        # Keep only relevant marker colors.
-        masked_warped, mask = ColorMask.create_color_mask(warped)
-        
-        # Detect occupancy and marker color.
-        piece_detector = PieceDetection(masked_warped, self.squares)
-        piece_place, piece_color = piece_detector.detect_all_pieces()
-        
-        # Infer move from detected state against current chess model state.
-        move_info = self.move_detector.detect_move(
-            piece_place,
-            piece_color
-        )
-        
-        return {
             'warped_image': masked_warped,
             'piece_place': piece_place,
             'piece_color': piece_color,
