@@ -79,6 +79,16 @@ class SendHomeWorker(QObject):
             None
         """
         self._stop_event.set()
+
+    def run(self):
+        """Execute go_home in the worker thread.
+
+        Args:
+            None
+
+        Return:
+            None
+        """
         try:
             if self._stop_event.is_set():
                 return
@@ -248,24 +258,6 @@ class SettingsView(QWidget):
         layout.addWidget(go_button)
 
         return layout
-    
-    # def build_speed(self):
-
-    #     self.speed_label = QLabel("Speed : 50%", self)
-    #     self.speed_label.setFixedHeight(100)
-
-    #     speed_slider = QSlider(self)
-    #     speed_slider.setOrientation(Qt.Orientation.Vertical)
-    #     speed_slider.setRange(0, 100)
-    #     speed_slider.setValue(50)
-    #     speed_slider.setFixedSize(25, 400)
-    #     speed_slider.valueChanged.connect(self.update_speed)
-
-    #     layout = QVBoxLayout()
-    #     layout.addWidget(self.speed_label, alignment=Qt.AlignmentFlag.AlignHCenter)
-    #     layout.addWidget(speed_slider, alignment=Qt.AlignmentFlag.AlignHCenter)
-
-    #     return layout
     
     def build_grid(self):
         """Build grid display widget.
@@ -575,8 +567,8 @@ class SettingsController(QObject):
         Return:
             None
         """
-        self.x_spinner.setValue(0.0)
-        self.y_spinner.setValue(0.0)
+        self.view.x_spinner.setValue(0.0)
+        self.view.y_spinner.setValue(0.0)
         self.send_home_async()
 
     def stop(self):
@@ -636,6 +628,23 @@ class SettingsController(QObject):
 
         self.view.last_pic.setPixmap(image)
     
+    def update_picture(self, image):
+        """Update camera image display with new image.
+        
+        Args:
+            image: New image to display.
+        
+        Return:
+            None
+        """
+        img_path = os.path.join(os.path.dirname(__file__), 'assets', 'captured_image.jpg')
+        cv2.imwrite(img_path, cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
+
+        pixmap = QPixmap(img_path)
+        pixmap = pixmap.scaled(640, 480, Qt.AspectRatioMode.KeepAspectRatio)
+
+        self.view.last_pic.setPixmap(pixmap)
+
     def calibrate_camera(self):
         """Launch camera calibration from UI.
         
