@@ -3904,6 +3904,10 @@
 		(uuid "ba497b3c-40c0-4bc5-8444-220852df7dd9")
 	)
 	(no_connect
+		(at 63.5 31.75)
+		(uuid "cc2237d7-b8ff-4b56-a757-e30b30ed5dcc")
+	)
+	(no_connect
 		(at 99.06 74.93)
 		(uuid "d3d915c8-a5de-482c-a4b5-0a652171f0dc")
 	)
@@ -4160,16 +4164,6 @@
 			(type default)
 		)
 		(uuid "4c05fba7-d4a5-45d1-9e3f-ab6ac557492f")
-	)
-	(wire
-		(pts
-			(xy 63.5 31.75) (xy 67.31 31.75)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "4d5153bb-5c24-4d5d-901e-a3019fedfd81")
 	)
 	(wire
 		(pts
@@ -4839,7 +4833,7 @@
 	)
 	(global_label "SW1"
 		(shape input)
-		(at 203.2 72.39 90)
+		(at 203.2 73.66 90)
 		(fields_autoplaced yes)
 		(effects
 			(font
@@ -4849,7 +4843,7 @@
 		)
 		(uuid "2a5280be-80dc-4399-8d0c-f2fd58e0a8ab")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 203.2 65.5344 90)
+			(at 203.2 66.8044 90)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -4925,6 +4919,28 @@
 			)
 		)
 	)
+	(global_label "+5V_buck"
+		(shape input)
+		(at 127 123.19 90)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "69a82b05-abc6-45b8-8c4f-967ad58e9ca8")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 127 110.952 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+				(hide yes)
+			)
+		)
+	)
 	(global_label "SW2"
 		(shape input)
 		(at 62.23 151.13 90)
@@ -4991,6 +5007,28 @@
 			)
 		)
 	)
+	(global_label "+5V_buck"
+		(shape input)
+		(at 194.31 73.66 90)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "b0d7c5d1-3440-4ded-9b0d-e368bb0393fc")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 194.31 61.422 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+				(hide yes)
+			)
+		)
+	)
 	(global_label "DIR1"
 		(shape input)
 		(at 99.06 46.99 180)
@@ -5015,7 +5053,7 @@
 	)
 	(global_label "SW2"
 		(shape input)
-		(at 212.09 72.39 90)
+		(at 212.09 73.66 90)
 		(fields_autoplaced yes)
 		(effects
 			(font
@@ -5025,7 +5063,7 @@
 		)
 		(uuid "d817e066-0c6b-4012-badc-491bca455de5")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 212.09 65.5344 90)
+			(at 212.09 66.8044 90)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -5189,7 +5227,7 @@
 	)
 	(symbol
 		(lib_id "Connector:TestPoint")
-		(at 203.2 72.39 180)
+		(at 203.2 73.66 180)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -5197,7 +5235,7 @@
 		(dnp no)
 		(uuid "0be7c63a-f42f-404d-921a-480743378b62")
 		(property "Reference" "TP3"
-			(at 204.978 81.026 0)
+			(at 204.978 82.296 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -5206,7 +5244,7 @@
 			)
 		)
 		(property "Value" "TPSW1"
-			(at 206.248 78.74 0)
+			(at 206.248 80.01 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -5215,7 +5253,7 @@
 			)
 		)
 		(property "Footprint" "TestPoint:TestPoint_Pad_D1.5mm"
-			(at 198.12 72.39 0)
+			(at 198.12 73.66 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -5224,7 +5262,7 @@
 			)
 		)
 		(property "Datasheet" "~"
-			(at 198.12 72.39 0)
+			(at 198.12 73.66 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -5233,7 +5271,7 @@
 			)
 		)
 		(property "Description" "test point"
-			(at 203.2 72.39 0)
+			(at 203.2 73.66 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -5321,7 +5359,7 @@
 	)
 	(symbol
 		(lib_id "power:+5V")
-		(at 184.15 72.39 0)
+		(at 184.15 73.66 0)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -5330,7 +5368,7 @@
 		(fields_autoplaced yes)
 		(uuid "1a588e57-6d5b-43fe-9148-ddd802425656")
 		(property "Reference" "#PWR012"
-			(at 184.15 76.2 0)
+			(at 184.15 77.47 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -5339,7 +5377,7 @@
 			)
 		)
 		(property "Value" "+12V"
-			(at 184.15 67.31 0)
+			(at 184.15 68.58 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -5347,7 +5385,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 184.15 72.39 0)
+			(at 184.15 73.66 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -5356,7 +5394,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 184.15 72.39 0)
+			(at 184.15 73.66 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -5365,7 +5403,7 @@
 			)
 		)
 		(property "Description" "Power symbol creates a global label with name \"+5V\""
-			(at 184.15 72.39 0)
+			(at 184.15 73.66 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -5387,7 +5425,7 @@
 	)
 	(symbol
 		(lib_id "Connector:TestPoint")
-		(at 194.31 72.39 180)
+		(at 194.31 73.66 180)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -5395,7 +5433,7 @@
 		(dnp no)
 		(uuid "1b20140f-fb66-4a8f-a243-ff9bef5726ce")
 		(property "Reference" "TP2"
-			(at 195.834 81.026 0)
+			(at 195.834 82.296 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -5404,7 +5442,7 @@
 			)
 		)
 		(property "Value" "TP5V"
-			(at 196.596 78.486 0)
+			(at 196.596 79.756 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -5413,7 +5451,7 @@
 			)
 		)
 		(property "Footprint" "TestPoint:TestPoint_Pad_D1.5mm"
-			(at 189.23 72.39 0)
+			(at 189.23 73.66 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -5422,7 +5460,7 @@
 			)
 		)
 		(property "Datasheet" "~"
-			(at 189.23 72.39 0)
+			(at 189.23 73.66 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -5431,7 +5469,7 @@
 			)
 		)
 		(property "Description" "test point"
-			(at 194.31 72.39 0)
+			(at 194.31 73.66 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -5664,7 +5702,7 @@
 	)
 	(symbol
 		(lib_id "Connector:TestPoint")
-		(at 212.09 72.39 180)
+		(at 212.09 73.66 180)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -5672,7 +5710,7 @@
 		(dnp no)
 		(uuid "2b71968d-4c92-471f-9756-d6918529e6dd")
 		(property "Reference" "TP4"
-			(at 213.868 81.026 0)
+			(at 213.868 82.296 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -5681,7 +5719,7 @@
 			)
 		)
 		(property "Value" "TPSW2"
-			(at 214.884 78.74 0)
+			(at 214.884 80.01 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -5690,7 +5728,7 @@
 			)
 		)
 		(property "Footprint" "TestPoint:TestPoint_Pad_D1.5mm"
-			(at 207.01 72.39 0)
+			(at 207.01 73.66 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -5699,7 +5737,7 @@
 			)
 		)
 		(property "Datasheet" "~"
-			(at 207.01 72.39 0)
+			(at 207.01 73.66 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -5708,7 +5746,7 @@
 			)
 		)
 		(property "Description" "test point"
-			(at 212.09 72.39 0)
+			(at 212.09 73.66 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -6630,72 +6668,6 @@
 			(project ""
 				(path "/217afebd-c7e0-4ae3-a41a-8884648524ec"
 					(reference "R1")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "power:+5V")
-		(at 67.31 31.75 0)
-		(unit 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "4e150c75-51d6-43fc-976d-0583fa36ed4d")
-		(property "Reference" "#PWR05"
-			(at 67.31 35.56 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Value" "+5V"
-			(at 67.31 26.67 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" ""
-			(at 67.31 31.75 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Datasheet" ""
-			(at 67.31 31.75 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Description" "Power symbol creates a global label with name \"+5V\""
-			(at 67.31 31.75 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(pin "1"
-			(uuid "19a7d489-a8a4-4609-a9cc-3af4254616f7")
-		)
-		(instances
-			(project "CNChess_KiCad"
-				(path "/217afebd-c7e0-4ae3-a41a-8884648524ec"
-					(reference "#PWR05")
 					(unit 1)
 				)
 			)
@@ -7867,72 +7839,6 @@
 		)
 	)
 	(symbol
-		(lib_id "power:+5V")
-		(at 194.31 72.39 0)
-		(unit 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "9bd89593-bb57-4da4-9a82-65033bfd2a24")
-		(property "Reference" "#PWR011"
-			(at 194.31 76.2 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Value" "+5V"
-			(at 194.31 67.31 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" ""
-			(at 194.31 72.39 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Datasheet" ""
-			(at 194.31 72.39 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Description" "Power symbol creates a global label with name \"+5V\""
-			(at 194.31 72.39 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(pin "1"
-			(uuid "9e447437-ceb7-4bd7-8cd5-76f4513bd869")
-		)
-		(instances
-			(project "CNChess_KiCad"
-				(path "/217afebd-c7e0-4ae3-a41a-8884648524ec"
-					(reference "#PWR011")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
 		(lib_id "power:GND")
 		(at 154.94 44.45 0)
 		(unit 1)
@@ -8402,7 +8308,7 @@
 	)
 	(symbol
 		(lib_id "Connector:TestPoint")
-		(at 184.15 72.39 180)
+		(at 184.15 73.66 180)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -8410,7 +8316,7 @@
 		(dnp no)
 		(uuid "b74c59c8-23af-45b1-9e71-e782d8cfcb8b")
 		(property "Reference" "TP1"
-			(at 185.674 81.026 0)
+			(at 185.674 82.296 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -8419,7 +8325,7 @@
 			)
 		)
 		(property "Value" "TP12V"
-			(at 186.944 78.486 0)
+			(at 186.944 79.756 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -8428,7 +8334,7 @@
 			)
 		)
 		(property "Footprint" "TestPoint:TestPoint_Pad_D1.5mm"
-			(at 179.07 72.39 0)
+			(at 179.07 73.66 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -8437,7 +8343,7 @@
 			)
 		)
 		(property "Datasheet" "~"
-			(at 179.07 72.39 0)
+			(at 179.07 73.66 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -8446,7 +8352,7 @@
 			)
 		)
 		(property "Description" "test point"
-			(at 184.15 72.39 0)
+			(at 184.15 73.66 0)
 			(effects
 				(font
 					(size 1.27 1.27)
