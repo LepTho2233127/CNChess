@@ -1,6 +1,6 @@
 """File containing the game page of the application, which is where the user plays the chess game. 
-It contains the chess board, move history, and buttons to undo moves, resign, and start a new game. 
-You can access th """
+It contains the chess board, move history, and buttons to undo moves, resign, and start a new game. """
+
 
 import os
 import sys
@@ -15,13 +15,8 @@ from PyQt6.QtCore import QObject, pyqtSignal, QSize, QThread, Qt, QPoint, QPoint
 from PyQt6.QtGui import QIcon, QColor, QPainter, QPen, QPolygonF, QPixmap
 from PyQt6 import uic
 
-parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-if parent_dir not in sys.path:
-    sys.path.insert(0, parent_dir)
-
 from Control import Control
 from ui.dialog_ui import WinnerDialog, DrawDialog, WaitingDialog, TurnIndicatorWidget, InvalidMoveDialog
-
 
 LIGHT_SQUARE_COLOR = "#F0D9B5"
 DARK_SQUARE_COLOR = "#B58863"
@@ -30,19 +25,35 @@ WHITE_SQUARE_COLORS = (LIGHT_SQUARE_COLOR, DARK_SQUARE_COLOR)
 BLACK_SQUARE_COLORS = (DARK_SQUARE_COLOR, LIGHT_SQUARE_COLOR)
 SQUARE_SIZE_MM = 50.8
 
-
 class SendPathWorker(QObject):
     """Worker thread to send path commands without blocking the UI."""
     finished = pyqtSignal()
     error = pyqtSignal(str)
     
     def __init__(self, communication, path):
+        """Initialize the send-path worker.
+
+        Args:
+            communication: Communication instance used to send commands to the ESP/device.
+            path: List of Command objects (or equivalent) to send to the device.
+
+        Return:
+            None
+        """
         super().__init__()
         self.communication = communication
         self.path = path
         self._stop_event = threading.Event()
 
     def cancel(self):
+        """Request cancellation of the worker operation.
+
+        Args:
+            None
+
+        Return:
+            None
+        """
         self._stop_event.set()
     
     def run(self):
@@ -67,11 +78,27 @@ class WaitForButtonWorker(QObject):
     error = pyqtSignal(str)
 
     def __init__(self, communication):
+        """Initialize the button-wait worker.
+
+        Args:
+            communication: Communication instance used to wait for the ESP button press.
+
+        Return:
+            None
+        """
         super().__init__()
         self.communication = communication
         self._stop_event = threading.Event()
 
     def cancel(self):
+        """Request cancellation of the worker operation.
+
+        Args:
+            None
+
+        Return:
+            None
+        """
         self._stop_event.set()
 
     def run(self):
@@ -235,36 +262,31 @@ class GameView(QWidget):
         self.black_score = self.findChild(QLabel, 'blackScore')
         self.white_score = self.findChild(QLabel, 'whiteScore')
         
-        # Replace the simple turn_indicator label with the new TurnIndicatorWidget
+        # Replace the simple turn_indicator label with TurnIndicatorWidget
         old_turn_indicator = self.findChild(QLabel, 'labelTurn')
-        if old_turn_indicator:
-            # Find the parent layout (layout_Timers)
-            layout_timers = self.findChild(QHBoxLayout, 'layout_Timers')
-            if layout_timers:
-                # Get the index of the old turn indicator
-                index = layout_timers.indexOf(old_turn_indicator)
-                # Remove the old widget
-                layout_timers.removeWidget(old_turn_indicator)
-                old_turn_indicator.deleteLater()
-                # Create and insert the new TurnIndicatorWidget
-                self.turn_indicator = TurnIndicatorWidget()
-                layout_timers.insertWidget(index, self.turn_indicator)
-            else:
-                # Fallback if layout not found
-                self.turn_indicator = TurnIndicatorWidget()
-        else:
-            # Fallback if old indicator not found
-            self.turn_indicator = TurnIndicatorWidget()
+        # Find the parent layout (layout_Timers)
+        layout_timers = self.findChild(QHBoxLayout, 'layout_Timers')
+        # Get the index of the old turn indicator
+        index = layout_timers.indexOf(old_turn_indicator)
+        # Remove the old widget
+        layout_timers.removeWidget(old_turn_indicator)
+        old_turn_indicator.deleteLater()
+        # Create and insert the new TurnIndicatorWidget
+        self.turn_indicator = TurnIndicatorWidget()
+        layout_timers.insertWidget(index, self.turn_indicator)
 
+        #Replace gridLayout in .ui by board widget with resizing capabilities    
         right_layout.removeItem(right_layout.itemAt(1))  
         resize_board = AspectRatioWidget(ChessBoardWidget())
         right_layout.insertWidget(1,resize_board)
         self.board = resize_board.board_widget
-        
+    
         self.white_clock = ChessClock(initial_time=600, clock_label=self.white_timer_display, color="white")
         self.black_clock = ChessClock(initial_time=600, clock_label=self.black_timer_display, color="black")
+
         self.game_page_controller = GamePageController(chess_game,self, self.control, communication, self.cam)
 
+        # Connect buttons to controller methods
         settings_button.clicked.connect(self.game_page_controller.settings_button_clicked)     
         quit_button.clicked.connect(self.game_page_controller.quit_game)
         resign_button.clicked.connect(self.game_page_controller.reset_board)
@@ -277,7 +299,7 @@ class GameView(QWidget):
         self.game_page_controller.shutdown()
 
     def setup_board(self):
-        """Set up board for new game by preparing controller and resetting state.
+        """Set up board for new game by preparing controller and resetting state. Sends home command to gantry at start of game.
         
         Args:
             None
@@ -285,6 +307,8 @@ class GameView(QWidget):
         Return:
             None
         """
+        
+        self.game_page_controller.communication.go_home()  # Move gantry to home position at start of game
         self.game_page_controller.prepare_for_new_game()
         color = self.chess_game.get_player_color()
         self.board.set_player_color(color)
@@ -357,6 +381,7 @@ class GamePageController(QObject):
         self.chess_game = chess_game
         self.view = view
         self.cam = cam
+        self.communication = communication
 
          # Initialize worker threads
         self.send_path_worker = None
@@ -373,7 +398,6 @@ class GamePageController(QObject):
         self.board_positions_index = 0
         self.control = control
         self.control.update_board_state(board_state)
-        self.communication = communication
 
         self.selected_piece = None  # Track the currently selected piece for move selection
         self.last_path_was_move = False  # Track if last send_path was a valid move or move reversal
@@ -407,7 +431,14 @@ class GamePageController(QObject):
         self.return_home_signal.emit()
 
     def wait_for_thread(self):
-        """Wait for any running send_path thread to fully finish."""
+        """Wait for any running send_path thread to fully finish.
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
         if self.send_path_thread is not None:
             if self.send_path_worker is not None:
                 self.send_path_worker.cancel()
@@ -418,7 +449,14 @@ class GamePageController(QObject):
             self.send_path_worker = None
 
     def wait_for_button_thread(self):
-        """Wait for any running button-wait thread to fully finish."""
+        """Wait for any running button-wait thread to fully finish.
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
         if self.wait_button_thread is not None:
             if self.wait_button_worker is not None:
                 self.wait_button_worker.cancel()
@@ -476,7 +514,7 @@ class GamePageController(QObject):
         self.send_path_worker.error.connect(self.on_send_path_error)
         self.send_path_worker.error.connect(self.send_path_thread.quit)
         
-# Show waiting state and start thread
+        # Show waiting state and start thread
         self.view.turn_indicator.show_waiting("Sending move to device...\nPlease wait.")
         self.send_path_thread.start()
 
@@ -531,7 +569,7 @@ class GamePageController(QObject):
         print(f"Error: {error_msg}")
 
     def on_wait_button_finished(self):
-        """Handler when the ESP button press is detected."""
+        """Handler when the ESP button press is detected. Processes the move from the camera and updates the game state accordingly."""
         if self._is_shutting_down:
             return
         print("Button press detected")
@@ -586,7 +624,14 @@ class GamePageController(QObject):
         print(f"Error: {error_msg}. Continuing without button confirmation.")
 
     def handle_square_click(self, row, col):
-        """Handle click events on the squares. This is where you would implement move selection and execution logic."""
+        """Handle click events on the squares. Handles move selection and execution logic.
+        
+        Args:
+            row (int): Row index of the clicked square.
+            col (int): Column index of the clicked square.
+        Return:
+            None    
+        """
         self.board_widget.clear_trajectory()
 
         if self.selected_piece is None:
@@ -605,33 +650,9 @@ class GamePageController(QObject):
 
                     # Anchor the promotion dialog to the destination square the user clicked.
                     square_widget = self.board_widget.board_layout.itemAtPosition(row, col).widget()
-                    if square_widget is not None:
-                        square_top_left = square_widget.mapToGlobal(QPoint(0, 0))
-                        square_center_x = square_top_left.x() + (square_widget.width() // 2)
-
-                        dialog_w = promotion_dialog.width()
-                        dialog_h = promotion_dialog.height()
-
-                        target_x = square_center_x - (dialog_w // 2)
-                        y_above = square_top_left.y() - dialog_h
-                        y_below = square_top_left.y() + square_widget.height()
-
-                        screen = QApplication.primaryScreen()
-                        if screen is not None:
-                            geo = screen.availableGeometry()
-                            target_x = max(geo.left(), min(target_x, geo.right() - dialog_w + 1))
-
-                            if y_above >= geo.top():
-                                target_y = y_above
-                            elif (y_below + dialog_h) <= (geo.bottom() + 1):
-                                target_y = y_below
-                            else:
-                                target_y = max(geo.top(), min(y_above, geo.bottom() - dialog_h + 1))
-                        else:
-                            target_y = y_above
-
-                        promotion_dialog.move(target_x, target_y)
-
+                    screen = QApplication.primaryScreen()
+                    target_x, target_y = self.get_screen_coordinates_from_square(square_widget, screen, promotion_dialog)
+                    promotion_dialog.move(target_x, target_y)
                     result = promotion_dialog.exec()
 
                     if result:
@@ -659,9 +680,61 @@ class GamePageController(QObject):
                     self.check_piece_selected(row, col)  # Update highlights for the new position after the move
             except ValueError:
                 pass # Invalid move format, happens when you click on the same square as the selected piece, just ignore it and wait for a valid move       
-
+    
+    def get_screen_coordinates_from_square(self, square_widget, screen, promotion_dialog):
+        """Calculate screen coordinates to position the promotion dialog anchored to the given square widget.
         
+        Args:
+            square_widget (QWidget): The widget representing the chess square.
+            screen (QScreen): The primary screen for geometry calculations.
+            promotion_dialog (QDialog): The promotion dialog to be positioned.  
+            
+        Return:
+            (int, int): The (x, y) screen coordinates to position the promotion dialog.
+        """
+
+
+        square_top_left = square_widget.mapToGlobal(QPoint(0, 0))
+        square_center_x = square_top_left.x() + (square_widget.width() // 2)
+
+        dialog_w = promotion_dialog.width()
+        dialog_h = promotion_dialog.height()
+
+        target_x = square_center_x - (dialog_w // 2)
+        y_above = square_top_left.y() - dialog_h
+        y_below = square_top_left.y() + square_widget.height()
+
+        screen = QApplication.primaryScreen()
+        if screen is not None:
+            geo = screen.availableGeometry()
+            target_x = max(geo.left(), min(target_x, geo.right() - dialog_w + 1))
+
+            if y_above >= geo.top():
+                target_y = y_above
+            elif (y_below + dialog_h) <= (geo.bottom() + 1):
+                target_y = y_below
+            else:
+                target_y = max(geo.top(), min(y_above, geo.bottom() - dialog_h + 1))
+        else:
+            target_y = y_above
+
+        return target_x, target_y
+
+
     def check_piece_selected(self, row, col): 
+
+        """Select a piece (if valid) and highlight its legal destination squares.
+
+        If the clicked square contains one of the current player's pieces, the piece is
+        selected and the view highlights all legal moves from that square.
+
+        Args:
+            row (int): Board row coordinate (0-7).
+            col (int): Board column coordinate (0-7).
+
+        Return:
+            None
+        """
 
         player_color = self.chess_game.get_player_color()
         piece = self.board_widget.board[row][col]
@@ -770,10 +843,10 @@ class GamePageController(QObject):
         Return:
             None
         """
-        color = "black" if losing_color == "white" else "white"
+        winner_color = "black" if losing_color == "white" else "white"
 
         self.stop_clocks()
-        timeout_dialog = WinnerDialog(winner_color=color, reason="timeout")
+        timeout_dialog = WinnerDialog(winner_color=winner_color, reason="timeout")
         result = timeout_dialog.exec()
 
         if result : 
@@ -786,6 +859,18 @@ class GamePageController(QObject):
 
     def update_chess_board(self):
 
+        """Update the board widget and store the new board state in history.
+
+        This refreshes the displayed board after a move and appends the current FEN
+        position to the controller's history list.
+
+        Args:
+            None
+
+        Return:
+            None
+        """
+
         self.board_widget.paint_board() # Clear any existing highlights before updating the boar
         board_state = self.chess_game.get_board_state()
         self.board_positions.append(board_state)  # Store the new board state after the move
@@ -793,7 +878,14 @@ class GamePageController(QObject):
         self.board_widget.update_board(board_state)
 
     def coordinate_to_square(self, row, col):
-        """Convert board coordinates to chess square notation (e.g., (0,0) -> 'a8')."""
+        """Convert board coordinates to chess square notation (e.g., (0,0) -> 'a8').
+        
+        Args:
+            row (int): Board row coordinate (0-7).
+            col (int): Board column coordinate (0-7).
+        Return:
+            str: Chess square in algebraic notation corresponding to the given coordinates.    
+        """
 
         if self.chess_game.get_player_color(): 
             file = chr(ord('a') + col)
@@ -806,6 +898,16 @@ class GamePageController(QObject):
     
     def update_list(self, move, turn):
 
+        """Append a move to the UI move list.
+
+        Args:
+            move (str): Move string to display (e.g., "Pe4", "Nf3", "Qxd5").
+            turn (str): Player side for this move ("white" or "black").
+
+        Return:
+            None
+        """
+
         if turn == "white":
             nb_move = self.view.move_list.count()+1
             self.view.move_list.addItem(QListWidgetItem(f"{nb_move}. {move}"))
@@ -817,6 +919,14 @@ class GamePageController(QObject):
             last_move.setText(current_text + f"\t {move}")
 
     def move_back_position(self):
+        """Step backward in the stored board position history.
+
+        Args:
+            None
+
+        Return:
+            None
+        """
         print("Moving back position")
         print(self.board_positions_index)
         if self.board_positions_index > 0 :
@@ -826,6 +936,14 @@ class GamePageController(QObject):
             self.board_widget.paint_board()     
 
     def move_forward_position(self):
+        """Step forward in the stored board position history.
+
+        Args:
+            None
+
+        Return:
+            None
+        """
         if self.board_positions_index < len(self.board_positions) - 1 :
             self.board_positions_index+=1
             previous_fen = self.board_positions[self.board_positions_index]
@@ -833,6 +951,15 @@ class GamePageController(QObject):
             self.board_widget.paint_board()            
 
     def update_score(self):
+        """Recompute and display the material score difference.
+        Shows a positive score next to the side that is ahead in material.
+
+        Args:
+            None
+
+        Return:
+            None
+        """
 
         white_score = self.chess_game.get_material_evaluation(chess.WHITE)
         black_score = self.chess_game.get_material_evaluation(chess.BLACK)
@@ -850,13 +977,41 @@ class GamePageController(QObject):
             self.reset_score()
 
     def reset_score(self):
+        """Clear the material score display.
+
+        Args:
+            None
+
+        Return:
+            None
+        """
         self.view.white_score.setText("")
         self.view.black_score.setText("")        
 
     def clear_list(self):
+        """Clear all entries from the move list widget.
+
+        Args:
+            None
+
+        Return:
+            None
+        """
         self.view.move_list.clear() 
     
-    def make_move(self, move):
+    def make_move(self, move: chess.Move):
+        """Apply a chess move and generate the robot path for executing it.
+
+        This updates the control/path planner with the current board state, generates
+        a movement path for the gantry, applies the move to the chess model, updates
+        material score, and updates the UI turn indicator.
+
+        Args:
+            move: Move to apply (typically a chess.Move instance).
+
+        Return:
+            list[Command]: Path as a list of Command objects produced by the control layer.
+        """
         self.control.update_board_state(self.chess_game.get_board_state())
         path = self.control.get_path(move, self.chess_game.get_board())
 
@@ -916,6 +1071,14 @@ class TrajectoryOverlay(QWidget):
     ARROW_SIZE = 12
 
     def __init__(self, parent=None):
+        """Initialize the trajectory overlay widget.
+
+        Args:
+            parent (QWidget | None): Parent widget (typically the board widget).
+
+        Return:
+            None
+        """
         super().__init__(parent)
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         self.setAttribute(Qt.WidgetAttribute.WA_NoSystemBackground)
@@ -923,18 +1086,40 @@ class TrajectoryOverlay(QWidget):
         self.player_color = chess.WHITE
 
     def set_trajectory(self, path, player_color):
-        """Set trajectory from a list of Command objects."""
+        """Set trajectory from a list of Command objects.
+        
+        Args:
+            path (list[Command]): List of Command objects representing the move trajectory.
+            player_color (bool): Player color to determine coordinate orientation (True for white, False for black).
+        Return:
+            None
+        """
         self.trajectory = [(cmd.position.x, cmd.position.y) for cmd in path]
         self.magnet_states = [cmd.magnet_state for cmd in path]
         self.player_color = player_color
         self.update()
 
     def clear_trajectory(self):
+        """Clear the currently displayed trajectory.
+
+        Args:
+            None
+
+        Return:
+            None
+        """
         self.trajectory = []
         self.update()
 
     def _to_pixel(self, x, y):
-        """Convert 1-based board coordinates to pixel position on the widget."""
+        """Convert 1-based board coordinates to pixel position on the widget.
+        
+        Args:
+            x (float): X coordinate in board space (1-8).
+            y (float): Y coordinate in board space (1-8).
+        Return:
+            QPointF: Pixel coordinates corresponding to the given board coordinates, adjusted for player color orientation.    
+        """
         sw = self.width() / 8.0
         sh = self.height() / 8.0
         if self.player_color == chess.WHITE:
@@ -946,6 +1131,14 @@ class TrajectoryOverlay(QWidget):
         return QPointF(px, py)
 
     def paintEvent(self, event):
+        """Paint the trajectory overlay on top of the board.
+
+        Args:
+            event: Qt paint event.
+
+        Return:
+            None
+        """
         if len(self.trajectory) < 2:
             return
 
@@ -988,12 +1181,22 @@ class TrajectoryOverlay(QWidget):
 
         painter.end()
 
-
 class ChessBoardWidget(QWidget):
 
     squared_clicked_signal = pyqtSignal(int, int)  # Signal to emit when a square is clicked, with row and column info
 
     def __init__(self):
+        """Create the chess board widget.
+
+        Builds an 8x8 grid of clickable squares, loads piece images, and prepares
+        an overlay to display robot trajectories.
+
+        Args:
+            None
+
+        Return:
+            None
+        """
         super().__init__()
         
         self.player_color = chess.WHITE
@@ -1007,6 +1210,14 @@ class ChessBoardWidget(QWidget):
         self.update_board(None, resize=True)  # Initial board setup with correct piece images 
             
     def init_board(self):
+        """Create and layout all square buttons for the board.
+
+        Args:
+            None
+
+        Return:
+            None
+        """
 
         for row in range(8):
             for col in range(8):
@@ -1028,7 +1239,12 @@ class ChessBoardWidget(QWidget):
         self.paint_board()
 
     def load_piece_images(self):
-        """Load piece images from assets directory."""
+        """Load piece images from assets directory.
+        Args:   
+            None
+        Return:
+            None    
+        """
         images = {}
         # Navigate up to python folder, then to chess_assets
         assets_dir = os.path.join(os.path.dirname(__file__), 'assets','chess_assets')
@@ -1051,7 +1267,9 @@ class ChessBoardWidget(QWidget):
         return images  
     
     def update_board(self, board_state, resize=False):
-        """Update the board display based on the new board state (FEN string)."""
+        """Update the board display based on the new board state (FEN string).
+        
+        """
         if not resize: #If this is a resize event, we don't need to update the board state from the model, just redraw the pieces with the new sizes
             self.board = self.fen_to_board_array(board_state)
 
@@ -1130,6 +1348,14 @@ class ChessBoardWidget(QWidget):
         self.repaint()   
 
     def resizeEvent(self, event):
+        """Handle widget resize by resizing the trajectory overlay.
+
+        Args:
+            event: Qt resize event.
+
+        Return:
+            None
+        """
         super().resizeEvent(event)
         self.trajectory_overlay.setGeometry(0, 0, event.size().width(), event.size().height())
         self.trajectory_overlay.raise_()
@@ -1143,16 +1369,41 @@ class ChessBoardWidget(QWidget):
         self.trajectory_overlay.clear_trajectory()
 
     def set_player_color(self, player_color):
+        """Set player color and update orientation-dependent behavior.
+
+        Args:
+            player_color: Player color (typically chess.WHITE or chess.BLACK).
+
+        Return:
+            None
+        """
         self.player_color = player_color               
 
 class AspectRatioWidget(QWidget):
     
     def __init__(self, board_widget, parent=None):
+        """Create a container that keeps the board widget square.
+
+        Args:
+            board_widget (QWidget): The board widget to constrain to a square.
+            parent (QWidget | None): Optional parent widget.
+
+        Return:
+            None
+        """
         super().__init__(parent)
         self.board_widget = board_widget
         self.board_widget.setParent(self) # Make the board a child of this container
 
     def resizeEvent(self, event):
+        """Resize the child board widget to keep a square aspect ratio.
+
+        Args:
+            event: Qt resize event.
+
+        Return:
+            None
+        """
      
         w = event.size().width()
         h = event.size().height()
@@ -1168,6 +1419,14 @@ class AspectRatioWidget(QWidget):
  
 class GridButton(QPushButton):
     def __init__(self):
+        """Create a grid button that stays square within layouts.
+
+        Args:
+            None
+
+        Return:
+            None
+        """
         super().__init__()
 
         sizePolicy = self.sizePolicy()
@@ -1176,11 +1435,29 @@ class GridButton(QPushButton):
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
     def heightForWidth(self, width):
+        """Return the preferred height for a given width.
+
+        This enforces a square shape.
+
+        Args:
+            width (int): Current width.
+
+        Return:
+            int: Height equal to width.
+        """
         return width  
 
 
 class HoverIconToolButton(QToolButton):
     def __init__(self, parent=None):
+        """Create a tool button that swaps icons on hover.
+
+        Args:
+            parent (QWidget | None): Optional parent widget.
+
+        Return:
+            None
+        """
         super().__init__(parent)
         self._normal_icon: QIcon | None = None
         self._hover_icon: QIcon | None = None
@@ -1189,6 +1466,15 @@ class HoverIconToolButton(QToolButton):
 
     @staticmethod
     def _darken_pixmap(pixmap: QPixmap, alpha: int = 90) -> QPixmap:
+        """Return a darkened copy of a pixmap.
+
+        Args:
+            pixmap (QPixmap): Source pixmap.
+            alpha (int): Darkness alpha (0-255). Higher means darker.
+
+        Return:
+            QPixmap: Darkened pixmap.
+        """
         dark = QPixmap(pixmap.size())
         dark.fill(Qt.GlobalColor.transparent)
 
@@ -1201,16 +1487,41 @@ class HoverIconToolButton(QToolButton):
         return dark
 
     def setHoverIcons(self, normal_icon: QIcon, hover_icon: QIcon):
+        """Set the icons used for normal and hover states.
+
+        Args:
+            normal_icon (QIcon): Icon displayed normally.
+            hover_icon (QIcon): Icon displayed while hovering.
+
+        Return:
+            None
+        """
         self._normal_icon = normal_icon
         self._hover_icon = hover_icon
         self.setIcon(normal_icon)
 
     def enterEvent(self, event):
+        """Handle mouse enter by switching to the hover icon.
+
+        Args:
+            event: Qt enter event.
+
+        Return:
+            None
+        """
         if self._hover_icon is not None:
             self.setIcon(self._hover_icon)
         return super().enterEvent(event)
 
     def leaveEvent(self, event):
+        """Handle mouse leave by restoring the normal icon.
+
+        Args:
+            event: Qt leave event.
+
+        Return:
+            None
+        """
         if self._normal_icon is not None:
             self.setIcon(self._normal_icon)
         return super().leaveEvent(event)
@@ -1221,6 +1532,16 @@ class PromotionWidget(QDialog):
     promotion_signal = pyqtSignal(int)  # Signal to emit the chosen promotion piece as chess piece type (e.g., chess.QUEEN)
 
     def __init__(self, player_color):
+        """Create the promotion choice dialog.
+
+        Displays piece options (Q/R/B/N) and returns the selected promotion type.
+
+        Args:
+            player_color: Player color (chess.WHITE or chess.BLACK) used to choose correct piece icons.
+
+        Return:
+            None
+        """
         super().__init__()
 
         self.setWindowTitle("")
@@ -1288,6 +1609,14 @@ class PromotionWidget(QDialog):
         )
 
     def promote(self, piece):
+        """Select a promotion piece and close the dialog.
+
+        Args:
+            piece (str): One of 'Q', 'R', 'B', 'N' (case-insensitive).
+
+        Return:
+            None
+        """
         self.chosen_piece = self.piece_chosen_dict[piece.upper()]
         self.accept()  # Close the promotion dialog after selection    
             
