@@ -803,7 +803,6 @@ class Cam:
             cv2.namedWindow("Raw Frame Captured", cv2.WINDOW_NORMAL)
             cv2.imshow("Raw Frame Captured", frame)
             cv2.resizeWindow("Raw Frame Captured", frame.shape[1], frame.shape[0])
-        cv2.imwrite("captured_frame.jpg", frame)
         return frame
     
     def process_frame(self) -> dict:
@@ -860,7 +859,6 @@ class Cam:
 
         # Only compute move when multiple consecutive frames agree.
         if frame_stable:
-            cv2.imwrite("processed_image.jpg", cv2.cvtColor(masked_warped, cv2.COLOR_RGB2BGR))
             move_info = self.move_detector.detect_move(
                 piece_place,
                 piece_color
