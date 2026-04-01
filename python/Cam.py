@@ -5,9 +5,10 @@ import ctypes
 import chess
 import time
 
-## Extracting Chess Squares with Perspective Transformation (image --> fen format)
+"""Camera pipeline for board calibration, perspective warp, piece detection, and move detection."""
 
 class ImageCalibration:
+    """Handle manual board-corner calibration from an image source."""
     
     def __init__(self, image_path: str, scale: float = 1.0):
         """Initialize calibration with image path and scale factor.
@@ -25,7 +26,18 @@ class ImageCalibration:
         self.calibration_file = 'calibration_points.json'
         
     def mouse_click(self, event, x, y, flags, param):
-        """Callback for mouse clicks"""
+        """Store clicked board-corner points.
+
+        Args:
+            event: OpenCV mouse event code.
+            x: Mouse x-coordinate in displayed image space.
+            y: Mouse y-coordinate in displayed image space.
+            flags: OpenCV mouse flags (unused).
+            param: Scale factor used to map display coordinates to original image.
+
+        Return:
+            None
+        """
         if event == cv2.EVENT_LBUTTONDOWN:
             if len(self.points) < 4:
                 orig_x = int(x / param)
@@ -37,7 +49,16 @@ class ImageCalibration:
     
     @staticmethod
     def center_window(window_name: str, width: int, height: int):
-        """Centers the window on the screen"""
+        """Center an OpenCV window on screen.
+
+        Args:
+            window_name (str): OpenCV window name.
+            width (int): Window width in pixels.
+            height (int): Window height in pixels.
+
+        Return:
+            None
+        """
         try:
             import subprocess
             output = subprocess.check_output(['xdpyinfo'], stderr=subprocess.DEVNULL).decode()
@@ -55,13 +76,20 @@ class ImageCalibration:
         cv2.moveWindow(window_name, x, y)
     
     def calibrate(self, frame: np.ndarray = None):
-        """Launches interactive calibration (from file or camera frame)"""
+        """Run interactive 4-point board calibration.
+
+        Args:
+            frame (np.ndarray, optional): Optional camera frame to calibrate from.
+
+        Return:
+            None
+        """
         if frame is not None:
-            # Use the frame passed as parameter
+            # Use captured frame as calibration source.
             image = cv2.resize(frame, None, fx=self.scale, fy=self.scale)
             print("[INFO] Photo captured from camera")
         else:
-            # Load from file
+            # Load calibration source from disk.
             orig_image = cv2.imread(self.image_path)
             image = cv2.resize(orig_image, None, fx=self.scale, fy=self.scale)
             print("[INFO] Image loaded from file")
@@ -81,7 +109,7 @@ class ImageCalibration:
         while True:
             vis = image.copy()
             
-            # Draw the points
+            # Draw selected corner points and labels.
             for idx, (ox, oy) in enumerate(self.points):
                 x = int(ox * self.scale)
                 y = int(oy * self.scale)
@@ -115,7 +143,11 @@ class ImageCalibration:
         self.save_calibration()
     
     def save_calibration(self):
-        """Saves calibration points to JSON"""
+        """Save selected board-corner points to the calibration JSON file.
+
+        Return:
+            None
+        """
         calibration_points = {
             "top_left": self.points[0],
             "top_right": self.points[1],
@@ -129,13 +161,17 @@ class ImageCalibration:
         print("[INFO] Calibration saved to calibration_points.json")
     
     def load_calibration(self) -> dict:
-        """Loads calibration points from JSON"""
+        """Load board-corner calibration points from JSON.
+
+        Return:
+            dict: Calibration points dictionary.
+        """
         with open(self.calibration_file, 'r') as f:
             return json.load(f)
 
 
 class ChessBoardTransform:
-    """Manages perspective transformation of the chess board image."""
+    """Handle perspective transforms between camera view and top-down board view."""
 
     def __init__(self, calibration_points: dict, board_size: int = 1200):
         """Initialize transform with calibration points and board size.
@@ -158,7 +194,11 @@ class ChessBoardTransform:
         self.M_inv = None
         
     def compute_transform_matrix(self):
-        """Computes the perspective transformation matrix"""
+        """Compute the perspective transform matrix.
+
+        Return:
+            None
+        """
         extreme_points_list = np.float32([
             self.top_left, self.top_right, 
             self.bottom_left, self.bottom_right
@@ -175,7 +215,14 @@ class ChessBoardTransform:
         #self.M_inv = cv2.invert(self.M)[1]
     
     def apply_transform(self, image: np.ndarray) -> np.ndarray:
-        """Applies perspective transformation"""
+        """Apply perspective transform and return normalized board image.
+
+        Args:
+            image (np.ndarray): Input image in camera perspective.
+
+        Return:
+            np.ndarray: Warped board image.
+        """
         if self.M is None:
             self.compute_transform_matrix()
         
@@ -187,7 +234,14 @@ class ChessBoardTransform:
         return warped
     
     def inverse_transform(self, points: np.ndarray) -> np.ndarray:
-        """Applies inverse transformation"""
+        """Project points from warped space to source image space.
+
+        Args:
+            points (np.ndarray): Points in warped board coordinates.
+
+        Return:
+            np.ndarray: Points projected back to source image coordinates.
+        """
         if self.M_inv is None:
             self.compute_transform_matrix()
         
@@ -195,51 +249,75 @@ class ChessBoardTransform:
 
 
 class ColorMask:
-    # Define color ranges in HSV
-    # Yellow: H ~20-40
+    """Create color masks used for piece-marker segmentation."""
+    # HSV ranges for marker colors.
+    # Yellow: H around 20-40.
     lower_yellow = np.array([15, 100, 100])
     upper_yellow = np.array([35, 255, 255])
 
-    # Green: H ~40-90
+    # Green: H around 40-90.
     lower_green = np.array([35, 50, 50])
     upper_green = np.array([90, 255, 255])
 
     @staticmethod
     def create_color_mask(image_rgb):
+        """Build a binary mask for yellow and green markers.
+
+        Args:
+            image_rgb: RGB image to segment.
+
+        Return:
+            tuple: (masked RGB image, combined binary mask).
         """
-        Creates a mask for yellow and green colors.
-        Keeps only pixels with these colors, sets others to black.
-        """
-        # Convert RGB to HSV for better color detection
+        # HSV makes color thresholding more robust than RGB.
         hsv_image = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2HSV)
         
-        # Create masks for each color
+        # Build separate masks for each target color.
         mask_yellow = cv2.inRange(hsv_image, ColorMask.lower_yellow, ColorMask.upper_yellow)
         mask_green = cv2.inRange(hsv_image, ColorMask.lower_green, ColorMask.upper_green)
 
-        # Combine all masks
+        # Merge color masks into one foreground mask.
         combined_mask = cv2.bitwise_or(mask_yellow, mask_green)
 
-        # Apply morphological operations to clean up the mask
+        # Remove small holes/noise.
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
         combined_mask = cv2.morphologyEx(combined_mask, cv2.MORPH_CLOSE, kernel)
         combined_mask = cv2.morphologyEx(combined_mask, cv2.MORPH_OPEN, kernel)
         
-        # Apply mask to the original image
+        # Keep only masked marker pixels in the output image.
         masked_image = cv2.bitwise_and(image_rgb, image_rgb, mask=combined_mask)
         
         return masked_image, combined_mask
     
 class ChessBoardSquares:
+    """Provide utilities to index and draw board squares on warped images."""
+
     ROWS, COLS = 8, 8
     def __init__(self, board_size: int):
+        """Initialize square geometry from board size.
+
+        Args:
+            board_size (int): Board width/height in pixels.
+
+        Return:
+            None
+        """
         self.board_size = board_size
         self.square_width = board_size // self.COLS
         self.square_height = board_size // self.ROWS
 
     def get_square_region(self, warped_image: np.ndarray, square_index: int, 
                          padding_ratio: float = 0.2) -> np.ndarray:
-        """Extracts the region of a specific square"""
+        """Extract a padded region of one board square.
+
+        Args:
+            warped_image (np.ndarray): Warped board image.
+            square_index (int): Square index from 0 to 63.
+            padding_ratio (float): Relative padding removed from each side.
+
+        Return:
+            np.ndarray: Cropped square image.
+        """
         row = self.COLS - 1 - (square_index) // self.COLS
         col = (square_index) % self.COLS
         
@@ -260,7 +338,16 @@ class ChessBoardSquares:
     
     def draw_grid(self, image: np.ndarray, color: tuple = (0, 255, 0), 
                   thickness: int = 4) -> np.ndarray:
-        """Draws the 8x8 grid"""
+        """Draw an 8x8 board grid on an image.
+
+        Args:
+            image (np.ndarray): Input image.
+            color (tuple): Grid line color in BGR.
+            thickness (int): Grid line thickness in pixels.
+
+        Return:
+            np.ndarray: Image with grid overlay.
+        """
         vis = image.copy()
         
         for i in range(self.ROWS):
@@ -272,7 +359,11 @@ class ChessBoardSquares:
         return vis
     
     def get_all_squares_warped(self) -> list:
-        """Returns the coordinates of all squares in order (starting from bottom-left)"""
+        """Return coordinates for all warped squares in board order.
+
+        Return:
+            list: List of square center and corner coordinates.
+        """
         squares_data = []
         
         for i in range(self.ROWS - 1, -1, -1):
@@ -300,9 +391,18 @@ class ChessBoardSquares:
 # CLASS: PieceDetection
 # ============================================================================
 class PieceDetection:
-    """Manages piece detection by pixel count"""
+    """Detect piece occupancy and marker color from masked square regions."""
     
     def __init__(self, warped_image: np.ndarray, board_squares: ChessBoardSquares):
+        """Initialize detector with a masked warped image and board geometry.
+
+        Args:
+            warped_image (np.ndarray): Masked warped board image.
+            board_squares (ChessBoardSquares): Square helper utilities.
+
+        Return:
+            None
+        """
         self.warped_image = warped_image
         self.board_squares = board_squares
     
@@ -311,13 +411,22 @@ class PieceDetection:
     #     self.baseline_variance = 1.0  # Not used in pixel-count detection
     #     return self.baseline_variance
     
-    def detect_piece_in_square(self, square_index: int, 
+    def detect_piece_in_square(self, square_index: int,
                               threshold_multiplier: float = 1.0,
                               min_pixel_ratio: float = 0.02) -> str:
-        """Detects if a piece is present by counting non-black pixels in the masked image"""
+        """Detect whether a square is occupied.
+
+        Args:
+            square_index (int): Square index from 0 to 63.
+            threshold_multiplier (float): Reserved parameter for compatibility.
+            min_pixel_ratio (float): Minimum non-black pixel ratio for occupancy.
+
+        Return:
+            str: 'empty' if no piece is detected, else detected color label.
+        """
         square_region = self.board_squares.get_square_region(self.warped_image, square_index, padding_ratio=0.33)
         
-        # Count non-black pixels (color mask already isolates piece markers)
+        # The color mask already removed most of the board background.
         gray = cv2.cvtColor(square_region, cv2.COLOR_RGB2GRAY) if len(square_region.shape) == 3 else square_region
         non_black_count = np.count_nonzero(gray > 10)
         total_pixels = gray.shape[0] * gray.shape[1]
@@ -333,13 +442,21 @@ class PieceDetection:
             return 'empty'
     
     def _get_piece_color(self, square_index: int, min_pixel_ratio: float = 0.02) -> str:
-        """Detects the color of the piece"""
+        """Classify marker color in one square.
+
+        Args:
+            square_index (int): Square index from 0 to 63.
+            min_pixel_ratio (float): Minimum occupancy ratio to attempt color classification.
+
+        Return:
+            str: One of 'yellow', 'green', 'unknown', or 'empty'.
+        """
         square_region = self.board_squares.get_square_region(self.warped_image, square_index, padding_ratio=0.33)
 
         if square_region.shape[2] != 3:
             return 'empty'
         
-        # Count non-black pixels (color mask already isolates piece markers)
+        # Re-check occupancy before attempting color classification.
         gray = cv2.cvtColor(square_region, cv2.COLOR_RGB2GRAY) if len(square_region.shape) == 3 else square_region
         non_black_count = np.count_nonzero(gray > 10)
         total_pixels = gray.shape[0] * gray.shape[1]
@@ -354,7 +471,7 @@ class PieceDetection:
             return 'empty'
         
         hsv_region = cv2.cvtColor(square_region.astype(np.uint8), cv2.COLOR_RGB2HSV)
-        hsv_colored = hsv_region[gray > 10]  # Only consider non-black pixels
+        hsv_colored = hsv_region[gray > 10]  # Evaluate color only on foreground pixels.
         
         h_mean = np.mean(hsv_colored[:, 0])
         s_mean = np.mean(hsv_colored[:, 1])
@@ -371,7 +488,14 @@ class PieceDetection:
             return 'unknown'
     
     def detect_all_pieces(self, ratio: float = 0.02) -> tuple[list, list]:
-        """Detects all pieces on the board"""
+        """Detect occupancy and color for all 64 squares.
+
+        Args:
+            ratio (float): Minimum occupancy ratio used for classification.
+
+        Return:
+            tuple[list, list]: (piece_place, piece_color) arrays.
+        """
         piece_place = [0] * 64
         piece_color = ['empty'] * 64
         
@@ -391,37 +515,58 @@ class PieceDetection:
 # CLASS: MoveDetection
 # ============================================================================
 class MoveDetection:
-    """Manages move detection"""
+    """Infer moves by comparing camera-detected state and chess engine board state."""
     
     def __init__(self, chess_game):
+        """Initialize move detection with a chess game model.
+
+        Args:
+            chess_game: Chess game object exposing get_board().
+
+        Return:
+            None
+        """
         self.chess_game = chess_game
         
     def init_from_board(self) -> tuple[list, list]:
-        """Initialize piece state from the current chess board"""
+        """Build occupancy and color arrays from the chess engine board.
+
+        Return:
+            tuple[list, list]: (old_piece_place, old_piece_color) arrays.
+        """
         board = self.chess_game.get_board()
         old_piece_place = [0] * 64
         old_piece_color = ['empty'] * 64
         
-        # Iterate through all 64 squares
+        # Convert engine board content into occupancy/color arrays.
         for square_index in range(64):
             piece = board.piece_at(square_index)
             
             if piece is None:
-                # Empty square
+                # Empty square.
                 old_piece_place[square_index] = 0
                 old_piece_color[square_index] = 'empty'
             else:
-                # Occupied square
+                # Occupied square.
                 old_piece_place[square_index] = 1
-                # Color: 0 for black/captured, use 1 for white, 2 for black (or map to 'white'/'black')
-                # For compatibility with camera detection: 'yellow' or 'green'
+                # Map engine side to camera marker colors.
                 old_piece_color[square_index] = 'yellow' if piece.color == chess.WHITE else 'green'
 
         return old_piece_place, old_piece_color
 
     def detect_castling(self, old_piece_place: list, old_piece_color: list,
                         new_piece_place: list, new_piece_color: list) -> dict:
-        """Detects castling moves"""
+        """Detect castling patterns from old and new board states.
+
+        Args:
+            old_piece_place (list): Previous occupancy array.
+            old_piece_color (list): Previous color array.
+            new_piece_place (list): Current occupancy array.
+            new_piece_color (list): Current color array.
+
+        Return:
+            dict: Move dictionary when castling is detected, else None.
+        """
         if (old_piece_place[0] and old_piece_place[4] and new_piece_place[2] and new_piece_place[3] 
             and not old_piece_place[1] and not old_piece_place[2] and not old_piece_place[3]):
             if old_piece_color[0] == old_piece_color[4] == new_piece_color[2] == new_piece_color[3]:
@@ -443,35 +588,43 @@ class MoveDetection:
                 return {'move_start': 64, 'move_end': 62, 'uci': 'e8g8'}  # Kingside castling
     
     def detect_move(self, new_piece_place: list, new_piece_color: list) -> dict:
-        """Detects moves by comparing with the previous state"""
+        """Detect a move from camera state relative to chess engine state.
+
+        Args:
+            new_piece_place (list): Current occupancy array from camera.
+            new_piece_color (list): Current color array from camera.
+
+        Return:
+            dict: Move information with start, end, and UCI fields.
+        """
         analyses = [0] * 64
         old_piece_place, old_piece_color = self.init_from_board()
         move_start = 0
         move_end = 0
         
-        # Check for castling first
+        # Castling has a distinct multi-square pattern and is handled first.
         castling_move = self.detect_castling(old_piece_place, old_piece_color, new_piece_place, new_piece_color)
         if castling_move is not None:
             return castling_move
         
-        # Detect normal moves - track all possible changes
+        # Track candidate departure and arrival squares for regular moves.
         piece_disappearances = []
         piece_appearances = []
         
         for i in range(len(new_piece_place)):
             analyses[i] = new_piece_place[i] + old_piece_place[i]
             
-            # Piece was captured and replaced
+            # Capture-like pattern: occupied before and after, but color changed.
             if analyses[i] == 2 and old_piece_color[i] != new_piece_color[i]:
                 piece_appearances.append(i+1)
-            # Piece appeared (0->1)
+            # Piece appeared (0 -> 1).
             elif analyses[i] == 1 and new_piece_place[i] == 1:
                 piece_appearances.append(i+1)
-            # Piece disappeared (1->0)
+            # Piece disappeared (1 -> 0).
             elif analyses[i] == 1 and new_piece_place[i] == 0:
                 piece_disappearances.append(i+1)
         
-        # Set move_start and move_end from detected changes
+        # Use first detected candidates as move endpoints.
         if piece_disappearances:
             move_start = piece_disappearances[0]
         if piece_appearances:
@@ -486,7 +639,15 @@ class MoveDetection:
         }
     
     def get_uci_move(self, move_start: int, move_end: int) -> str:
-        """Converts positions to UCI notation"""
+        """Convert 1-based square indices to UCI notation.
+
+        Args:
+            move_start (int): Start square index in [1, 64].
+            move_end (int): End square index in [1, 64].
+
+        Return:
+            str: UCI move string, or 'unknown' when indices are invalid.
+        """
         if move_start == 0 or move_end == 0:
             return 'unknown'
         
@@ -504,7 +665,7 @@ class MoveDetection:
 
 
 class Cam:
-    """Main class integrating all functionalities"""
+    """Orchestrate calibration, camera capture, piece detection, and move extraction."""
     
     def __init__(self, chess_game, board_size: int = 1200, camera_id: int = 0, scale: float = 1.0):
         """Initialize camera instance with game model and configuration.
@@ -531,27 +692,34 @@ class Cam:
         self.cap = None
     
     def initialize_camera(self, calibrate: bool = False):
-        """Initializes the camera with maximum quality"""
+        """Initialize camera settings and perspective transform.
+
+        Args:
+            calibrate (bool): Whether to run calibration before loading transform.
+
+        Return:
+            bool: True when initialization succeeds, False otherwise.
+        """
         self.cap = cv2.VideoCapture("/dev/video0", cv2.CAP_V4L2)
         
         if not self.cap.isOpened():
             print("[ERROR] Unable to open the camera")
             return False
         
-        # Increase resolution and quality
+        # Favor stable, low-latency capture settings.
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 960)
         self.cap.set(cv2.CAP_PROP_FPS, 30)
         self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # Reduce latency
         
-        # Get the actual resolution
+        # Log effective settings reported by the driver.
         actual_width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         actual_height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         print("[INFO] Camera initialized successfully")
         # print(f"[INFO] Requested resolution: 1920x1080")
         print(f"[INFO] Actual resolution: {actual_width}x{actual_height}")
         
-        # Let the camera stabilize (warm-up)
+        # Warm up the camera so exposure/white balance can settle.
         print("[INFO] Stabilizing camera (2 seconds)...")
         for _ in range(10):
             self.cap.read()
@@ -567,6 +735,11 @@ class Cam:
         return True
     
     def recalibrate_from_UI(self):
+        """Trigger calibration flow and rebuild transform from updated points.
+
+        Return:
+            None
+        """
 
         self.calibrate_from_camera()
         
@@ -575,7 +748,11 @@ class Cam:
         self.transform.compute_transform_matrix()
 
     def calibrate_from_camera(self):
-        """Launches calibration from camera on a single photo"""
+        """Capture one frame and run interactive calibration.
+
+        Return:
+            None
+        """
         print("[INFO] Starting calibration from camera...")
         print("[INFO] Capturing a photo...")
         
@@ -586,26 +763,35 @@ class Cam:
         
         print("[INFO] Photo captured ✓")
         
-        # Créer l'objet calibration
+        # Build calibration helper and feed it the captured frame.
         self.calibration = ImageCalibration("camera", scale=self.scale)
-        
-        # Appeler calibrate() en passant le frame capturé
         self.calibration.calibrate(frame=frame)
 
     def load_calibration(self) -> dict:
-        """Loads calibration points"""
+        """Load calibration points from disk.
+
+        Return:
+            dict: Calibration points dictionary.
+        """
         if self.calibration is None:
             self.calibration = ImageCalibration("camera")
         
         return self.calibration.load_calibration()
     
     def capture_frame(self, show: bool = False) -> np.ndarray:
-        """Captures a frame from the camera"""
+        """Capture the most recent camera frame.
+
+        Args:
+            show (bool): Whether to display the captured frame.
+
+        Return:
+            np.ndarray: Captured frame in BGR, or None on failure.
+        """
         if self.cap is None or not self.cap.isOpened():
             print("[ERROR] Camera is not initialized")
             return None
         
-        # Flush the internal buffer to get the latest frame
+        # Flush buffered frames to reduce stale-image latency.
         for _ in range(5):
             self.cap.grab()
         
@@ -621,7 +807,11 @@ class Cam:
         return frame
     
     def process_frame(self) -> dict:
-        """Processes a frame captured from the camera"""
+        """Process live camera frames until a stable board state is detected.
+
+        Return:
+            dict: Detection outputs including frame, board state, and move info.
+        """
         timout = 5
         start_time = time.time()
         frame_history = []
@@ -636,17 +826,17 @@ class Cam:
             if frame is None:
                 return None
             
-            time.sleep(0.05) # Time to wait between frames (in seconds)
-            # Convertir en RGB (même flux que CamDetect)
+            time.sleep(0.05)  # Small delay between attempts.
+            # Match the RGB processing path used by the rest of the pipeline.
             rgb_image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             
-            # Appliquer transformation perspective
+            # Warp camera view into a normalized top-down board image.
             warped = self.transform.apply_transform(rgb_image)
             
-            # Appliquer masque couleur
+            # Keep only marker colors used for piece detection.
             masked_warped, mask = ColorMask.create_color_mask(warped)
             
-            # Détecter les pièces
+            # Detect occupancy and marker color for each square.
             piece_detector = PieceDetection(masked_warped, self.squares)
             piece_place, piece_color = piece_detector.detect_all_pieces()
 
@@ -668,7 +858,7 @@ class Cam:
                     break
                 
 
-        # Detect moves
+        # Only compute move when multiple consecutive frames agree.
         if frame_stable:
             cv2.imwrite("processed_image.jpg", cv2.cvtColor(masked_warped, cv2.COLOR_RGB2BGR))
             move_info = self.move_detector.detect_move(
@@ -687,26 +877,33 @@ class Cam:
         }
     
     def process_image(self, image_path: str = None) -> dict:
-        """Processes an image (file or camera)"""
+        """Process a static image path or fallback to live frame processing.
+
+        Args:
+            image_path (str, optional): Input image path. If None, process live camera.
+
+        Return:
+            dict: Detection outputs including board state and move info.
+        """
         if image_path:
-            # Charger depuis un fichier
+            # Load image from file.
             orig_image = cv2.imread(image_path)
             rgb_image = cv2.cvtColor(orig_image, cv2.COLOR_BGR2RGB)
         else:
-            # Capturer depuis la caméra
+            # Defer to live camera path.
             return self.process_frame()
         
-        # Appliquer transformation perspective
+        # Warp camera view into normalized board space.
         warped = self.transform.apply_transform(rgb_image)
         
-        # Appliquer masque couleur
+        # Keep only relevant marker colors.
         masked_warped, mask = ColorMask.create_color_mask(warped)
         
-        # Détecter les pièces
+        # Detect occupancy and marker color.
         piece_detector = PieceDetection(masked_warped, self.squares)
         piece_place, piece_color = piece_detector.detect_all_pieces()
         
-        # Détecter les mouvements
+        # Infer move from detected state against current chess model state.
         move_info = self.move_detector.detect_move(
             piece_place,
             piece_color
@@ -720,27 +917,31 @@ class Cam:
         }
     
     def release(self):
-        """Releases the camera"""
+        """Release camera resources.
+
+        Return:
+            None
+        """
         if self.cap is not None:
             self.cap.release()
             print("[INFO] Camera released")
 
 
-# ============================================================================
-# USAGE EXAMPLE
-# ============================================================================
+# =============================
+# Usage example
+# =============================
 if __name__ == "__main__":
-    # Import chess game module (adjust import based on your structure)
+    # Example standalone run.
     import chess, CNChess  # or from your_module import ChessGame
     
-    # Create a chess game instance
+    # Create chess model.
     chess_game = CNChess.CNChess()  # Adjust constructor as needed
     
-    # Option 1: Calibration from camera, then analyze a single frame
+    # Calibrate then analyze a frame.
     cam = Cam(chess_game=chess_game, board_size=1200, camera_id=1)
     cam.initialize_camera(calibrate=True)
     
-    # Analyser une photo capturée
+    # Analyze captured frame.
     result = cam.process_image()
     
     if result:
@@ -748,7 +949,7 @@ if __name__ == "__main__":
         print(f"Pieces detected: {sum(result['piece_place'])}")
         print(f"UCI move: {result['move']['uci']}")
         
-        # Display the analyzed image with grid
+        # Show analyzed image with board grid.
         display_image = cv2.cvtColor(result['warped_image'], cv2.COLOR_RGB2BGR)
         display_image_with_grid = cam.squares.draw_grid(display_image, color=(0, 255, 0), thickness=2)
         cv2.namedWindow("Analyzed Chessboard", cv2.WINDOW_NORMAL)
@@ -765,7 +966,7 @@ if __name__ == "__main__":
         print(f"Pieces detected: {sum(result['piece_place'])}")
         print(f"UCI move: {result['move']['uci']}")
         
-        # Display the analyzed image with grid
+        # Show analyzed image with board grid.
         display_image = cv2.cvtColor(result['warped_image'], cv2.COLOR_RGB2BGR)
         display_image_with_grid = cam.squares.draw_grid(display_image, color=(0, 255, 0), thickness=2)
         cv2.namedWindow("Analyzed Chessboard", cv2.WINDOW_NORMAL)
