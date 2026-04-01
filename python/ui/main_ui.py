@@ -67,6 +67,8 @@ class MainUI(QMainWindow):
         self.settings_page.controller.back_button_signal.connect(self.back_button_settings_page)
         self.game_page.game_page_controller.send_gantry_position.connect(self.settings_page.update_coord)
 
+        self.showFullScreen()
+
     def switch_to_home_page(self):
         """Switch the main window display to the home page and reset the game board.
         

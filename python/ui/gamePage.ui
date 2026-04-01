@@ -146,6 +146,12 @@ QPushButton:pressed {
            </item>
            <item>
             <widget class="QPushButton" name="settingsButton">
+             <property name="maximumSize">
+              <size>
+               <width>25</width>
+               <height>25</height>
+              </size>
+             </property>
              <property name="text">
               <string/>
              </property>

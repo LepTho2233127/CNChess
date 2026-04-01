@@ -137,6 +137,8 @@ class ChessClock(QWidget):
         self.initial_time = initial_time
         self.timer.timeout.connect(self.tick)
         self.clock_label = clock_label
+        # Ensure the time text stays centered as the window/label resizes.
+        self.clock_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.update_display()
         self.color = color
 
