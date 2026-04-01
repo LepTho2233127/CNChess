@@ -390,6 +390,17 @@ class SettingsView(QWidget):
         current_value = self.x_spinner.value()
         self.update_coord(current_value + self.step_spinner.value(), abs(self.y_spinner.value() - grid_height_mm))
 
+    def update_captured_image(self, img_path):
+        """Take picture and update image in view.
+        
+        Args:
+            img_path (str): File path to new image.
+        
+        Return:
+            None
+        """
+        self.controller.update_picture(img_path=img_path)
+
 class SettingsController(QObject):
 
     back_button_signal = pyqtSignal()
@@ -623,12 +634,9 @@ class SettingsController(QObject):
         img_path = os.path.join(os.path.dirname(__file__), 'assets', 'captured_image.jpg')
         cv2.imwrite(img_path, cv2.cvtColor(display_image_with_grid, cv2.COLOR_RGB2BGR))
 
-        image = QPixmap(img_path)
-        image = image.scaled(640, 480, Qt.AspectRatioMode.KeepAspectRatio)
-
-        self.view.last_pic.setPixmap(image)
+        self.update_picture(img_path)
     
-    def update_picture(self, image):
+    def update_picture(self, img_path):
         """Update camera image display with new image.
         
         Args:
@@ -637,9 +645,6 @@ class SettingsController(QObject):
         Return:
             None
         """
-        img_path = os.path.join(os.path.dirname(__file__), 'assets', 'captured_image.jpg')
-        cv2.imwrite(img_path, cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
-
         pixmap = QPixmap(img_path)
         pixmap = pixmap.scaled(640, 480, Qt.AspectRatioMode.KeepAspectRatio)
 

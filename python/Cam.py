@@ -4,6 +4,7 @@ import json
 import ctypes
 import chess
 import time
+import os
 
 """Camera pipeline for board calibration, perspective warp, piece detection, and move detection."""
 
@@ -700,7 +701,7 @@ class Cam:
         Return:
             bool: True when initialization succeeds, False otherwise.
         """
-        self.cap = cv2.VideoCapture("/dev/video0", cv2.CAP_V4L2)
+        self.cap = cv2.VideoCapture("/dev/video4", cv2.CAP_V4L2)
         
         if not self.cap.isOpened():
             print("[ERROR] Unable to open the camera")
@@ -863,6 +864,9 @@ class Cam:
                 piece_place,
                 piece_color
             )
+            img_path = os.path.join(os.path.dirname(__file__),'ui', 'assets', 'captured_image.jpg') 
+            display_image_with_grid = self.squares.draw_grid(masked_warped, color=(0, 255, 0), thickness=2)
+            cv2.imwrite(img_path, cv2.cvtColor(display_image_with_grid, cv2.COLOR_RGB2BGR))     
         else:
             move_info = {'move_start': 0, 'move_end': 0, 'uci': 'unknown'}
         

@@ -103,6 +103,8 @@ class MainUI(QMainWindow):
             None
         """
         self.stacked_widget.setCurrentWidget(self.settings_page)
+        img_path = os.path.join(os.path.dirname(__file__), 'assets', 'captured_image.jpg')
+        self.settings_page.update_captured_image(img_path)
 
     def back_button_settings_page(self):
         """Return to the previous page (game or home) from the settings page.
