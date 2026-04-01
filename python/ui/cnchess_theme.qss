@@ -40,6 +40,26 @@ QRadioButton {
     font-size: 15px;
     border: none;
 }
+
+/* Difficulty buttons on home page (icon-only) */
+QToolButton#difficultyEasy,
+QToolButton#difficultyMedium,
+QToolButton#difficultyHard {
+    padding: 0px;
+    margin: 0px;
+    border: none;
+    border-radius: 0px;
+    background: transparent;
+}
+
+QToolButton#difficultyEasy:pressed,
+QToolButton#difficultyMedium:pressed,
+QToolButton#difficultyHard:pressed,
+QToolButton#difficultyEasy:checked,
+QToolButton#difficultyMedium:checked,
+QToolButton#difficultyHard:checked {
+    background-color: rgba(0, 0, 0, 110);
+}
 QRadioButton::indicator,
 QRadioButton::indicator:checked,
 QRadioButton::indicator:unchecked {
@@ -91,6 +111,12 @@ TurnIndicatorWidget QLabel {
 QFrame {
     background-color: #3a1818;
     border-radius: 15px;
+}
+
+/* Game page panel frames with red outlines */
+QFrame#leftPanelFrame,
+QFrame#rightPanelFrame{
+    border: 2px solid red;
 }
 
 

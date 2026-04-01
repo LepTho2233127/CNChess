@@ -4,7 +4,7 @@ import cv2
 import threading
 
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
-                             QLabel, QSlider, QPushButton, QDoubleSpinBox, QApplication)
+                             QLabel, QPushButton, QDoubleSpinBox, QApplication)
 from PyQt6.QtCore import QLine, QPoint, Qt, pyqtSignal, QObject, QThread
 from PyQt6.QtGui import QPainter, QPen, QPixmap
 
@@ -274,7 +274,7 @@ class SettingsView(QWidget):
 
 class SettingsController(QObject):
 
-    game_page_signal = pyqtSignal(bool)
+    back_button_signal = pyqtSignal()
 
     def __init__(self, view, com, cam):
         super().__init__()
@@ -318,7 +318,7 @@ class SettingsController(QObject):
     
     def quit(self):
         self.cleanup_threads()
-        self.game_page_signal.emit(True)
+        self.back_button_signal.emit()
 
     def send_position_async(self, position):
         """Send position to device asynchronously without blocking the UI."""

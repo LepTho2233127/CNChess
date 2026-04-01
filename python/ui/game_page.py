@@ -12,16 +12,15 @@ import copy
 
 import math
 
-from PyQt6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QApplication, QSizePolicy, QListWidget, QListWidgetItem, QDialog
-from PyQt6.QtCore import QObject, pyqtSignal, QSize, QThread, Qt, QPointF, QTimer
-from PyQt6.QtGui import QPixmap, QIcon, QColor, QPainter, QPen, QPolygonF
+from PyQt6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QApplication, QSizePolicy, QListWidget, QListWidgetItem, QDialog, QToolButton
+from PyQt6.QtCore import QObject, pyqtSignal, QSize, QThread, Qt, QPoint, QPointF, QTimer
+from PyQt6.QtGui import QIcon, QColor, QPainter, QPen, QPolygonF, QPixmap
 from PyQt6 import uic
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
 
-from Communication import Communication
 from Control import Control
 from ui.dialog_ui import WinnerDialog, DrawDialog, WaitingDialog, TurnIndicatorWidget, InvalidMoveDialog
 
@@ -501,6 +500,36 @@ class GamePageController(QObject):
                 if self.chess_game.is_promotion_move(move):
                     print("Promotion move detected, showing promotion dialog")
                     promotion_dialog = PromotionWidget(self.chess_game.get_player_color())
+
+                    # Anchor the promotion dialog to the destination square the user clicked.
+                    square_widget = self.board_widget.board_layout.itemAtPosition(row, col).widget()
+                    if square_widget is not None:
+                        square_top_left = square_widget.mapToGlobal(QPoint(0, 0))
+                        square_center_x = square_top_left.x() + (square_widget.width() // 2)
+
+                        dialog_w = promotion_dialog.width()
+                        dialog_h = promotion_dialog.height()
+
+                        target_x = square_center_x - (dialog_w // 2)
+                        y_above = square_top_left.y() - dialog_h
+                        y_below = square_top_left.y() + square_widget.height()
+
+                        screen = QApplication.primaryScreen()
+                        if screen is not None:
+                            geo = screen.availableGeometry()
+                            target_x = max(geo.left(), min(target_x, geo.right() - dialog_w + 1))
+
+                            if y_above >= geo.top():
+                                target_y = y_above
+                            elif (y_below + dialog_h) <= (geo.bottom() + 1):
+                                target_y = y_below
+                            else:
+                                target_y = max(geo.top(), min(y_above, geo.bottom() - dialog_h + 1))
+                        else:
+                            target_y = y_above
+
+                        promotion_dialog.move(target_x, target_y)
+
                     result = promotion_dialog.exec()
 
                     if result:
@@ -606,6 +635,7 @@ class GamePageController(QObject):
             #If want to play again switch to home page
             if result : 
                 self.return_home_signal.emit()
+                self.reset_board()
             else : 
                 self.shutdown()
                 app = QApplication.instance()
@@ -717,10 +747,14 @@ class GamePageController(QObject):
 
     def reset_board(self):
         self.chess_game.reset_game()
+        state = self.chess_game.get_board_state()
         self.reset_score()
         self.clear_list()
         self.board_widget.clear_trajectory()
-        self.board_widget.update_board(self.chess_game.get_board_state())
+        self.board_positions = []
+        self.board_positions.append(state)  # Store the initial board state
+        self.board_positions_index = 0
+        self.board_widget.update_board(state)
         self.board_widget.paint_board()
         self.selected_square = None  # Reset selected square when resetting the board
         self.view.white_clock.reset_clock()
@@ -1003,6 +1037,43 @@ class GridButton(QPushButton):
 
     def heightForWidth(self, width):
         return width  
+
+
+class HoverIconToolButton(QToolButton):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._normal_icon: QIcon | None = None
+        self._hover_icon: QIcon | None = None
+        self.setMouseTracking(True)
+        self.setAttribute(Qt.WidgetAttribute.WA_Hover, True)
+
+    @staticmethod
+    def _darken_pixmap(pixmap: QPixmap, alpha: int = 90) -> QPixmap:
+        dark = QPixmap(pixmap.size())
+        dark.fill(Qt.GlobalColor.transparent)
+
+        painter = QPainter(dark)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        painter.drawPixmap(0, 0, pixmap)
+        painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceAtop)
+        painter.fillRect(dark.rect(), QColor(0, 0, 0, alpha))
+        painter.end()
+        return dark
+
+    def setHoverIcons(self, normal_icon: QIcon, hover_icon: QIcon):
+        self._normal_icon = normal_icon
+        self._hover_icon = hover_icon
+        self.setIcon(normal_icon)
+
+    def enterEvent(self, event):
+        if self._hover_icon is not None:
+            self.setIcon(self._hover_icon)
+        return super().enterEvent(event)
+
+    def leaveEvent(self, event):
+        if self._normal_icon is not None:
+            self.setIcon(self._normal_icon)
+        return super().leaveEvent(event)
     
 
 class PromotionWidget(QDialog): 
@@ -1011,8 +1082,19 @@ class PromotionWidget(QDialog):
 
     def __init__(self, player_color):
         super().__init__()
-        self.setFixedSize(200, 100)
+
+        self.setWindowTitle("")
+        self.setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        self.setStyleSheet("QDialog { background: transparent; }")
+
+        # Image-only promotion choices (no padding/background/border).
+        button_size = QSize(56, 56)
+        icon_size = QSize(56, 56)
+
         layout = QHBoxLayout()
+        layout.setSpacing(0)
+        layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(layout)
 
         self.piece_chosen_dict = {
@@ -1021,11 +1103,49 @@ class PromotionWidget(QDialog):
             'B': chess.BISHOP,
             'N': chess.KNIGHT,}
 
+        piece_name_map = {
+            'Q': 'queen',
+            'R': 'rook',
+            'B': 'bishop',
+            'N': 'knight',
+        }
+
+        color_prefix = 'white' if player_color == chess.WHITE else 'black'
+
         pieces = ['Q', 'R', 'B', 'N'] if player_color == chess.WHITE else ['q', 'r', 'b', 'n']
         for piece in pieces:
-            button = QPushButton(piece)
-            button.clicked.connect(lambda checked, p=piece: self.promote(p))
+            piece_upper = piece.upper()
+            filename = f"{color_prefix}-{piece_name_map[piece_upper]}.png"
+            icon_path = os.path.join(os.path.dirname(__file__), "assets", "chess_assets", "pieces_png", filename)
+
+            button = HoverIconToolButton(self)
+            button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
+            button.setAutoRaise(True)
+            button.setFixedSize(button_size)
+            button.setIconSize(icon_size)
+            button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+            button.setStyleSheet(
+                "QToolButton { border: none; padding: 0px; margin: 0px; background: transparent; }"
+                "QToolButton:hover { background: transparent; }"
+                "QToolButton:pressed { background: transparent; }"
+            )
+
+            pixmap = QPixmap(icon_path)
+            if not pixmap.isNull():
+                normal_icon = QIcon(pixmap)
+                hover_icon = QIcon(HoverIconToolButton._darken_pixmap(pixmap, alpha=90))
+                button.setHoverIcons(normal_icon, hover_icon)
+            else:
+                # Fallback to text if asset missing
+                button.setText(piece_upper)
+
+            button.clicked.connect(lambda _checked=False, p=piece: self.promote(p))
             layout.addWidget(button)
+
+        self.setFixedSize(
+            (button_size.width() * len(pieces)) + (layout.spacing() * (len(pieces) - 1)) + layout.contentsMargins().left() + layout.contentsMargins().right(),
+            button_size.height() + layout.contentsMargins().top() + layout.contentsMargins().bottom(),
+        )
 
     def promote(self, piece):
         self.chosen_piece = self.piece_chosen_dict[piece.upper()]
