@@ -1,8 +1,182 @@
 import sys
+import chess
+import os
+
 from PyQt6.QtWidgets import (QApplication, QDialog, QLabel, 
-                             QPushButton, QVBoxLayout, QHBoxLayout, QFrame, QWidget, QSizePolicy)
-from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QPixmap,  QTransform, QPainter
+                             QPushButton, QVBoxLayout, QHBoxLayout, QFrame, QWidget, QSizePolicy, QToolButton)
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QSize
+from PyQt6.QtGui import QIcon
+from PyQt6.QtGui import QPixmap,  QTransform, QPainter, QColor
+
+class PromotionWidget(QDialog): 
+
+    promotion_signal = pyqtSignal(int)  # Signal to emit the chosen promotion piece as chess piece type (e.g., chess.QUEEN)
+
+    def __init__(self, player_color):
+        """Create the promotion choice dialog.
+
+        Displays piece options (Q/R/B/N) and returns the selected promotion type.
+
+        Args:
+            player_color: Player color (chess.WHITE or chess.BLACK) used to choose correct piece icons.
+
+        Return:
+            None
+        """
+        super().__init__()
+
+        self.setWindowTitle("")
+        self.setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        self.setStyleSheet("QDialog { background: transparent; }")
+
+        # Image-only promotion choices (no padding/background/border).
+        button_size = QSize(56, 56)
+        icon_size = QSize(56, 56)
+
+        layout = QHBoxLayout()
+        layout.setSpacing(0)
+        layout.setContentsMargins(0, 0, 0, 0)
+        self.setLayout(layout)
+
+        self.piece_chosen_dict = {
+            'Q': chess.QUEEN,
+            'R': chess.ROOK,
+            'B': chess.BISHOP,
+            'N': chess.KNIGHT,}
+
+        piece_name_map = {
+            'Q': 'queen',
+            'R': 'rook',
+            'B': 'bishop',
+            'N': 'knight',
+        }
+
+        color_prefix = 'white' if player_color == chess.WHITE else 'black'
+
+        pieces = ['Q', 'R', 'B', 'N'] if player_color == chess.WHITE else ['q', 'r', 'b', 'n']
+        for piece in pieces:
+            piece_upper = piece.upper()
+            filename = f"{color_prefix}-{piece_name_map[piece_upper]}.png"
+            icon_path = os.path.join(os.path.dirname(__file__), "assets", "chess_assets", "pieces_png", filename)
+
+            button = HoverIconToolButton(self)
+            button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
+            button.setAutoRaise(True)
+            button.setFixedSize(button_size)
+            button.setIconSize(icon_size)
+            button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+            button.setStyleSheet(
+                "QToolButton { border: none; padding: 0px; margin: 0px; background: transparent; }"
+                "QToolButton:hover { background: transparent; }"
+                "QToolButton:pressed { background: transparent; }"
+            )
+
+            pixmap = QPixmap(icon_path)
+            if not pixmap.isNull():
+                normal_icon = QIcon(pixmap)
+                hover_icon = QIcon(HoverIconToolButton._darken_pixmap(pixmap, alpha=90))
+                button.setHoverIcons(normal_icon, hover_icon)
+            else:
+                # Fallback to text if asset missing
+                button.setText(piece_upper)
+
+            button.clicked.connect(lambda _checked=False, p=piece: self.promote(p))
+            layout.addWidget(button)
+
+        self.setFixedSize(
+            (button_size.width() * len(pieces)) + (layout.spacing() * (len(pieces) - 1)) + layout.contentsMargins().left() + layout.contentsMargins().right(),
+            button_size.height() + layout.contentsMargins().top() + layout.contentsMargins().bottom(),
+        )
+
+    def promote(self, piece):
+        """Select a promotion piece and close the dialog.
+
+        Args:
+            piece (str): One of 'Q', 'R', 'B', 'N' (case-insensitive).
+
+        Return:
+            None
+        """
+        self.chosen_piece = self.piece_chosen_dict[piece.upper()]
+        self.accept()  # Close the promotion dialog after selection    
+            
+
+class HoverIconToolButton(QToolButton):
+    def __init__(self, parent=None):
+        """Create a tool button that swaps icons on hover.
+
+        Args:
+            parent (QWidget | None): Optional parent widget.
+
+        Return:
+            None
+        """
+        super().__init__(parent)
+        self._normal_icon: QIcon | None = None
+        self._hover_icon: QIcon | None = None
+        self.setMouseTracking(True)
+        self.setAttribute(Qt.WidgetAttribute.WA_Hover, True)
+
+    @staticmethod
+    def _darken_pixmap(pixmap: QPixmap, alpha: int = 90) -> QPixmap:
+        """Return a darkened copy of a pixmap.
+
+        Args:
+            pixmap (QPixmap): Source pixmap.
+            alpha (int): Darkness alpha (0-255). Higher means darker.
+
+        Return:
+            QPixmap: Darkened pixmap.
+        """
+        dark = QPixmap(pixmap.size())
+        dark.fill(Qt.GlobalColor.transparent)
+
+        painter = QPainter(dark)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        painter.drawPixmap(0, 0, pixmap)
+        painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceAtop)
+        painter.fillRect(dark.rect(), QColor(0, 0, 0, alpha))
+        painter.end()
+        return dark
+
+    def setHoverIcons(self, normal_icon: QIcon, hover_icon: QIcon):
+        """Set the icons used for normal and hover states.
+
+        Args:
+            normal_icon (QIcon): Icon displayed normally.
+            hover_icon (QIcon): Icon displayed while hovering.
+
+        Return:
+            None
+        """
+        self._normal_icon = normal_icon
+        self._hover_icon = hover_icon
+        self.setIcon(normal_icon)
+
+    def enterEvent(self, event):
+        """Handle mouse enter by switching to the hover icon.
+        Args:
+            event: Qt enter event.
+        Return:
+            None
+        """
+        if self._hover_icon is not None:
+            self.setIcon(self._hover_icon)
+        return super().enterEvent(event)
+
+    def leaveEvent(self, event):
+        """Handle mouse leave by restoring the normal icon.
+        Args:
+            event: Qt leave event.
+        Return:
+            None
+        """
+        if self._normal_icon is not None:
+            self.setIcon(self._normal_icon)
+        return super().leaveEvent(event)
+    
+
 
 class WinnerDialog(QDialog):
     def __init__(self, winner_color="white", parent=None, reason="checkmate"):

@@ -16,7 +16,7 @@ from PyQt6.QtGui import QIcon, QColor, QPainter, QPen, QPolygonF, QPixmap
 from PyQt6 import uic
 
 from Control import Control
-from ui.dialog_ui import WinnerDialog, DrawDialog, WaitingDialog, TurnIndicatorWidget, InvalidMoveDialog
+from ui.dialog_ui import WinnerDialog, DrawDialog, WaitingDialog, TurnIndicatorWidget, InvalidMoveDialog, PromotionWidget
 
 LIGHT_SQUARE_COLOR = "#F0D9B5"
 DARK_SQUARE_COLOR = "#B58863"
@@ -1268,7 +1268,11 @@ class ChessBoardWidget(QWidget):
     
     def update_board(self, board_state, resize=False):
         """Update the board display based on the new board state (FEN string).
-        
+        Args:
+            board_state (str): FEN string representing the current board state.
+            resize (bool): True if this update is due to a resize event, False for normal
+        Return:
+            None    
         """
         if not resize: #If this is a resize event, we don't need to update the board state from the model, just redraw the pieces with the new sizes
             self.board = self.fen_to_board_array(board_state)
@@ -1281,7 +1285,13 @@ class ChessBoardWidget(QWidget):
         self.repaint();
     
     def draw_piece(self, button, piece_char):
-        """Draw the piece on the given square button."""
+        """Draw the piece on the given square button.
+        Args:
+            button (QPushButton): The button representing the square to draw on.
+            piece_char (str): Character representing the piece to draw (e.g., 'K')
+        Return:
+            None    
+        """
         
         if piece_char in self.images:
             icon = self.images[piece_char]
@@ -1291,7 +1301,13 @@ class ChessBoardWidget(QWidget):
             button.setIcon(QIcon())  # Clear the icon for empty squares     
 
     def fen_to_board_array(self, fen: str):
-        """Convert FEN string to 8x8 board array."""
+        """Convert FEN string to 8x8 board array.
+        Args:
+            fen (str): FEN string representing the board state.
+        Return:
+            list[list[str]]: 2D list representing the board, where each element is a piece character or '_' for empty squares. 
+            The orientation is adjusted based on player color.
+        """
         board_str = fen.split(' ')[0]
         rows = board_str.split('/')
         board = []
@@ -1317,7 +1333,13 @@ class ChessBoardWidget(QWidget):
         return board  
 
     def update_square_highlight(self, row, col):
-        """Highlight the selected square and possible move squares."""
+        """Highlight the selected square and possible move squares.
+        Args:
+            row (int): Row index of the square to highlight.
+            col (int): Column index of the square to highlight.
+        Return:
+            None
+        """
         square_button = self.board_layout.itemAtPosition(row, col).widget()
 
         square_color = (row + col) % 2
@@ -1328,12 +1350,22 @@ class ChessBoardWidget(QWidget):
         square_button.setStyleSheet(f"background-color: {highlight_color}; border: none;")  
 
     def handle_square_click(self, row, col):
-        """Handle click events on the squares. This is where you would implement move selection and execution logic."""
-       
+        """Handle click events on the squares. Emit signal to controller with the clicked square's coordinates.
+        Args:            
+            row (int): Row index of the clicked square.
+            col (int): Column index of
+        Return: 
+            None    
+        """
         self.squared_clicked_signal.emit(row, col)
 
     def paint_board(self):
-        """Paints the squares' board the right color depending of the player color"""
+        """Paints the squares' board the right color 
+        Args:           
+            None
+        Return:         
+            None
+        """
 
         for r in range(8):
             for c in range(8):
@@ -1345,14 +1377,12 @@ class ChessBoardWidget(QWidget):
 
                 square_button.setStyleSheet(f"background-color: {base_color}; border: none;")    
 
-        self.repaint()   
+        self.update()   
 
     def resizeEvent(self, event):
         """Handle widget resize by resizing the trajectory overlay.
-
         Args:
             event: Qt resize event.
-
         Return:
             None
         """
@@ -1361,19 +1391,27 @@ class ChessBoardWidget(QWidget):
         self.trajectory_overlay.raise_()
 
     def set_trajectory(self, path):
-        """Show the move trajectory on the board."""
+        """Show the gantry trajectory on the board.
+        Args:
+            path (list[Command]): List of Command objects representing the move trajectory.
+        Return:
+            None
+        """
         self.trajectory_overlay.set_trajectory(path, self.player_color)
 
     def clear_trajectory(self):
-        """Remove the trajectory overlay."""
+        """Remove the trajectory overlay.
+        Args: 
+            None
+        Return:
+            None    
+        """
         self.trajectory_overlay.clear_trajectory()
 
     def set_player_color(self, player_color):
         """Set player color and update orientation-dependent behavior.
-
         Args:
             player_color: Player color (typically chess.WHITE or chess.BLACK).
-
         Return:
             None
         """
@@ -1436,190 +1474,18 @@ class GridButton(QPushButton):
 
     def heightForWidth(self, width):
         """Return the preferred height for a given width.
-
         This enforces a square shape.
-
         Args:
             width (int): Current width.
-
         Return:
             int: Height equal to width.
         """
         return width  
 
 
-class HoverIconToolButton(QToolButton):
-    def __init__(self, parent=None):
-        """Create a tool button that swaps icons on hover.
 
-        Args:
-            parent (QWidget | None): Optional parent widget.
 
-        Return:
-            None
-        """
-        super().__init__(parent)
-        self._normal_icon: QIcon | None = None
-        self._hover_icon: QIcon | None = None
-        self.setMouseTracking(True)
-        self.setAttribute(Qt.WidgetAttribute.WA_Hover, True)
 
-    @staticmethod
-    def _darken_pixmap(pixmap: QPixmap, alpha: int = 90) -> QPixmap:
-        """Return a darkened copy of a pixmap.
-
-        Args:
-            pixmap (QPixmap): Source pixmap.
-            alpha (int): Darkness alpha (0-255). Higher means darker.
-
-        Return:
-            QPixmap: Darkened pixmap.
-        """
-        dark = QPixmap(pixmap.size())
-        dark.fill(Qt.GlobalColor.transparent)
-
-        painter = QPainter(dark)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-        painter.drawPixmap(0, 0, pixmap)
-        painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceAtop)
-        painter.fillRect(dark.rect(), QColor(0, 0, 0, alpha))
-        painter.end()
-        return dark
-
-    def setHoverIcons(self, normal_icon: QIcon, hover_icon: QIcon):
-        """Set the icons used for normal and hover states.
-
-        Args:
-            normal_icon (QIcon): Icon displayed normally.
-            hover_icon (QIcon): Icon displayed while hovering.
-
-        Return:
-            None
-        """
-        self._normal_icon = normal_icon
-        self._hover_icon = hover_icon
-        self.setIcon(normal_icon)
-
-    def enterEvent(self, event):
-        """Handle mouse enter by switching to the hover icon.
-
-        Args:
-            event: Qt enter event.
-
-        Return:
-            None
-        """
-        if self._hover_icon is not None:
-            self.setIcon(self._hover_icon)
-        return super().enterEvent(event)
-
-    def leaveEvent(self, event):
-        """Handle mouse leave by restoring the normal icon.
-
-        Args:
-            event: Qt leave event.
-
-        Return:
-            None
-        """
-        if self._normal_icon is not None:
-            self.setIcon(self._normal_icon)
-        return super().leaveEvent(event)
-    
-
-class PromotionWidget(QDialog): 
-
-    promotion_signal = pyqtSignal(int)  # Signal to emit the chosen promotion piece as chess piece type (e.g., chess.QUEEN)
-
-    def __init__(self, player_color):
-        """Create the promotion choice dialog.
-
-        Displays piece options (Q/R/B/N) and returns the selected promotion type.
-
-        Args:
-            player_color: Player color (chess.WHITE or chess.BLACK) used to choose correct piece icons.
-
-        Return:
-            None
-        """
-        super().__init__()
-
-        self.setWindowTitle("")
-        self.setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
-        self.setStyleSheet("QDialog { background: transparent; }")
-
-        # Image-only promotion choices (no padding/background/border).
-        button_size = QSize(56, 56)
-        icon_size = QSize(56, 56)
-
-        layout = QHBoxLayout()
-        layout.setSpacing(0)
-        layout.setContentsMargins(0, 0, 0, 0)
-        self.setLayout(layout)
-
-        self.piece_chosen_dict = {
-            'Q': chess.QUEEN,
-            'R': chess.ROOK,
-            'B': chess.BISHOP,
-            'N': chess.KNIGHT,}
-
-        piece_name_map = {
-            'Q': 'queen',
-            'R': 'rook',
-            'B': 'bishop',
-            'N': 'knight',
-        }
-
-        color_prefix = 'white' if player_color == chess.WHITE else 'black'
-
-        pieces = ['Q', 'R', 'B', 'N'] if player_color == chess.WHITE else ['q', 'r', 'b', 'n']
-        for piece in pieces:
-            piece_upper = piece.upper()
-            filename = f"{color_prefix}-{piece_name_map[piece_upper]}.png"
-            icon_path = os.path.join(os.path.dirname(__file__), "assets", "chess_assets", "pieces_png", filename)
-
-            button = HoverIconToolButton(self)
-            button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
-            button.setAutoRaise(True)
-            button.setFixedSize(button_size)
-            button.setIconSize(icon_size)
-            button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-            button.setStyleSheet(
-                "QToolButton { border: none; padding: 0px; margin: 0px; background: transparent; }"
-                "QToolButton:hover { background: transparent; }"
-                "QToolButton:pressed { background: transparent; }"
-            )
-
-            pixmap = QPixmap(icon_path)
-            if not pixmap.isNull():
-                normal_icon = QIcon(pixmap)
-                hover_icon = QIcon(HoverIconToolButton._darken_pixmap(pixmap, alpha=90))
-                button.setHoverIcons(normal_icon, hover_icon)
-            else:
-                # Fallback to text if asset missing
-                button.setText(piece_upper)
-
-            button.clicked.connect(lambda _checked=False, p=piece: self.promote(p))
-            layout.addWidget(button)
-
-        self.setFixedSize(
-            (button_size.width() * len(pieces)) + (layout.spacing() * (len(pieces) - 1)) + layout.contentsMargins().left() + layout.contentsMargins().right(),
-            button_size.height() + layout.contentsMargins().top() + layout.contentsMargins().bottom(),
-        )
-
-    def promote(self, piece):
-        """Select a promotion piece and close the dialog.
-
-        Args:
-            piece (str): One of 'Q', 'R', 'B', 'N' (case-insensitive).
-
-        Return:
-            None
-        """
-        self.chosen_piece = self.piece_chosen_dict[piece.upper()]
-        self.accept()  # Close the promotion dialog after selection    
-            
 if __name__ == "__main__":
 
     # Ensure the parent package (python/) is on sys.path so CNChess can be imported
