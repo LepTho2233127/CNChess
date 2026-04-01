@@ -305,9 +305,6 @@ class PieceDetection:
     def __init__(self, warped_image: np.ndarray, board_squares: ChessBoardSquares):
         self.warped_image = warped_image
         self.board_squares = board_squares
-        # self.baseline_variance = None
-        self.piece_place = [0] * 64
-        self.piece_color = [0] * 64
     
     # def calculate_baseline_variance(self, empty_indices: list = None) -> float:
     #     """Calculates baseline variance of an empty square (kept for API compatibility)"""
@@ -373,21 +370,22 @@ class PieceDetection:
         else:
             return 'unknown'
     
-    def detect_all_pieces(self, ratio: float = 0.02):
+    def detect_all_pieces(self, ratio: float = 0.02) -> tuple[list, list]:
         """Detects all pieces on the board"""
-        # if self.baseline_variance is None:
-        #     self.calculate_baseline_variance()
+        piece_place = [0] * 64
+        piece_color = ['empty'] * 64
         
         for i in range(64):
             color = self._get_piece_color(i, ratio)
             
             if color != 'empty':
-                self.piece_place[i] = 1
-                self.piece_color[i] = color
-                # print(f"Square {i}: PIECE DETECTED with color {color}")
+                piece_place[i] = 1
+                piece_color[i] = color
             else:
-                self.piece_place[i] = 0
-                self.piece_color[i] = 'empty'
+                piece_place[i] = 0
+                piece_color[i] = 'empty'
+
+        return piece_place, piece_color
 
 # ============================================================================
 # CLASS: MoveDetection
@@ -397,14 +395,12 @@ class MoveDetection:
     
     def __init__(self, chess_game):
         self.chess_game = chess_game
-        self.old_piece_place = [0] * 64
-        self.old_piece_color = ['empty'] * 64
-        self.move_start = 0
-        self.move_end = 0
         
-    def init_from_board(self):
+    def init_from_board(self) -> tuple[list, list]:
         """Initialize piece state from the current chess board"""
         board = self.chess_game.get_board()
+        old_piece_place = [0] * 64
+        old_piece_color = ['empty'] * 64
         
         # Iterate through all 64 squares
         for square_index in range(64):
@@ -412,48 +408,49 @@ class MoveDetection:
             
             if piece is None:
                 # Empty square
-                self.old_piece_place[square_index] = 0
-                self.old_piece_color[square_index] = 'empty'
+                old_piece_place[square_index] = 0
+                old_piece_color[square_index] = 'empty'
             else:
                 # Occupied square
-                self.old_piece_place[square_index] = 1
+                old_piece_place[square_index] = 1
                 # Color: 0 for black/captured, use 1 for white, 2 for black (or map to 'white'/'black')
                 # For compatibility with camera detection: 'yellow' or 'green'
-                self.old_piece_color[square_index] = 'yellow' if piece.color == chess.WHITE else 'green'
+                old_piece_color[square_index] = 'yellow' if piece.color == chess.WHITE else 'green'
 
-    def detect_castling(self, new_piece_place: list, new_piece_color: list) -> dict:
+        return old_piece_place, old_piece_color
+
+    def detect_castling(self, old_piece_place: list, old_piece_color: list,
+                        new_piece_place: list, new_piece_color: list) -> dict:
         """Detects castling moves"""
-        if (self.old_piece_place[0] and self.old_piece_place[4] and new_piece_place[2] and new_piece_place[3] 
-            and not self.old_piece_place[1] and not self.old_piece_place[2] and not self.old_piece_place[3]):
-            if self.old_piece_color[0] == self.old_piece_color[4] == new_piece_color[2] == new_piece_color[3]:
+        if (old_piece_place[0] and old_piece_place[4] and new_piece_place[2] and new_piece_place[3] 
+            and not old_piece_place[1] and not old_piece_place[2] and not old_piece_place[3]):
+            if old_piece_color[0] == old_piece_color[4] == new_piece_color[2] == new_piece_color[3]:
                 return {'move_start': 1, 'move_end': 3, 'uci': 'e1c1'}  # Queenside castling
             
-        if (self.old_piece_place[7] and self.old_piece_place[4] and new_piece_place[5] and new_piece_place[6] 
-            and not self.old_piece_place[5] and not self.old_piece_place[6]):
-            if self.old_piece_color[7] == self.old_piece_color[4] == new_piece_color[5] == new_piece_color[6]:
+        if (old_piece_place[7] and old_piece_place[4] and new_piece_place[5] and new_piece_place[6] 
+            and not old_piece_place[5] and not old_piece_place[6]):
+            if old_piece_color[7] == old_piece_color[4] == new_piece_color[5] == new_piece_color[6]:
                 return {'move_start': 8, 'move_end': 6, 'uci': 'e1g1'}  # Kingside castling
             
-        if (self.old_piece_place[56] and self.old_piece_place[60] and new_piece_place[58] and new_piece_place[59] 
-            and not self.old_piece_place[57] and not self.old_piece_place[58] and not self.old_piece_place[59]):
-            if self.old_piece_color[56] == self.old_piece_color[60] == new_piece_color[58] == new_piece_color[59]:
+        if (old_piece_place[56] and old_piece_place[60] and new_piece_place[58] and new_piece_place[59] 
+            and not old_piece_place[57] and not old_piece_place[58] and not old_piece_place[59]):
+            if old_piece_color[56] == old_piece_color[60] == new_piece_color[58] == new_piece_color[59]:
                 return {'move_start': 57, 'move_end': 59, 'uci': 'e8c8'}  # Queenside castling
             
-        if (self.old_piece_place[63] and self.old_piece_place[60] and new_piece_place[61] and new_piece_place[62] 
-            and not self.old_piece_place[61] and not self.old_piece_place[62]):
-            if self.old_piece_color[63] == self.old_piece_color[60] == new_piece_color[61] == new_piece_color[62]:
+        if (old_piece_place[63] and old_piece_place[60] and new_piece_place[61] and new_piece_place[62] 
+            and not old_piece_place[61] and not old_piece_place[62]):
+            if old_piece_color[63] == old_piece_color[60] == new_piece_color[61] == new_piece_color[62]:
                 return {'move_start': 64, 'move_end': 62, 'uci': 'e8g8'}  # Kingside castling
     
     def detect_move(self, new_piece_place: list, new_piece_color: list) -> dict:
         """Detects moves by comparing with the previous state"""
         analyses = [0] * 64
-        
-        self.init_from_board()
-        # # Reset move detection for this frame
-        self.move_start = 0
-        self.move_end = 0
+        old_piece_place, old_piece_color = self.init_from_board()
+        move_start = 0
+        move_end = 0
         
         # Check for castling first
-        castling_move = self.detect_castling(new_piece_place, new_piece_color)
+        castling_move = self.detect_castling(old_piece_place, old_piece_color, new_piece_place, new_piece_color)
         if castling_move is not None:
             return castling_move
         
@@ -462,10 +459,10 @@ class MoveDetection:
         piece_appearances = []
         
         for i in range(len(new_piece_place)):
-            analyses[i] = new_piece_place[i] + self.old_piece_place[i]
+            analyses[i] = new_piece_place[i] + old_piece_place[i]
             
             # Piece was captured and replaced
-            if analyses[i] == 2 and self.old_piece_color[i] != new_piece_color[i]:
+            if analyses[i] == 2 and old_piece_color[i] != new_piece_color[i]:
                 piece_appearances.append(i+1)
             # Piece appeared (0->1)
             elif analyses[i] == 1 and new_piece_place[i] == 1:
@@ -476,27 +473,29 @@ class MoveDetection:
         
         # Set move_start and move_end from detected changes
         if piece_disappearances:
-            self.move_start = piece_disappearances[0]
+            move_start = piece_disappearances[0]
         if piece_appearances:
-            self.move_end = piece_appearances[0]
+            move_end = piece_appearances[0]
         
-        uci_move = self.get_uci_move()
+        uci_move = self.get_uci_move(move_start, move_end)
         
         return {
-            'move_start': self.move_start,
-            'move_end': self.move_end,
+            'move_start': move_start,
+            'move_end': move_end,
             'uci': uci_move
         }
     
-    def get_uci_move(self) -> str:
+    def get_uci_move(self, move_start: int, move_end: int) -> str:
         """Converts positions to UCI notation"""
+        if move_start == 0 or move_end == 0:
+            return 'unknown'
         
         files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
         ranks = ['1', '2', '3', '4', '5', '6', '7', '8']
-        start_file = files[(self.move_start - 1) % 8]
-        start_rank = ranks[(self.move_start - 1) // 8]
-        end_file = files[(self.move_end - 1) % 8]
-        end_rank = ranks[(self.move_end - 1) // 8]
+        start_file = files[(move_start - 1) % 8]
+        start_rank = ranks[(move_start - 1) // 8]
+        end_file = files[(move_end - 1) % 8]
+        end_rank = ranks[(move_end - 1) // 8]
 
         print(f"Detected move: {start_file}{start_rank}{end_file}{end_rank}")
 
@@ -528,17 +527,12 @@ class Cam:
         self.calibration = None
         self.squares = ChessBoardSquares(board_size)
         self.move_detector = MoveDetection(chess_game)
-        # Initialize move detector with current board state
-        self.move_detector.init_from_board()
-        self.piece_detector = None
         self.transform = None
         self.cap = None
-        self.frame_history = []
-        self.max_history = 3
     
     def initialize_camera(self, calibrate: bool = False):
         """Initializes the camera with maximum quality"""
-        self.cap = cv2.VideoCapture("/dev/video4", cv2.CAP_V4L2)
+        self.cap = cv2.VideoCapture("/dev/video0", cv2.CAP_V4L2)
         
         if not self.cap.isOpened():
             print("[ERROR] Unable to open the camera")
@@ -630,6 +624,9 @@ class Cam:
         """Processes a frame captured from the camera"""
         timout = 5
         start_time = time.time()
+        frame_history = []
+        max_history = 3
+
         while True:
             if time.time() - start_time > timout:
                 print("[ERROR] Timeout while waiting for stable frames")
@@ -650,22 +647,22 @@ class Cam:
             masked_warped, mask = ColorMask.create_color_mask(warped)
             
             # Détecter les pièces
-            self.piece_detector = PieceDetection(masked_warped, self.squares)
-            self.piece_detector.detect_all_pieces()
+            piece_detector = PieceDetection(masked_warped, self.squares)
+            piece_place, piece_color = piece_detector.detect_all_pieces()
 
             current_state = {
-                'piece_place': self.piece_detector.piece_place.copy(),
-                'piece_color': self.piece_detector.piece_color.copy()  
+                'piece_place': piece_place.copy(),
+                'piece_color': piece_color.copy()
             }
 
-            self.frame_history.append(current_state)
-            if len(self.frame_history) > self.max_history:
-                self.frame_history.pop(0)
+            frame_history.append(current_state)
+            if len(frame_history) > max_history:
+                frame_history.pop(0)
             
             frame_stable = False
-            if len(self.frame_history) == self.max_history:
-                if(self.frame_history[0]['piece_place'] == self.frame_history[1]['piece_place'] == self.frame_history[2]['piece_place'] and
-                self.frame_history[0]['piece_color'] == self.frame_history[1]['piece_color'] == self.frame_history[2]['piece_color']):
+            if len(frame_history) == max_history:
+                if(frame_history[0]['piece_place'] == frame_history[1]['piece_place'] == frame_history[2]['piece_place'] and
+                frame_history[0]['piece_color'] == frame_history[1]['piece_color'] == frame_history[2]['piece_color']):
                     print("[INFO] Stable state detected across 3 frames, proceeding with move detection")
                     frame_stable = True
                     break
@@ -675,8 +672,8 @@ class Cam:
         if frame_stable:
             cv2.imwrite("processed_image.jpg", cv2.cvtColor(masked_warped, cv2.COLOR_RGB2BGR))
             move_info = self.move_detector.detect_move(
-                self.piece_detector.piece_place,
-                self.piece_detector.piece_color
+                piece_place,
+                piece_color
             )
         else:
             move_info = {'move_start': 0, 'move_end': 0, 'uci': 'unknown'}
@@ -684,8 +681,8 @@ class Cam:
         return {
             'original_frame': frame,
             'warped_image': masked_warped,
-            'piece_place': self.piece_detector.piece_place,
-            'piece_color': self.piece_detector.piece_color,
+            'piece_place': piece_place,
+            'piece_color': piece_color,
             'move': move_info
         }
     
@@ -706,19 +703,19 @@ class Cam:
         masked_warped, mask = ColorMask.create_color_mask(warped)
         
         # Détecter les pièces
-        self.piece_detector = PieceDetection(masked_warped, self.squares)
-        self.piece_detector.detect_all_pieces()
+        piece_detector = PieceDetection(masked_warped, self.squares)
+        piece_place, piece_color = piece_detector.detect_all_pieces()
         
         # Détecter les mouvements
         move_info = self.move_detector.detect_move(
-            self.piece_detector.piece_place,
-            self.piece_detector.piece_color
+            piece_place,
+            piece_color
         )
         
         return {
             'warped_image': masked_warped,
-            'piece_place': self.piece_detector.piece_place,
-            'piece_color': self.piece_detector.piece_color,
+            'piece_place': piece_place,
+            'piece_color': piece_color,
             'move': move_info
         }
     
