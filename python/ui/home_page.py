@@ -7,7 +7,6 @@ import chess
 from PyQt6.QtWidgets import QWidget, QPushButton, QApplication, QLabel, QVBoxLayout, QHBoxLayout, QRadioButton, QButtonGroup, QToolButton, QSizePolicy
 from PyQt6.QtGui import QIcon, QPixmap, QImage, QPainter, QColor
 from PyQt6.QtCore import QObject, QSize, Qt, pyqtSignal, QTimer
-from PyQt6 import uic
 
 class HomeView(QWidget):
     """Home page view for difficulty selection and game initialization."""
@@ -70,7 +69,7 @@ class HomeView(QWidget):
         level_layout = self.build_level_buttons()
         color_layout = self.build_color_buttons()
         menu_layout = self.build_menu_buttons()
-        
+
         hbox_layout = QHBoxLayout()
         hbox_layout.addStretch(20)
         hbox_layout.addLayout(color_layout)
@@ -315,20 +314,36 @@ class HomeView(QWidget):
             QHBoxLayout: Layout containing color selection buttons.
         """
         color_button_size = QSize(100, 100)
+        color_icon_size = color_button_size + QSize(50, 50)
 
-        white_button = QRadioButton(self)
-        white_path = os.path.join(os.path.dirname(__file__), "assets", "chess_assets", "pieces_png", "white-pawn.png")
-        white_pixmap = QPixmap(white_path)
-        white_icon = QIcon(white_pixmap)
-        white_button.setIcon(white_icon)
-        white_button.setIconSize(color_button_size)
+        white_button = QToolButton(self)
+        white_button.setObjectName("colorWhite")
+        white_button.setCheckable(True)
+        white_button.setAutoRaise(True)
+        white_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
+        white_path = os.path.join(os.path.dirname(__file__), "assets", "white_pawn_icon.png")
+        white_trimmed = self._get_trimmed_image(white_path)
+        if white_trimmed is not None:
+            white_pixmap = QPixmap.fromImage(white_trimmed)
+        else:
+            white_pixmap = QPixmap(white_path)
 
-        black_button = QRadioButton(self)
-        black_path = os.path.join(os.path.dirname(__file__), "assets", "chess_assets", "pieces_png", "black-pawn.png")
-        black_pixmap = QPixmap(black_path)
-        black_icon = QIcon(black_pixmap)
-        black_button.setIcon(black_icon)
-        black_button.setIconSize(color_button_size)
+        white_button.setIcon(QIcon(white_pixmap))
+        white_button.setIconSize(color_icon_size)
+
+        black_button = QToolButton(self)
+        black_button.setObjectName("colorBlack")
+        black_button.setCheckable(True)
+        black_button.setAutoRaise(True)
+        black_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
+        black_path = os.path.join(os.path.dirname(__file__), "assets", "black_pawn_icon.png")
+        black_trimmed = self._get_trimmed_image(black_path)
+        if black_trimmed is not None:
+            black_pixmap = QPixmap.fromImage(black_trimmed)
+        else:
+            black_pixmap = QPixmap(black_path)
+        black_button.setIcon(QIcon(black_pixmap))
+        black_button.setIconSize(color_icon_size)
 
         white_button.clicked.connect(self.home_page_controller.white_button_clicked)
         black_button.clicked.connect(self.home_page_controller.black_button_clicked)

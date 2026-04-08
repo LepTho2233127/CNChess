@@ -448,9 +448,8 @@ class TurnIndicatorWidget(QWidget):
         # Turn text label
         self.turn_label = QLabel("White's Turn")
         self.turn_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.turn_label.setStyleSheet("border: none;")  # Remove border for cleaner look
+        self.turn_label.setStyleSheet("border: none; font-size: 24px;")  # Remove border for cleaner look
         font = self.turn_label.font()
-        font.setPointSize(16)
         font.setBold(True)
         self.turn_label.setFont(font)
         
@@ -465,9 +464,8 @@ class TurnIndicatorWidget(QWidget):
         self.message_label.setWordWrap(True)
         self.message_label.setMinimumHeight(60)
         self.message_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self.message_label.setStyleSheet("border: none;")
+        self.message_label.setStyleSheet("border: none; font-size: 24px")  # Smaller font for messages
         font = self.message_label.font()
-        font.setPointSize(10)
         self.message_label.setFont(font)
         
         # Add widgets to layout - centered with limited expansion
