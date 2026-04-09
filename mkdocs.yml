@@ -1,0 +1,26 @@
+site_name: cnchess Documentation
+site_description: Documentation for the CoreXY automated chess board.
+use_directory_urls: false
+
+nav:
+  - Home: index.md
+  - Game Engine: game_engine.md
+  - Hardware Control: hardware_control.md
+  - Vision System: vision_system.md
+  - Communication Layer: communication.md
+  - User Interface: user_interface.md
+
+theme:
+  name: material
+  features:
+    - navigation.tabs 
+    - navigation.sections
+    - navigation.expand
+    - navigation.instant
+    - toc.follow
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [python] 

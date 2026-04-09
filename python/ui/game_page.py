@@ -665,7 +665,10 @@ class GamePageController(QObject):
         if self.chess_game.validate_move(move):
             moved_piece = self.chess_game.get_board().piece_at(move.from_square)
             piece = moved_piece.symbol().upper() if moved_piece is not None else "?"
-            self.update_list(move=f"{piece}{move.to_square}", turn=self.chess_game.get_turn())
+            to_square = move.to_square
+            to_square_name = chess.square_name(to_square)
+
+            self.update_list(move=f"{piece}{to_square_name}", turn=self.chess_game.get_turn())
             path = self.make_move(move)
             self.view.white_clock.toggle_timer()
             self.view.black_clock.toggle_timer()
@@ -743,6 +746,7 @@ class GamePageController(QObject):
                 if self.chess_game.validate_move(move):
 
                     piece = self.board_widget.board[self.selected_piece[0]][self.selected_piece[1]].upper()
+                    print(to_square)
                     self.update_list(move=f"{piece}{to_square}", turn=self.chess_game.get_turn())
                     print(f"Camera processing result: Actual move: {move.uci()}")
                     path = self.make_move(move)
