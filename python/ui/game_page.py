@@ -7,16 +7,15 @@ import sys
 import chess
 import re
 import threading
-import copy
 import math
 
-from PyQt6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QApplication, QSizePolicy, QListWidget, QListWidgetItem, QDialog, QToolButton
+from PyQt6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QApplication, QSizePolicy, QListWidget, QListWidgetItem
 from PyQt6.QtCore import QObject, pyqtSignal, QSize, QThread, Qt, QPoint, QPointF, QTimer
-from PyQt6.QtGui import QIcon, QColor, QPainter, QPen, QPolygonF, QPixmap
+from PyQt6.QtGui import QIcon, QColor, QPainter, QPen, QPolygonF
 from PyQt6 import uic
 
 from Control import Control
-from ui.dialog_ui import WinnerDialog, DrawDialog, WaitingDialog, TurnIndicatorWidget, InvalidMoveDialog, PromotionWidget
+from ui.dialog_ui import WinnerDialog, DrawDialog, TurnIndicatorWidget, InvalidMoveDialog, PromotionWidget
 
 LIGHT_SQUARE_COLOR = "#F0D9B5"
 DARK_SQUARE_COLOR = "#B58863"
@@ -57,7 +56,13 @@ class SendPathWorker(QObject):
         self._stop_event.set()
     
     def run(self):
-        """Execute send_path in the worker thread."""
+        """Execute send_path in the worker thread.
+        
+        Args:
+            None
+        Return:
+            None    
+        """
         try:
             if self._stop_event.is_set():
                 return
@@ -95,14 +100,19 @@ class WaitForButtonWorker(QObject):
 
         Args:
             None
-
         Return:
             None
         """
         self._stop_event.set()
 
     def run(self):
-        """Execute wait_for_button_press in the worker thread."""
+        """Execute wait_for_button_press in the worker thread.
+        
+        Args: 
+            None
+        Return:
+            None    
+        """
         try:
             if self._stop_event.is_set():
                 return
@@ -168,8 +178,7 @@ class ChessClock(QWidget):
         else:
             self.timer.stop()
             self.clock_label.setText("00:00")
-            self.outOfTime_signal.emit(self.color)
-            print("No time left")    
+            self.outOfTime_signal.emit(self.color)   
 
     def update_display(self):
         """Update clock display with current time.
@@ -297,7 +306,12 @@ class GameView(QWidget):
         move_forward_button.clicked.connect(self.game_page_controller.move_forward_position)
     
     def cleanup_threads(self):
-        """Clean up all worker threads in the game page."""
+        """Clean up all worker threads in the game page.
+        Args:
+            None
+        Return:
+            None    
+        """
         self.game_page_controller.shutdown()
 
     def setup_board(self):
@@ -469,23 +483,46 @@ class GamePageController(QObject):
             self.wait_button_worker = None
 
     def wait_for_threads(self):
-        """Wait for all communication worker threads to finish."""
+        """Wait for all communication worker threads to finish.
+        Args:
+            None
+        
+        Return:
+            None"""
         self.wait_for_thread()
         self.wait_for_button_thread()
 
     def shutdown(self):
-        """Stop async workers and prevent new operations during app shutdown."""
+        """Stop async workers and prevent new operations during app shutdown. 
+        Args:
+            None
+        
+        Return:
+            None
+        """
         self._is_shutting_down = True
         self.stop_active_workers()
 
     def stop_active_workers(self):
-        """Stop current game async operations without locking the controller permanently."""
+        """Stop current game async operations without locking the controller permanently.
+        Args:
+            None
+        
+        Return:
+            None
+        """
         self.view.turn_indicator.hide_waiting()
         self.stop_clocks()
         self.wait_for_threads()
 
     def prepare_for_new_game(self):
-        """Re-arm async operations when entering a fresh game."""
+        """Re-arm async operations when entering a fresh game.
+        Args:
+            None
+        
+        Return:
+            None
+        """
         self._is_shutting_down = False
         self.view.turn_indicator.hide_waiting()
 
@@ -495,6 +532,8 @@ class GamePageController(QObject):
         Args:
             path: The path to send to the device
             is_valid_move: True if this is a valid move path, False if it's a move reversal
+        Return:
+            None
         """
         if self._is_shutting_down:
             return
@@ -521,13 +560,25 @@ class GamePageController(QObject):
         self.send_path_thread.start()
 
     def wait_for_button_press_async(self):
-        """Wait for physical button press asynchronously without blocking the UI."""
+        """Wait for physical button press asynchronously without blocking the UI.
+        Args:
+            None
+        
+        Return:
+            None
+        """
         if self._is_shutting_down:
             return
         self._start_button_wait("Waiting for button press...\nPlease play your move.")
 
     def _start_button_wait(self, message: str):
-        """Internal method to start waiting for button press with a custom message."""
+        """Internal method to start waiting for button press with a custom message.
+        
+        Args:
+            message (str): Message to display in the turn indicator while waiting for button press.
+        Return:
+            None    
+        """
         if self._is_shutting_down:
             return
 
@@ -547,11 +598,16 @@ class GamePageController(QObject):
         self.wait_button_thread.start()
 
     def on_send_path_finished(self):
-        """Handler when send_path completes successfully."""
+        """Handler when send_path completes successfully.
+         
+        Args:
+            None
+        
+        Return:
+            None
+        """
         if self._is_shutting_down:
             return
-        print("Path sent successfully to device")
-        
         # Only toggle timers if this was a valid move path, not a move reversal
         if self.last_path_was_move:
             self.view.white_clock.toggle_timer()
@@ -562,20 +618,30 @@ class GamePageController(QObject):
             self._start_button_wait("Invalid move reversed.\nPlease press button to try again.")
 
     def on_send_path_error(self, error_msg):
-        """Handler when send_path encounters an error."""
+        """Handler when send_path encounters an error.
+         
+        Args:
+            None
+        Return:
+            None
+        """
         if self._is_shutting_down:
             return
         self.view.turn_indicator.hide_waiting()
         self.view.white_clock.toggle_timer()
         self.view.black_clock.toggle_timer()
-        print(f"Error: {error_msg}")
 
     def on_wait_button_finished(self):
-        """Handler when the ESP button press is detected. Processes the move from the camera and updates the game state accordingly."""
+        """Handler when the ESP button press is detected. Processes the move from the camera and updates the game state accordingly.
+         
+        Args:
+            None
+        Return:
+            None
+        """
         if self._is_shutting_down:
             return
-        print("Button press detected")
-
+      
         self.view.turn_indicator.hide_waiting()
         self.board_widget.clear_trajectory()
 
@@ -586,6 +652,16 @@ class GamePageController(QObject):
             print(f"Caught error while parsing move from camera result: {str(e)}.")
             self._start_button_wait("Error detecting move!\nPlease press the button again to try a valid move.")
             return
+        
+        if self.chess_game.is_promotion_move(move):
+            to_square = move.to_square
+            row = 7 - chess.square_rank(to_square) if self.chess_game.get_player_color() == chess.WHITE else chess.square_rank(to_square)
+            col = chess.square_file(to_square) if self.chess_game.get_player_color() == chess.WHITE else 7 - chess.square_file(to_square)
+            square_widget = self.board_widget.board_layout.itemAtPosition(row, col).widget()
+            chosen_piece = self.launch_promotion_dialog(square_widget) 
+            if chosen_piece is not None:
+                move.promotion = chosen_piece
+
         if self.chess_game.validate_move(move):
             moved_piece = self.chess_game.get_board().piece_at(move.from_square)
             piece = moved_piece.symbol().upper() if moved_piece is not None else "?"
@@ -616,7 +692,12 @@ class GamePageController(QObject):
             self.send_path_async(path, is_valid_move=False)
 
     def on_wait_button_error(self, error_msg):
-        """Handler when waiting for button press fails or times out."""
+        """Handler when waiting for button press fails or times out. 
+        Args:
+            error_msg (str): Description of the error that occurred while waiting for button press.
+        Return:
+            None
+        """
         if self._is_shutting_down:
             return
         self.view.turn_indicator.hide_waiting()
@@ -643,22 +724,18 @@ class GamePageController(QObject):
             from_square = self.coordinate_to_square(*self.selected_piece)
             to_square = self.coordinate_to_square(row, col)
         
+            # Try the move and catch any errors from invalid move formats (e.g., clicking the same square as the selected piece), just ignore those and wait for a valid move
             try:    
                 move = chess.Move.from_uci(from_square + to_square)
 
                 if self.chess_game.is_promotion_move(move):
-                    print("Promotion move detected, showing promotion dialog")
-                    promotion_dialog = PromotionWidget(self.chess_game.get_player_color())
-
+                
                     # Anchor the promotion dialog to the destination square the user clicked.
                     square_widget = self.board_widget.board_layout.itemAtPosition(row, col).widget()
-                    screen = QApplication.primaryScreen()
-                    target_x, target_y = self.get_screen_coordinates_from_square(square_widget, screen, promotion_dialog)
-                    promotion_dialog.move(target_x, target_y)
-                    result = promotion_dialog.exec()
+                    chosen_piece = self.launch_promotion_dialog(square_widget)
 
-                    if result:
-                        move.promotion = promotion_dialog.chosen_piece
+                    if chosen_piece is not None:
+                        move.promotion = chosen_piece
                     else :
                         self.check_piece_selected(row, col)  # Update highlights for the new position after the move
                         return # If no piece chosen, cancel the move and wait for a valid move
@@ -683,6 +760,28 @@ class GamePageController(QObject):
             except ValueError:
                 pass # Invalid move format, happens when you click on the same square as the selected piece, just ignore it and wait for a valid move       
     
+    def launch_promotion_dialog(self, square_widget):
+        """Launch the promotion dialog anchored to the given square widget.
+        
+        Args:
+            square_widget (QWidget): The widget representing the chess square where promotion is happening.
+        
+        Return:
+            str: The piece type chosen for promotion ('q', 'r', 'b', or 'n').
+        """
+        promotion_dialog = PromotionWidget(self.chess_game.get_player_color())
+
+        # Calculate screen coordinates to position the promotion dialog anchored to the square widget
+        screen = QApplication.primaryScreen()
+        target_x, target_y = self.get_screen_coordinates_from_square(square_widget, screen, promotion_dialog)
+        promotion_dialog.move(target_x, target_y)
+
+        result = promotion_dialog.exec()
+        if result:
+            return promotion_dialog.chosen_piece
+        else:
+            return None  # No piece chosen, treat as cancellation
+
     def get_screen_coordinates_from_square(self, square_widget, screen, promotion_dialog):
         """Calculate screen coordinates to position the promotion dialog anchored to the given square widget.
         
@@ -860,7 +959,6 @@ class GamePageController(QObject):
                 app.quit()
 
     def update_chess_board(self):
-
         """Update the board widget and store the new board state in history.
 
         This refreshes the displayed board after a move and appends the current FEN
@@ -899,7 +997,6 @@ class GamePageController(QObject):
         return f"{file}{rank}"
     
     def update_list(self, move, turn):
-
         """Append a move to the UI move list.
 
         Args:
@@ -925,12 +1022,9 @@ class GamePageController(QObject):
 
         Args:
             None
-
         Return:
             None
         """
-        print("Moving back position")
-        print(self.board_positions_index)
         if self.board_positions_index > 0 :
             self.board_positions_index-=1
             previous_fen = self.board_positions[self.board_positions_index]
@@ -1483,10 +1577,6 @@ class GridButton(QPushButton):
             int: Height equal to width.
         """
         return width  
-
-
-
-
 
 if __name__ == "__main__":
 

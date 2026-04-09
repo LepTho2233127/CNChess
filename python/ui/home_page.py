@@ -4,7 +4,8 @@ It contains buttons to choose difficulty, start a new game, and view settings ""
 import os
 import sys
 import chess
-from PyQt6.QtWidgets import QWidget, QPushButton, QApplication, QLabel, QVBoxLayout, QHBoxLayout, QRadioButton, QButtonGroup, QToolButton, QSizePolicy
+
+from PyQt6.QtWidgets import QWidget, QPushButton, QApplication, QLabel, QVBoxLayout, QHBoxLayout, QButtonGroup, QToolButton, QSizePolicy
 from PyQt6.QtGui import QIcon, QPixmap, QImage, QPainter, QColor
 from PyQt6.QtCore import QObject, QSize, Qt, pyqtSignal, QTimer
 

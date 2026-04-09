@@ -131,7 +131,6 @@ class SettingsView(QWidget):
         """
         back_button = QPushButton("Back", self)
         back_button.clicked.connect(self.controller.quit)
-        # layout_speed = self.build_speed()
         grid = self.build_grid()
         layout_coord = self.build_coord()
         layout_remoteXY = self.build_remoteXY()
@@ -140,7 +139,6 @@ class SettingsView(QWidget):
 
         left_layout = QVBoxLayout()
         left_layout.addWidget(back_button, alignment=Qt.AlignmentFlag.AlignTop)
-        # left_layout.addLayout(layout_speed)
         middle_layout = QVBoxLayout()
         middle_layout.addWidget(grid, alignment=Qt.AlignmentFlag.AlignHCenter)
         middle_layout.addLayout(layout_coord)
@@ -298,9 +296,12 @@ class SettingsView(QWidget):
         calib_button.setObjectName("camera_button")
 
         layout = QVBoxLayout()
+        layout.addStretch()
         layout.addWidget(self.last_pic, alignment=Qt.AlignmentFlag.AlignHCenter)
+        layout.addSpacing(20)
         layout.addWidget(pic_button, alignment=Qt.AlignmentFlag.AlignHCenter)
         layout.addWidget(calib_button, alignment=Qt.AlignmentFlag.AlignHCenter)
+        layout.addStretch()
 
         return layout
 

@@ -14,7 +14,6 @@ class PromotionWidget(QDialog):
 
     def __init__(self, player_color):
         """Create the promotion choice dialog.
-
         Displays piece options (Q/R/B/N) and returns the selected promotion type.
 
         Args:
@@ -175,11 +174,111 @@ class HoverIconToolButton(QToolButton):
         if self._normal_icon is not None:
             self.setIcon(self._normal_icon)
         return super().leaveEvent(event)
-    
 
+class SpinningGear(QWidget):
+    """Spinning gear widget for animations and loading states."""
+    
+    def __init__(self, size=50, image_path="ui/assets/gear_icon.png"):
+        """Initialize the spinning gear widget.
+        
+        Args:
+            size (int): Size of the gear in pixels (width and height).
+            image_path (str): Path to the gear image file.
+        
+        Return:
+            None
+        """
+        super().__init__()
+        self.setFixedSize(size, size)
+        self.angle = 0
+        
+        # Load and scale the gear image
+        original_image = QPixmap(image_path)
+        self.gear_image = original_image.scaled(
+            size, size,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation
+        )
+        
+        # Animation timer
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.rotate_gear)
+        self.timer.start(16)
+    
+    def rotate_gear(self):
+        """Rotate the gear by a small increment.
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
+        self.angle += 2
+        if self.angle >= 360:
+            self.angle = 0
+        self.update()
+    
+    def paintEvent(self, event):
+        """Paint the rotating gear on the widget.
+        
+        Args:
+            event: Qt paint event.
+        
+        Return:
+            None
+        """
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+        
+        # Move the origin to the center of the widget
+        painter.translate(self.width() / 2, self.height() / 2)
+        
+        # Rotate the canvas
+        painter.rotate(self.angle)
+        
+        # Draw the image centered at the origin
+        offset_x = int(-self.gear_image.width() / 2)
+        offset_y = int(-self.gear_image.height() / 2)
+        painter.drawPixmap(offset_x, offset_y, self.gear_image)
+    
+    def set_image(self, image_path, size=None):
+        """Update the gear image (optional method for dynamic image changes).
+        
+        Args:
+            image_path (str): Path to the new gear image file.
+            size (int | None): Optional new size. If None, keeps current size.
+        
+        Return:
+            None
+        """
+        current_size = self.width() if size is None else size
+        if size is not None:
+            self.setFixedSize(size, size)
+        
+        original_image = QPixmap(image_path)
+        self.gear_image = original_image.scaled(
+            current_size, current_size,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation
+        )
+        self.update()
 
 class WinnerDialog(QDialog):
+    """Dialog shown at end of game to announce winner and offer play again or quit options. 
+    Quit exits the application, while play again just closes the dialog and returns to the main menu."""
+
     def __init__(self, winner_color="white", parent=None, reason="checkmate"):
+        """Initialize the winner dialog.
+        Args:
+            winner_color (str): "white" or "black" indicating the winner's color.
+            parent (QWidget | None): Optional parent widget.
+            reason (str): "checkmate" or "timeout" indicating how the game was won
+        Return:
+            None
+        """
+
         super().__init__(parent)
         
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Dialog)
@@ -272,8 +371,15 @@ class WinnerDialog(QDialog):
 
 
 class DrawDialog(QDialog):
+    """Dialog shown at end of game to announce a draw and offer play again or quit options."""  
 
     def __init__(self, parent=None):
+        """Initialize the draw dialog.
+        Args:
+            parent (QWidget | None): Optional parent widget.
+        Return:
+            None
+        """
         super().__init__(parent)
         
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Dialog)
@@ -368,7 +474,7 @@ class WaitingDialog(QDialog):
 
         layout = QVBoxLayout()
         self.label = QLabel("Sending move to device...\nPlease wait.")
-        self.spinning_gear = self.SpinningImageGear()
+        self.spinning_gear = SpinningGear(65, "ui/assets/gear_icon.png")
         layout.addWidget(self.label)
         layout.addWidget(self.spinning_gear)
         self.setLayout(layout)
@@ -384,94 +490,55 @@ class WaitingDialog(QDialog):
     def set_message(self, message):
         self.label.setText(message)
 
-    class SpinningImageGear(QWidget):
-        def __init__(self):
-            super().__init__()
-            original_image = QPixmap("ui/assets/gear_icon.png")
-            self.gear_image = original_image.scaled(
-            65, 65, 
-            Qt.AspectRatioMode.KeepAspectRatio, 
-            Qt.TransformationMode.SmoothTransformation
-        )
-
-            self.angle = 0
-
-            # Animation loop
-            self.timer = QTimer(self)
-            self.timer.timeout.connect(self.rotate_gear)
-            self.timer.start(16) 
-
-        def rotate_gear(self):
-            self.angle += 2  
-            if self.angle >= 360:
-                self.angle = 0
-            self.update() 
-
-        def paintEvent(self, event):
-            painter = QPainter(self)
-            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-            painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform) # Keeps the image from looking pixelated when rotated
-
-            # 2. Move the origin to the center of the widget
-            painter.translate(self.width() / 2, self.height() / 2)
-
-            # 3. Rotate the canvas
-            painter.rotate(self.angle)
-
-            # 4. Draw the image
-            # IMPORTANT: We must offset the drawing by half the image's width and height.
-            # Otherwise, the top-left corner of the image will be at the center of rotation, 
-            # causing it to orbit rather than spin in place.
-            offset_x = int(-self.gear_image.width() / 2)
-            offset_y = int(-self.gear_image.height() / 2)
-            
-            painter.drawPixmap(offset_x, offset_y, self.gear_image)
-
 class TurnIndicatorWidget(QWidget):
     """Combined widget showing current turn with dynamic background and optional waiting spinner."""
     
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setFixedHeight(80)
-        # Set a maximum and minimum width to prevent the widget from stretching when gear/message appear
-        self.setMinimumWidth(200)
-        self.setMaximumWidth(400)
+        self.setFixedHeight(140)
+        # Allow more horizontal space for text
+        self.setMinimumWidth(400)
+        self.setMaximumWidth(900)
         self.current_turn = "white"  # "white" or "black"
         self.is_waiting = False
         self.waiting_message = ""
         
-        # Main layout - no stretches to prevent expansion
+        # Main layout
         self.main_layout = QHBoxLayout(self)
-        self.main_layout.setContentsMargins(10, 10, 10, 10)
-        self.main_layout.setSpacing(10)
+        self.main_layout.setContentsMargins(15, 15, 15, 15)
+        self.main_layout.setSpacing(15)
         
         # Turn text label
         self.turn_label = QLabel("White's Turn")
         self.turn_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.turn_label.setStyleSheet("border: none; font-size: 24px;")  # Remove border for cleaner look
+        self.turn_label.setStyleSheet("border: none; font-size: 32px;")
         font = self.turn_label.font()
         font.setBold(True)
         self.turn_label.setFont(font)
         
+        # Container for waiting state (gear and message)
+        self.waiting_container = QWidget()
+        waiting_layout = QHBoxLayout(self.waiting_container)
+        waiting_layout.setContentsMargins(0, 0, 0, 0)
+        waiting_layout.setSpacing(15)
+        
         # Spinning gear for waiting state
-        self.spinning_gear = self.SpinningGear()
-        self.spinning_gear.setVisible(False)
+        self.spinning_gear = SpinningGear(70, "ui/assets/gear_icon.png")
         
         # Message label for waiting state
         self.message_label = QLabel("")
-        self.message_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.message_label.setVisible(False)
+        self.message_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         self.message_label.setWordWrap(True)
-        self.message_label.setMinimumHeight(60)
         self.message_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self.message_label.setStyleSheet("border: none; font-size: 24px")  # Smaller font for messages
-        font = self.message_label.font()
-        self.message_label.setFont(font)
+        self.message_label.setStyleSheet("border: none; font-size: 22px")
         
-        # Add widgets to layout - centered with limited expansion
+        waiting_layout.addWidget(self.spinning_gear, 0, Qt.AlignmentFlag.AlignCenter)
+        waiting_layout.addWidget(self.message_label, 1, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        self.waiting_container.setVisible(False)
+        
+        # Add widgets to main layout
         self.main_layout.addWidget(self.turn_label, 1, Qt.AlignmentFlag.AlignCenter)
-        self.main_layout.addWidget(self.spinning_gear, 0, Qt.AlignmentFlag.AlignCenter)
-        self.main_layout.addWidget(self.message_label, 0, Qt.AlignmentFlag.AlignCenter)
+        self.main_layout.addWidget(self.waiting_container, 1, Qt.AlignmentFlag.AlignCenter)
         
         # Set initial background color and text color
         self.update_turn("white")
@@ -500,60 +567,16 @@ class TurnIndicatorWidget(QWidget):
         self.is_waiting = True
         self.waiting_message = message
         self.turn_label.setVisible(False)
-        self.spinning_gear.setVisible(True)
         self.message_label.setText(message)
-        self.message_label.setVisible(True)
+        self.waiting_container.setVisible(True)
     
     def hide_waiting(self):
         """Hide waiting state and show turn indicator."""
         self.is_waiting = False
         self.waiting_message = ""
         self.turn_label.setVisible(True)
-        self.spinning_gear.setVisible(False)
-        self.message_label.setVisible(False)
+        self.waiting_container.setVisible(False)
         self.message_label.setText("")
-    
-    class SpinningGear(QWidget):
-        """Spinning gear widget for waiting state."""
-        
-        def __init__(self):
-            super().__init__()
-            self.setFixedSize(50, 50)
-            self.set_image("ui/assets/gear_icon.png")
-            self.angle = 0
-            
-            # Animation timer
-            self.timer = QTimer(self)
-            self.timer.timeout.connect(self.rotate_gear)
-            self.timer.start(16)
-        
-        def rotate_gear(self):
-            self.angle += 2
-            if self.angle >= 360:
-                self.angle = 0
-            self.update()
-        
-        def paintEvent(self, event):
-            painter = QPainter(self)
-            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-            painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
-            
-            painter.translate(self.width() / 2, self.height() / 2)
-            painter.rotate(self.angle)
-            
-            offset_x = int(-self.gear_image.width() / 2)
-            offset_y = int(-self.gear_image.height() / 2)
-            painter.drawPixmap(offset_x, offset_y, self.gear_image)
-
-        def set_image(self, image_path):
-            """Update the gear image (optional method for future use)."""
-            original_image = QPixmap(image_path)
-            self.gear_image = original_image.scaled(
-                50, 50, 
-                Qt.AspectRatioMode.KeepAspectRatio, 
-                Qt.TransformationMode.SmoothTransformation
-            )
-
 
 class InvalidMoveDialog(QDialog):
     """Dialog showing invalid move message that automatically closes after 2 seconds."""

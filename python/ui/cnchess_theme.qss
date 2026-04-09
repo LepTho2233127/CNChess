@@ -77,6 +77,32 @@ QRadioButton:hover {
 QRadioButton:pressed, QRadioButton:checked {
     background-color: #a1140a;
 }
+
+/* Color selection buttons on home page (icon-only) */
+QToolButton#colorWhite,
+QToolButton#colorBlack {
+    padding: 0px;
+    margin: 0px;
+    border: 2px solid transparent;
+    border-radius: 0px;
+    background: transparent;
+}
+
+QToolButton#colorWhite:pressed,
+QToolButton#colorBlack:pressed {
+    background-color: rgba(0, 0, 0, 110);
+}
+
+QToolButton#colorWhite:checked,
+QToolButton#colorBlack:checked {
+    background-color: rgba(246, 31, 15, 0.5);
+    border: 2px solid #f61f0f;
+}
+
+QToolButton#colorWhite:hover,
+QToolButton#colorBlack:hover {
+    background-color: rgba(246, 31, 15, 0.3);
+}
 QRadioButton#quitBtn {
     background-color: #a1140a;
 }
