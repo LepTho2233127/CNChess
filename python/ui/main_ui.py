@@ -1,18 +1,16 @@
 """ File for the main window of the application, which contains the home page, the game and the settings page.
 The main window is responsible for switching between the different pages and managing the overall layout of the application using 
 a QStackedWidget."""
+import os
 
 from PyQt6.QtWidgets import QMainWindow, QStackedWidget
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QKeySequence, QShortcut
-import os
-import sys
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from ui.home_page import HomeView
 from ui.game_page import GameView
 from ui.settings_page import SettingsView
-from Control import Control
+
 
 class MainUI(QMainWindow):
 

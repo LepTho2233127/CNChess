@@ -467,6 +467,11 @@ class WaitingDialog(QDialog):
     """Simple waiting dialog to show while path is being sent."""
     
     def __init__(self, parent=None):
+        """Initialize the waiting dialog.
+        Args:
+            parent (QWidget | None): Optional parent widget.
+        Return:
+            None"""
         super().__init__(parent)
         self.setWindowTitle("Processing Move")
         self.setModal(True)
@@ -488,12 +493,22 @@ class WaitingDialog(QDialog):
             )
 
     def set_message(self, message):
+        """Update the waiting message displayed in the dialog.
+        Args:
+            message (str): New message to display.
+        Return:
+            None"""
         self.label.setText(message)
 
 class TurnIndicatorWidget(QWidget):
     """Combined widget showing current turn with dynamic background and optional waiting spinner."""
     
     def __init__(self, parent=None):
+        """Initialize the turn indicator widget.
+        Args:
+            parent (QWidget | None): Optional parent widget.
+        Return:
+            None"""
         super().__init__(parent)
         self.setFixedHeight(140)
         # Allow more horizontal space for text
@@ -544,7 +559,12 @@ class TurnIndicatorWidget(QWidget):
         self.update_turn("white")
     
     def update_turn(self, color):
-        """Update the turn indicator with new color (white or black)."""
+        """Update the turn indicator with new color (white or black).
+        Args:
+             color (str): "white" or "black" indicating the current player's turn.
+        Return:
+             None"""
+        
         self.current_turn = color
         if color.lower() == "white":
             bg_color = "white"
@@ -563,7 +583,11 @@ class TurnIndicatorWidget(QWidget):
         """)
     
     def show_waiting(self, message="Processing..."):
-        """Show waiting state with spinning gear and message."""
+        """Show waiting state with spinning gear and message.
+        Args :
+             message (str): Message to display next to the spinning gear.
+        Return :   
+             None"""
         self.is_waiting = True
         self.waiting_message = message
         self.turn_label.setVisible(False)
@@ -571,7 +595,11 @@ class TurnIndicatorWidget(QWidget):
         self.waiting_container.setVisible(True)
     
     def hide_waiting(self):
-        """Hide waiting state and show turn indicator."""
+        """Hide waiting state and show turn indicator.
+        Args : 
+             None
+        Return :
+             None"""
         self.is_waiting = False
         self.waiting_message = ""
         self.turn_label.setVisible(True)
@@ -582,6 +610,11 @@ class InvalidMoveDialog(QDialog):
     """Dialog showing invalid move message that automatically closes after 2 seconds."""
     
     def __init__(self, parent=None):
+        """Initialize the invalid move dialog.
+        Args:
+            parent (QWidget | None): Optional parent widget.
+        Return:
+            None"""
         super().__init__(parent)
         
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Dialog)
