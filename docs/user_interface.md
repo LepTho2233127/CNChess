@@ -62,7 +62,6 @@ Popup dialogs for notifications and selections.
 ### Game Board
 - **Visual Representation** - 8x8 chess board with pieces
 - **Square Highlighting** - Show selected piece and legal moves
-- **Move Animation** - Smooth piece movement visualization
 - **Trajectory Display** - Show robot movement path
 
 ### Move History
@@ -81,11 +80,9 @@ Popup dialogs for notifications and selections.
 - **Error Messages** - Display issues or invalid moves
 
 ### Settings Controls
-- **Board Calibration** - Adjust piece detection accuracy
-- **Board Orientation** - Rotate board perspective
-- **Difficulty Selection** - Choose AI opponent strength
-- **Time Controls** - Set game time limits
-- **Device Configuration** - Select and test hardware
+- **Board Orientation** - Rotate board perspective (possible to play as black or white)
+- **Difficulty Selection** - Choose chess engine opponent strength
+- **Device Configuration** - Select and test hardware (core XY or camera)
 
 ## Game Flow
 
@@ -94,7 +91,7 @@ Home Page (Game Mode Selection)
     ↓
 Game Page (Play Chess)
     ├─ Human Move Detection
-    ├─ AI Move Generation
+    ├─ Chess Engine Move Generation
     └─ Board Update/Display
     ↓
 End Game Dialog (Result)
@@ -107,8 +104,8 @@ End Game Dialog (Result)
 ```
 Main Application
 ├── Home Page
-│   ├── VS Computer Mode
-│   ├── Player vs Player Mode
+│   ├── Difficulty Choice
+│   ├── Color Choice
 │   └── Settings Button
 ├── Game Page
 │   ├── Chess Board
@@ -118,11 +115,9 @@ Main Application
 │   ├── Undo Button
 │   └── Resign Button
 ├── Settings Page
-│   ├── Board Calibration
-│   ├── Device Configuration
-│   ├── Game Settings
-│   ├── Camera Settings
-│   └── Test & Verify
+│   ├── Core XY Control
+│   ├── Camera Calibration and Control
+│   └── Magnet Control
 └── Dialogs
     ├── Game Over (Win/Draw/Loss)
     ├── Invalid Move Warning

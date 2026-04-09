@@ -6,27 +6,29 @@ Welcome to the CNChess documentation! This is an automated chess playing robot t
 
 The CNChess system is divided into five main component groups. Each component has its own dedicated documentation page:
 
-### [Game Engine](components/game_engine.md)
-Chess logic and AI decision-making. Handles game state, move validation, and opponent strategy.
+### [Game Engine](game_engine.md)
+Chess logic and chess engine decision-making. Handles game state, move validation, and opponent strategy.
 
-### [Hardware Control](components/hardware_control.md)
+### [Hardware Control](hardware_control.md)
 Robot movement and positioning system. Controls gantry movements, servo operations, and trajectory planning.
 
-### [Vision System](components/vision_system.md)
+### [Vision System](vision_system.md)
 Computer vision for board detection. Processes camera input to recognize piece positions and moves.
 
-### [Communication Layer](components/communication.md)
+### [Communication Layer](communication.md)
 Device communication protocol. Manages serial communication with ESP32 and hardware control.
 
-### [User Interface](components/user_interface.md)
+### [User Interface](user_interface.md)
 PyQt6-based graphical interface. Provides game interaction, settings configuration, and visual feedback.
 
 ## System Architecture
 
 ```
-User Input (UI)
+User Input (Button Press)
     ↓
-Game Engine (Chess Logic)
+Camera (Detect Result)
+    ↓
+Game Engine (Validate Move and Calculates Computer Move)
     ↓
 Control Module (Path Planning)
     ↓
@@ -34,8 +36,7 @@ Communication (Send to Device)
     ↓
 Hardware (Robot Movement)
     ↓
-Camera (Detect Result)
-    ↓
+
 Update Game State (UI Display)
 ```
 
