@@ -4,7 +4,7 @@ Automated chess board for playing against chess engine. For more information con
 ## Get Started for Software Development
 
 ### 1. Clone project
-    git clone <URL_DU_REPO>
+    git clone <REPO_URL>
 
 ### 2. Install Ubuntu WSL (only if on windows)
 
