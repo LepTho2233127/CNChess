@@ -1,5 +1,7 @@
-# CNChess
-Projet de S4 
+#### CNChess - Automated Chess System
+Automated chess board for playing against chess engine. 
+
+#### Get Started
 
 ### 1. Clone project
     git clone <URL_DU_REPO>
