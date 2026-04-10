@@ -36,7 +36,6 @@ Communication (Send to Device)
     ↓
 Hardware (Robot Movement)
     ↓
-
 Update Game State (UI Display)
 ```
 
@@ -45,7 +44,7 @@ Update Game State (UI Display)
 1. Install dependencies: `pip install -r requirements.txt`
 2. Run the application: `python main.py`
 3. Configure hardware settings through the UI
-4. Play chess against the AI or in multiplayer mode
+4. Play chess against the chess engine 
 
 ## System Requirements
 
@@ -54,3 +53,4 @@ Update Game State (UI Display)
 - OpenCV for vision processing
 - PySerial for device communication
 - Chess library for game logic
+- Stockfish 14.1

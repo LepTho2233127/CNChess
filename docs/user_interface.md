@@ -9,80 +9,12 @@ PyQt6-based graphical interface for game interaction and configuration.
 ## Overview
 
 The User Interface component is responsible for:
+
 - **Game Visualization** - Display board state and piece positions
 - **User Interaction** - Handle move input and game control
 - **Settings Management** - Configure system parameters
 - **Visual Feedback** - Show status, timers, and notifications
 - **Navigation** - Switch between game, settings, and home screens
-
-## Module Documentation
-
-### Main UI Application
-
-The primary application window and navigation system.
-
-::: ui.main_ui
-    options:
-      docstring_style: google
-
-### Game Page
-
-The main game interface where chess is played.
-
-::: ui.game_page
-    options:
-      docstring_style: google
-
-### Home Page
-
-The home/welcome screen and game mode selection.
-
-::: ui.home_page
-    options:
-      docstring_style: google
-
-### Settings Page
-
-Configuration interface for system settings and calibration.
-
-::: ui.settings_page
-    options:
-      docstring_style: google
-
-### Dialog Components
-
-Popup dialogs for notifications and selections.
-
-::: ui.dialog_ui
-    options:
-      docstring_style: google
-
-## User Interface Components
-
-### Game Board
-- **Visual Representation** - 8x8 chess board with pieces
-- **Square Highlighting** - Show selected piece and legal moves
-- **Trajectory Display** - Show robot movement path
-
-### Move History
-- **Notation List** - Display all moves in algebraic notation
-- **Move Navigation** - Step backward/forward through game
-- **Capture Indicators** - Mark captured pieces
-
-### Chess Clock
-- **Time Display** - Show remaining time for each player
-- **Color Indicators** - White/black background for current player
-- **Out of Time Detection** - Automatic game end on timeout
-
-### Status Indicators
-- **Turn Indicator** - Show which player's turn it is
-- **Waiting Spinner** - Show processing status with animated gear
-- **Error Messages** - Display issues or invalid moves
-
-### Settings Controls
-- **Board Orientation** - Rotate board perspective (possible to play as black or white)
-- **Difficulty Selection** - Choose chess engine opponent strength
-- **Device Configuration** - Select and test hardware (core XY or camera)
 
 ## Game Flow
 
@@ -164,3 +96,74 @@ sys.exit(app.exec())
 - `PyQt6.QtGui` - Graphics and icons
 - `PyQt6.QtWidgets` - Widget components
 - Custom stylesheets (QSS files)
+
+
+## Module Documentation
+
+### Main UI Application
+
+The primary application window and navigation system.
+
+::: ui.main_ui
+    options:
+      docstring_style: google
+
+### Game Page
+
+The main game interface where chess is played.
+
+::: ui.game_page
+    options:
+      docstring_style: google
+
+### Home Page
+
+The home/welcome screen and game mode selection.
+
+::: ui.home_page
+    options:
+      docstring_style: google
+
+### Settings Page
+
+Configuration interface for system settings and calibration.
+
+::: ui.settings_page
+    options:
+      docstring_style: google
+
+### Dialog Components
+
+Popup dialogs for notifications and selections.
+
+::: ui.dialog_ui
+    options:
+      docstring_style: google
+
+## User Interface Components
+
+### Game Board
+- **Visual Representation** - 8x8 chess board with pieces
+- **Square Highlighting** - Show selected piece and legal moves
+- **Trajectory Display** - Show robot movement path
+
+### Move History
+- **Notation List** - Display all moves in algebraic notation
+- **Move Navigation** - Step backward/forward through game
+- **Capture Indicators** - Mark captured pieces
+
+### Chess Clock
+- **Time Display** - Show remaining time for each player
+- **Color Indicators** - White/black background for current player
+- **Out of Time Detection** - Automatic game end on timeout
+
+### Status Indicators
+- **Turn Indicator** - Show which player's turn it is
+- **Waiting Spinner** - Show processing status with animated gear
+- **Error Messages** - Display issues or invalid moves
+
+### Settings Controls
+- **Board Orientation** - Rotate board perspective (possible to play as black or white)
+- **Difficulty Selection** - Choose chess engine opponent strength
+- **Device Configuration** - Select and test hardware (core XY or camera)
+

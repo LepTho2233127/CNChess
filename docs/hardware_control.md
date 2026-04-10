@@ -9,18 +9,9 @@ Robot control systems for movement, positioning, and piece manipulation.
 ## Overview
 
 The Hardware Control component is responsible for:
+
 - **Pathfinding & Trajectory Planning** - Calculate optimal robot paths from as grid coordinates
 - **Servo Control** - Manage piece picking and placement
-
-## Module Documentation
-
-### Control Module
-
-The core control system for robot movement and pathfinding.
-
-::: Control
-    options:
-      docstring_style: google
 
 ## Key Features
 
@@ -66,5 +57,18 @@ control.go_home()
 # Get path for a move
 move = chess.Move.from_uci('e2e4')
 path = control.get_path(move, board_state)
+```
+
+## Module Documentation
+
+### Control Module
+
+The core control system for robot movement and pathfinding.
+
+::: Control
+    options:
+      docstring_style: google
+
+
 ```
 

@@ -9,6 +9,7 @@ The core game engine that handles game logic, move validation, and the chess eng
 ## Overview
 
 The Game Engine component is responsible for:
+
 - **Game State Management** - Maintaining board positions and game history
 - **Move Validation** - Ensuring all moves follow chess rules
 - **Chess engine Decision Making** - Generating computer player moves

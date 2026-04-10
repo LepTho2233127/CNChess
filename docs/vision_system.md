@@ -9,6 +9,7 @@ Computer vision for board detection and piece position recognition.
 ## Overview
 
 The Vision System component is responsible for:
+
 - **Image Capture** - Retrieve frames from camera
 - **Board Detection** - Identify chess board boundaries and orientation
 - **Piece Recognition** - Locate individual pieces and their positions

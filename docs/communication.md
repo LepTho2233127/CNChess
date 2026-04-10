@@ -9,6 +9,7 @@ Device communication for ESP32 and hardware control via PySerial.
 ## Overview
 
 The Communication Layer component is responsible for:
+
 - **Serial Communication** - Establish connection with microcontroller
 - **Protocol Handling** - Encode/decode command messages
 - **Command Transmission** - Send movement and control commands
