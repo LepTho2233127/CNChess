@@ -1,6 +1,8 @@
-site_name: cnchess Documentation
+site_name: CNChess Documentation
 site_description: Documentation for the CoreXY automated chess board.
 use_directory_urls: false
+docs_dir: docs           # Source docs directory
+site_dir: docs_build     # Output directory (cannot be inside docs_dir)
 
 nav:
   - Home: index.md
@@ -12,12 +14,20 @@ nav:
 
 theme:
   name: material
+  palette:
+    scheme: slate
+    primary: red
+    accent: amber
   features:
     - navigation.tabs 
     - navigation.sections
     - navigation.expand
     - navigation.instant
+    - navigation.top
     - toc.follow
+    - search.suggest
+    - search.highlight
+
 plugins:
   - search
   - mkdocstrings:
