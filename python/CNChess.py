@@ -38,6 +38,7 @@ class CNChess:
         self.IMPOSSIBLE_ELO = 3000
         self.IMPOSSIBLE_DEPTH = 20
         self.difficulty = "easy"
+        self.time_control = 0  # None means no time limit, or time in minutes
 
 
     def set_elo(self, elo: int):
@@ -73,6 +74,28 @@ class CNChess:
 
         self.set_elo(elo)
         self.set_depth(depth)
+
+    def get_time_control(self)-> int | None:
+        """Return the current time control setting.
+        
+        Args:
+            None
+        
+        Return:
+            int | None: Time limit in minutes per player, or None if no time limit.
+        """
+        return self.time_control    
+
+    def set_time_control(self, time_minutes: int | None):
+        """Set the time control for the game.
+        
+        Args:
+            time_minutes (int | None): Time limit in minutes per player, or None for no time limit.
+        
+        Return:
+            None
+        """
+        self.time_control = time_minutes
 
     def set_player_color(self, color: chess.Color):
         """Set player color (WHITE/BLACK) and computer color as opposite.

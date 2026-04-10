@@ -229,7 +229,17 @@ class ChessClock(QWidget):
             None
         """
         if self.timer.isActive():
-            self.timer.stop()    
+            self.timer.stop()  
+
+    def set_initial_time(self, new_initial_time):
+        """Set a new initial time for the clock and reset it.
+        
+        Args:
+            new_initial_time (int): New initial time in seconds.
+        """
+        self.initial_time = new_initial_time   
+        self.reset_clock()  # Reset the clock to apply the new initial time      
+
 
 class GameView(QWidget):
     """Game page view containing chess board, clocks, and move history."""
@@ -329,6 +339,8 @@ class GameView(QWidget):
         color = self.chess_game.get_player_color()
         self.board.set_player_color(color)
         self.chess_game.reset_game()
+        self.white_clock.set_initial_time(self.chess_game.get_time_control()*60)
+        self.black_clock.set_initial_time(self.chess_game.get_time_control()*60)
         self.board.paint_board() # Clear any existing highlights before updating the boar
         self.board.update_board(self.chess_game.get_board_state())
 
@@ -356,7 +368,8 @@ class GameView(QWidget):
             # Human starts as white: wait asynchronously for the board button press.
             self.game_page_controller.wait_for_button_press_async()
 
-        self.white_clock.toggle_timer()
+        if self.white_clock.initial_time > 0:    
+            self.white_clock.toggle_timer()
         
     def update_highlighted_squares(self, squares):
         """Highlight the given squares on the board.
@@ -705,8 +718,6 @@ class GamePageController(QObject):
             return
         self.view.turn_indicator.hide_waiting()
         self.cam.process_image()
-        self.view.white_clock.toggle_timer()
-        self.view.black_clock.toggle_timer()
         print(f"Error: {error_msg}. Continuing without button confirmation.")
 
     def handle_square_click(self, row, col):

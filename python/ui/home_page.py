@@ -68,6 +68,7 @@ class HomeView(QWidget):
             logo_label.setMaximumHeight(logo_pixmap.height())
 
         level_layout = self.build_level_buttons()
+        time_layout = self.build_time_control_buttons()
         color_layout = self.build_color_buttons()
         menu_layout = self.build_menu_buttons()
 
@@ -83,6 +84,8 @@ class HomeView(QWidget):
         main_layout.addWidget(logo_label, alignment=Qt.AlignmentFlag.AlignHCenter)
         main_layout.addSpacing(75)
         main_layout.addLayout(level_layout)
+        main_layout.addSpacing(50)
+        main_layout.addLayout(time_layout)
         main_layout.addSpacing(75)
         main_layout.addLayout(hbox_layout)
         # Ensure extra vertical space goes to the bottom when the window is large.
@@ -305,6 +308,57 @@ class HomeView(QWidget):
 
         return layout
     
+    def build_time_control_buttons(self):
+        """Build time control selection buttons (3 min, 5 min, 10 min, No limit).
+        
+        Args:
+            None
+        
+        Return:
+            QHBoxLayout: Layout containing time control buttons.
+        """
+        time_3_button = QPushButton("3 MIN", self)
+        time_3_button.setCheckable(True)
+        time_3_button.setObjectName("time_button")
+        time_3_button.setMinimumSize(120, 50)
+        time_3_button.clicked.connect(self.home_page_controller.time_3_button_clicked)
+
+        time_5_button = QPushButton("5 MIN", self)
+        time_5_button.setCheckable(True)
+        time_5_button.setObjectName("time_button")
+        time_5_button.setMinimumSize(120, 50)
+        time_5_button.clicked.connect(self.home_page_controller.time_5_button_clicked)
+
+        time_10_button = QPushButton("10 MIN", self)
+        time_10_button.setCheckable(True)
+        time_10_button.setObjectName("time_button")
+        time_10_button.setMinimumSize(120, 50)
+        time_10_button.clicked.connect(self.home_page_controller.time_10_button_clicked)
+
+        time_none_button = QPushButton("NO LIMIT", self)
+        time_none_button.setCheckable(True)
+        time_none_button.setObjectName("time_button")
+        time_none_button.setMinimumSize(120, 50)
+        time_none_button.clicked.connect(self.home_page_controller.time_none_button_clicked)
+
+        time_group = QButtonGroup(self)
+        time_group.addButton(time_3_button)
+        time_group.addButton(time_5_button)
+        time_group.addButton(time_10_button)
+        time_group.addButton(time_none_button)
+        time_group.setExclusive(True)
+        time_none_button.setChecked(True)
+
+        layout = QHBoxLayout()
+        layout.addStretch(50)
+        layout.addWidget(time_3_button)
+        layout.addWidget(time_5_button)
+        layout.addWidget(time_10_button)
+        layout.addWidget(time_none_button)
+        layout.addStretch(50)
+
+        return layout
+    
     def build_color_buttons(self):
         """Build player color selection buttons (White, Black).
         
@@ -373,10 +427,12 @@ class HomeView(QWidget):
         start_button = QPushButton("START GAME", self)
         start_button.clicked.connect(self.home_page_controller.start_game)
         start_button.setObjectName("menu_button")
+        start_button.setMinimumSize(200, 60)
 
         settings_button = QPushButton("SETTINGS", self)
         settings_button.clicked.connect(self.home_page_controller.settings_button_clicked)
         settings_button.setObjectName("menu_button")
+        settings_button.setMinimumSize(200, 60)
 
         layout = QVBoxLayout()
         layout.addWidget(start_button, alignment=Qt.AlignmentFlag.AlignHCenter)
@@ -434,6 +490,50 @@ class HomePageController(QObject):
             None
         """
         self.chess_model.set_difficulty("hard")    
+
+    def time_3_button_clicked(self):
+        """Handle 3 minute time control selection.
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
+        self.chess_model.set_time_control(3)
+
+    def time_5_button_clicked(self):
+        """Handle 5 minute time control selection.
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
+        self.chess_model.set_time_control(5)
+
+    def time_10_button_clicked(self):
+        """Handle 10 minute time control selection.
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
+        self.chess_model.set_time_control(10)
+
+    def time_none_button_clicked(self):
+        """Handle no time limit selection.
+        
+        Args:
+            None
+        
+        Return:
+            None
+        """
+        self.chess_model.set_time_control(0)
 
     def white_button_clicked(self):
         """Handle white color selection for player.
