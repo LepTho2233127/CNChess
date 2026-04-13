@@ -22,7 +22,6 @@
 #define PLAY_PIN D7
 
 #define SERVO_PIN D6
-#define MOVE_BUTTON D7
 #define LED_PIN D8
 
 #define LIMIT_SWITCH_1 D4
@@ -37,15 +36,11 @@ MultiStepper steppers;
 
 int servoGrabPosition = 130; // Servo position to grab piece0
 int servoReleasePosition = 200; // Servo position to release piece
-static bool isFastHome = false;
 bool button_pressed = false;
+
 struct Position{
     float x;
     float y;
-};
-struct Data{
-    Position pos;
-    bool active_magnet;
 };
 
 Position current_position;
@@ -59,7 +54,7 @@ void IRAM_ATTR onPlayButtonPress() {
 }
 
 void go_to_position (Position pos);
-void goHome();
+void go_home();
 void reset_position();
 void grab_piece(bool state);
 void release_piece(bool state);
@@ -69,14 +64,17 @@ void drop_piece();
 Servo myServo;
 
 void setup() {
+
     Serial.begin(115200);
 
+    // Initialize pins
     pinMode(LIMIT_SWITCH_1, INPUT);
     pinMode(LIMIT_SWITCH_2, INPUT);
     pinMode(LED_PIN, OUTPUT);
     pinMode(SERVO_PIN, OUTPUT);
     pinMode(PLAY_PIN, INPUT_PULLDOWN);
     
+    // Configure stepper motors
     stepper1.setMaxSpeed(MOVE_SPEED);
     stepper1.setAcceleration(500);
     stepper2.setMaxSpeed(MOVE_SPEED);
@@ -86,10 +84,11 @@ void setup() {
 
     attachInterrupt(PLAY_PIN, onPlayButtonPress, RISING);
     myServo.attach(SERVO_PIN);
-    goHome();
+    go_home();
     myServo.write(servoReleasePosition); // Ensure servo is in release position
 }
 
+// Define the command types
 enum CommandType {
     CHESSMOVE,
     MOVE,
@@ -100,6 +99,7 @@ enum CommandType {
     SERVO
 };
 
+// Function to parse command type from string
 CommandType parseCommand(String cmd) {
     if (cmd == "CHESSMOVE") return CHESSMOVE;
     if (cmd == "MOVE") return MOVE;
@@ -185,11 +185,14 @@ std::vector<std::string> splitByPipe(String input) {
 }
 
 void loop() {
+
+    // Check if play button was pressed
     if (button_pressed){
         Serial.println("PLAYED");
         button_pressed = false;
     }
 
+    // Check for incoming serial commands
     if (Serial.available() > 0) 
     {
         String input = Serial.readStringUntil('\n');
@@ -203,7 +206,8 @@ void loop() {
         float posX = current_position.x;
         float posY = current_position.y;
         bool magnetState = false;
-
+        
+        // Handle commands based on type
         switch (commandType) 
         {
             case CommandType::PATH: {
@@ -228,7 +232,7 @@ void loop() {
                 Serial.println("DONE");
                 break;
             }
-            
+            // CHESSMOVE works using grid positions (0-7) and magnet state, while MOVE and JOG work using absolute or relative distances in mm
             case CommandType::CHESSMOVE: {
                 // Parse format: "CHESSMOVE x,y,magnet"
                 String dataStr = input.substring(9); // Skip "CHESSMOVE"
@@ -263,7 +267,7 @@ void loop() {
         
             case CommandType::HOME:
                 grab_piece(false);
-                goHome();
+                go_home();
                 Serial.println("HOMED");
                 break;
 
@@ -283,14 +287,14 @@ void loop() {
         }
     }
 }
-
+// Reset the current position to the bottom left corner of the board (0.5, 0.5) in grid coordinates
 void reset_position() {
-    
     stepper1.setCurrentPosition(0);
     stepper2.setCurrentPosition(0);
     current_position = {0.5*SQUARE_SIZE_MM, 0.5*SQUARE_SIZE_MM}; 
 }
 
+// Function to control the servo for grabbing and releasing pieces
 void grab_piece(bool state) {
     // Activate magnet to grab piece
     static bool last_state = false;
@@ -305,8 +309,7 @@ void grab_piece(bool state) {
 }
 
 std::pair<float, float> get_steps(float delta_x, float delta_y) {
-    // Calculate the number of steps needed for each axis
-    
+    // Calculate the number of steps needed for each axis based on the desired movement in mm
     float rot_step1 = -360.0 * (delta_x + delta_y) / (CIRCUMFERENCE * sqrt(2));
     float rot_step2 = -((2*delta_x * 360/(CIRCUMFERENCE * sqrt(2))) + rot_step1);
     float step_mot1 = (rot_step1 * MICROSTEPPING * 1.333) / (STEP_ANGLE_DEGREES);
@@ -315,9 +318,7 @@ std::pair<float, float> get_steps(float delta_x, float delta_y) {
     return std::make_pair(-step_mot1, -step_mot2);
 }
 
-/*
-This fonction move the head of the core XY to an absolute position
-*/
+//This fonction move the head of the core XY to an absolute position
 void go_to_position (Position pos) { 
 
     float delta_x = -(pos.x - current_position.x);
@@ -331,9 +332,7 @@ void go_to_position (Position pos) {
     current_position = pos; 
 }
 
-/*
-This fonction move the head of the core XY by a relative distance
-*/
+//This fonction move the head of the core XY by a relative distance
 void move_distance(float delta_x, float delta_y) {
     std::pair<float, float> steps = get_steps(-delta_x, delta_y);
     long positions[2];
@@ -349,7 +348,7 @@ void move_distance(float delta_x, float delta_y) {
     current_position.y += delta_y;
 }
 
-void goHome() {
+void go_home() {
 
     myServo.write(servoReleasePosition); // Ensure servo is in release position
     while(digitalRead(LIMIT_SWITCH_2) == LOW) 
@@ -377,6 +376,7 @@ void goHome() {
     reset_position();
 }
 
+// Drop sequence when a piece is captured and needs to be dropped in the chute. This is a predefined sequence.
 void drop_piece() {
     go_to_position({0.5*SQUARE_SIZE_MM, SQUARE_SIZE_MM*5.5+2});
     go_to_position({-2, SQUARE_SIZE_MM*5.5+2});
