@@ -69,7 +69,7 @@ sudo apt install stockfish
 which stockfish
 ```
 >[!IMPORTANT]
->If path obtained when running which command is not /usr/games/stockfish, you need to change it CNChess.py file manually
+>If path obtained when running which command is not /usr/games/stockfish, you need to change it in CNChess.py file manually
 
 ### 2. Install Python libraries
 Inside CNChess directory run : 
