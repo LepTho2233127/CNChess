@@ -28,7 +28,7 @@
 #define LIMIT_SWITCH_2 D5
 
 #define HOME_SPEED 4000
-#define MOVE_SPEED 4000  // Speed for homing in steps per second
+#define MOVE_SPEED 4000  
 
 AccelStepper stepper1(AccelStepper::DRIVER, STEP_PIN_1, DIR_PIN_1); // step, dir pins
 AccelStepper stepper2(AccelStepper::DRIVER, STEP_PIN_2, DIR_PIN_2); // step, dir pins
