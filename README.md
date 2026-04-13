@@ -1,8 +1,10 @@
-# CNChess
-Projet de S4 
+# CNChess - Automated Chess System
+Automated chess board for playing against chess engine. For more information concerning the hardware needed visit the [wiki](https://github.com/LepTho2233127/CNChess/wiki)
+
+## Get Started for Software Development
 
 ### 1. Clone project
-    git clone <URL_DU_REPO>
+    git clone <REPO_URL>
 
 ### 2. Install Ubuntu WSL (only if on windows)
 
@@ -48,7 +50,7 @@ sudo docker compose build
 xhost +local:docker
 ```
 
-#### 8. Run code
+### 8. Run code
 ```bash
 sudo docker compose run cnchess
 ```
@@ -57,3 +59,36 @@ sudo docker compose run cnchess
 ```bash
 sudo docker compose down
 ```
+> [!NOTE]
+> If you are on a Linux operating systems, it is possible to not use Docker by following this procedure
+
+### 1. Install Stockfish at default location
+```bash
+sudo apt update
+sudo apt install stockfish
+which stockfish
+```
+>[!IMPORTANT]
+>If path obtained when running which command is not /usr/games/stockfish, you need to change it in CNChess.py file manually
+
+### 2. Install Python libraries
+Inside CNChess directory run : 
+
+```bash
+cd python
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+### 3. Run the project
+With right hardware, run this command in python directory with virtual environment activated
+```bash
+python main.py
+```
+If no camera or serial port is detected, you might need to change it respectively inside Cam.py or Communication.py.
+
+## Documentation
+Additional software documentation is available and generated using MkDocs. Run `mkdocs build` inside project directory to build it.
+Located inside docs_build directory, open in a browser to access it.
+
