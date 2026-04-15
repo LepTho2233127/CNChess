@@ -482,6 +482,56 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#coordinate-systems" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Coordinate Systems
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Coordinate Systems">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#chess-board-coordinates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Chess Board Coordinates
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#grid-coordinates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Grid Coordinates
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#usage-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Usage Example
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#module-documentation" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -996,6 +1046,56 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#coordinate-systems" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Coordinate Systems
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Coordinate Systems">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#chess-board-coordinates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Chess Board Coordinates
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#grid-coordinates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Grid Coordinates
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#usage-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Usage Example
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#module-documentation" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1402,23 +1502,21 @@
 └── Movement Commands
     ├── Grid Positions
     └── Servo Operations
-
-
-## Coordinate Systems
-
-### Chess Board Coordinates
-- Columns: A-H (Left to Right)
-- Rows: 1-8 (Bottom to Top)
-- Example: e4 (King's Pawn opening)
-
-### Grid Coordinates
-- Grid double the size of chess board (16x16), so the pieces can be moved in between the squares. (0,0) represents the bottom left corner
-- Calibration required to the bottom left corner for accurate mapping
-
-## Usage Example
-
-```python
-from Control import Control
+</code></pre>
+<h2 id="coordinate-systems">Coordinate Systems</h2>
+<h3 id="chess-board-coordinates">Chess Board Coordinates</h3>
+<ul>
+<li>Columns: A-H (Left to Right)</li>
+<li>Rows: 1-8 (Bottom to Top)</li>
+<li>Example: e4 (King's Pawn opening)</li>
+</ul>
+<h3 id="grid-coordinates">Grid Coordinates</h3>
+<ul>
+<li>Grid double the size of chess board (16x16), so the pieces can be moved in between the squares. (0,0) represents the bottom left corner</li>
+<li>Calibration required to the bottom left corner for accurate mapping</li>
+</ul>
+<h2 id="usage-example">Usage Example</h2>
+<pre><code class="language-python">from Control import Control
 import chess
 
 # Initialize control system

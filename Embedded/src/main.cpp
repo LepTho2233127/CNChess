@@ -34,7 +34,7 @@ AccelStepper stepper1(AccelStepper::DRIVER, STEP_PIN_1, DIR_PIN_1); // step, dir
 AccelStepper stepper2(AccelStepper::DRIVER, STEP_PIN_2, DIR_PIN_2); // step, dir pins
 MultiStepper steppers;
 
-int servoGrabPosition = 130; // Servo position to grab piece0
+int servoGrabPosition = 135; // Servo position to grab piece0
 int servoReleasePosition = 200; // Servo position to release piece
 bool button_pressed = false;
 
@@ -291,7 +291,7 @@ void loop() {
 void reset_position() {
     stepper1.setCurrentPosition(0);
     stepper2.setCurrentPosition(0);
-    current_position = {0.5*SQUARE_SIZE_MM, 0.5*SQUARE_SIZE_MM}; 
+    current_position = {0.5*SQUARE_SIZE_MM, 0.5*SQUARE_SIZE_MM+5}; 
 }
 
 // Function to control the servo for grabbing and releasing pieces
@@ -372,7 +372,7 @@ void go_home() {
     }
     stepper1.stop();
     stepper2.stop();
-    move_distance((SQUARE_SIZE_MM/2), 0.0); // Move away from limit switches
+    move_distance((SQUARE_SIZE_MM/2-2), 0.0); // Move away from limit switches
     reset_position();
 }
 

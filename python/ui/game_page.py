@@ -175,7 +175,7 @@ class ChessClock(QWidget):
         if self.time_left > 0:
             self.time_left -= 1
             self.update_display()
-        else:
+        elif self.initial_time > 0:  # Only trigger out of time if there was actually a time limit set
             self.timer.stop()
             self.clock_label.setText("00:00")
             self.outOfTime_signal.emit(self.color)   
@@ -683,8 +683,10 @@ class GamePageController(QObject):
 
             self.update_list(move=f"{piece}{to_square_name}", turn=self.chess_game.get_turn())
             path = self.make_move(move)
-            self.view.white_clock.toggle_timer()
-            self.view.black_clock.toggle_timer()
+
+            if self.view.white_clock.initial_time > 0 and self.view.black_clock.initial_time > 0:
+                self.view.white_clock.toggle_timer()
+                self.view.black_clock.toggle_timer()
             self.update_chess_board()  # Update the board display after making the move
             self.selected_piece = None  # Reset the selected piece after making a move
 
@@ -761,8 +763,9 @@ class GamePageController(QObject):
                     self.update_list(move=f"{piece}{to_square}", turn=self.chess_game.get_turn())
                     print(f"Camera processing result: Actual move: {move.uci()}")
                     path = self.make_move(move)
-                    self.view.white_clock.toggle_timer()
-                    self.view.black_clock.toggle_timer()
+                    if self.view.white_clock.initial_time > 0 and self.view.black_clock.initial_time > 0:
+                        self.view.white_clock.toggle_timer()
+                        self.view.black_clock.toggle_timer()
                     self.update_chess_board()  # Update the board display after making the move
                     self.selected_piece = None  # Reset the selected piece after making a move
 

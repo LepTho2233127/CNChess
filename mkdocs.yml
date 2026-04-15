@@ -1,8 +1,8 @@
 site_name: CNChess Documentation
 site_description: Documentation for the CoreXY automated chess board.
 use_directory_urls: false
-docs_dir: docs           # Source docs directory
-site_dir: docs_build     # Output directory (cannot be inside docs_dir)
+docs_dir: docs_md           # Source docs directory
+site_dir: docs     # Output directory (cannot be inside docs_dir)
 
 nav:
   - Home: index.md

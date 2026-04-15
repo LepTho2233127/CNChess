@@ -324,9 +324,11 @@ class SettingsView(QWidget):
         else :
             self.y_spinner.setValue(y)     
             y = grid_height_mm - float(y)
+            x = x - SQUARE_SIZE_MM/2
+            y = y - SQUARE_SIZE_MM/2
         
         self._updating_spinners = False
-        self.grid.update_dot(x, y)
+        self.grid.update_dot(x,y)
     
     def on_spinner_changed(self):
         """Handle coordinate spinner value changes.

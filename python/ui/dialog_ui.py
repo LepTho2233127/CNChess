@@ -478,10 +478,12 @@ class WaitingDialog(QDialog):
         self.setFixedSize(300, 150)
 
         layout = QVBoxLayout()
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.label = QLabel("Sending move to device...\nPlease wait.")
+        self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.spinning_gear = SpinningGear(65, "ui/assets/gear_icon.png")
-        layout.addWidget(self.label)
-        layout.addWidget(self.spinning_gear)
+        layout.addWidget(self.label, alignment=Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.spinning_gear, alignment=Qt.AlignmentFlag.AlignCenter)
         self.setLayout(layout)
         
         # Center the dialog on parent

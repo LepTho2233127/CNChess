@@ -29,7 +29,7 @@ Hardware Control
 └── Movement Commands
     ├── Grid Positions
     └── Servo Operations
-
+```
 
 ## Coordinate Systems
 
