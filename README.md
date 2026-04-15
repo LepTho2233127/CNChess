@@ -89,6 +89,6 @@ python main.py
 If no camera or serial port is detected, you might need to change it respectively inside Cam.py or Communication.py.
 
 ## Documentation
-Additional software documentation is available and generated using MkDocs. Run `mkdocs build` inside project directory to build it.
+Additional software documentation is available and generated using MkDocs [docs](https://leptho2233127.github.io/CNChess/). Run `mkdocs build` inside project directory to build it.
 Located inside docs_build directory, open in a browser to access it.
 
