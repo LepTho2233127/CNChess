@@ -392,6 +392,7 @@ class GamePageController(QObject):
     start_game_black_signal = pyqtSignal()  # Signal for start of game as black
     return_home_signal = pyqtSignal()
     send_gantry_position = pyqtSignal(float, float, bool)
+    take_picture_signal = pyqtSignal()
 
     def __init__(self, chess_game, view=None, control=None, communication=None, cam=None):
         """Initialize game page controller with chess game and hardware instances.
@@ -659,6 +660,7 @@ class GamePageController(QObject):
         self.board_widget.clear_trajectory()
 
         cam_result = self.cam.process_image()
+        self.take_picture_signal.emit()
         try:
             move = chess.Move.from_uci(cam_result['move']['uci'])
         except Exception as e:

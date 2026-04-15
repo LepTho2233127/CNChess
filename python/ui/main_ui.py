@@ -63,6 +63,7 @@ class MainUI(QMainWindow):
         self.home_page.home_page_controller.settings_signal.connect(self.switch_to_settings_page)
         self.game_page.game_page_controller.show_settings_signal.connect(self.switch_to_settings_page)
         self.game_page.game_page_controller.return_home_signal.connect(self.switch_to_home_page)
+        self.game_page.game_page_controller.take_picture_signal.connect(self.settings_page.update_captured_image)
         self.settings_page.controller.back_button_signal.connect(self.back_button_settings_page)
         self.game_page.game_page_controller.send_gantry_position.connect(self.settings_page.update_coord)
 
@@ -136,8 +137,7 @@ class MainUI(QMainWindow):
             None
         """
         self.stacked_widget.setCurrentWidget(self.settings_page)
-        img_path = os.path.join(os.path.dirname(__file__), 'assets', 'captured_image.jpg')
-        self.settings_page.update_captured_image(img_path)
+        self.settings_page.update_captured_image()
 
     def back_button_settings_page(self):
         """Return to the previous page (game or home) from the settings page.

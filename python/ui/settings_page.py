@@ -325,7 +325,7 @@ class SettingsView(QWidget):
             self.y_spinner.setValue(y)     
             y = grid_height_mm - float(y)
             x = x - SQUARE_SIZE_MM/2
-            y = y - SQUARE_SIZE_MM/2
+            y = y - SQUARE_SIZE_MM/2 + SQUARE_SIZE_MM
         
         self._updating_spinners = False
         self.grid.update_dot(x,y)
@@ -393,7 +393,7 @@ class SettingsView(QWidget):
         current_value = self.x_spinner.value()
         self.update_coord(current_value + self.step_spinner.value(), abs(self.y_spinner.value() - grid_height_mm))
 
-    def update_captured_image(self, img_path):
+    def update_captured_image(self, img_path=os.path.join(os.path.dirname(__file__), 'assets', 'captured_image.jpg')):
         """Take picture and update image in view.
         
         Args:
