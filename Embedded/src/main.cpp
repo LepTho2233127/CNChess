@@ -34,8 +34,8 @@ AccelStepper stepper1(AccelStepper::DRIVER, STEP_PIN_1, DIR_PIN_1); // step, dir
 AccelStepper stepper2(AccelStepper::DRIVER, STEP_PIN_2, DIR_PIN_2); // step, dir pins
 MultiStepper steppers;
 
-int servoGrabPosition = 135; // Servo position to grab piece0
-int servoReleasePosition = 200; // Servo position to release piece
+int servoGrabPosition = 52; // Servo position to grab piece0
+int servoReleasePosition = 130; // Servo position to release piece
 bool button_pressed = false;
 
 struct Position{
@@ -378,8 +378,8 @@ void go_home() {
 
 // Drop sequence when a piece is captured and needs to be dropped in the chute. This is a predefined sequence.
 void drop_piece() {
-    go_to_position({0.5*SQUARE_SIZE_MM, SQUARE_SIZE_MM*5.5+2});
-    go_to_position({-2, SQUARE_SIZE_MM*5.5+2});
-    go_to_position({-2, SQUARE_SIZE_MM*4.5+2});
+    go_to_position({0.5*SQUARE_SIZE_MM - 1, SQUARE_SIZE_MM*5.5-3});
+    go_to_position({1, SQUARE_SIZE_MM*5.5+6});
+    go_to_position({1, SQUARE_SIZE_MM*4.5+6});
 }
 

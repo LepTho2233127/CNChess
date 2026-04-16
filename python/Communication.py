@@ -20,6 +20,7 @@ class Communication:
             None
         """
         self._shutdown_event = threading.Event()
+        self._serial_lock = threading.RLock()  # Recursive lock for serial port access
         try:
             # Short timeout keeps shutdown responsive when a worker is blocked on read.
             self.ser = serial.Serial("/dev/ttyACM0", 115200, timeout=0.1)
@@ -53,7 +54,8 @@ class Communication:
             return False
 
         try:
-            self.ser.write(f"CHESSMOVE|{command.position.x}|{command.position.y}|{int(command.magnet_state)};\n".encode('utf-8'))
+            with self._serial_lock:
+                self.ser.write(f"CHESSMOVE|{command.position.x}|{command.position.y}|{int(command.magnet_state)};\n".encode('utf-8'))
         except Exception as e:
             print("Error writing to serial port:", e)
             return False
@@ -76,10 +78,11 @@ class Communication:
             return False
 
         try:
-            self.ser.write(f"PATH".encode('utf-8'))
-            for command in path:
-                self.ser.write(f"|{command.position.x},{command.position.y},{int(command.magnet_state)}".encode('utf-8'))
-            self.ser.write(";\n".encode('utf-8'))
+            with self._serial_lock:
+                self.ser.write(f"PATH".encode('utf-8'))
+                for command in path:
+                    self.ser.write(f"|{command.position.x},{command.position.y},{int(command.magnet_state)}".encode('utf-8'))
+                self.ser.write(";\n".encode('utf-8'))
         except Exception as e:
             print("Error writing to serial port:", e)
             return False
@@ -101,7 +104,8 @@ class Communication:
         cmd = "JOG" if relative else "MOVE"
         
         try:
-            self.ser.write(f"{cmd}|{pos.x}|{pos.y};\n".encode('utf-8'))
+            with self._serial_lock:
+                self.ser.write(f"{cmd}|{pos.x}|{pos.y};\n".encode('utf-8'))
         except Exception as e:
             print("Error writing to serial port:", e)
             return False
@@ -116,42 +120,45 @@ class Communication:
         """
         Wait for a line from serial and check whether it matches one of expected_responses.
         Returns True on match, False on timeout or unexpected response.
+        
+        Note: This method acquires the serial lock to prevent interleaving with other operations.
         """
         if self.ser is None:
             print("Error: serial port not available for validation")
             return False
 
-        expected = set(expected_responses)
-        start_time = time()
+        with self._serial_lock:
+            expected = set(expected_responses)
+            start_time = time()
 
-        while True:
-            if self._should_stop(stop_event):
-                return False
+            while True:
+                if self._should_stop(stop_event):
+                    return False
 
-            if time() - start_time > self.SEND_COMMAND_TIMEOUT:
-                print("Error: No response from motor controller.")
-                return False
+                if time() - start_time > self.SEND_COMMAND_TIMEOUT:
+                    print("Error: No response from motor controller.")
+                    return False
 
-            try:
-                if self.ser.in_waiting == 0:
-                    sleep(0.01)
+                try:
+                    if self.ser.in_waiting == 0:
+                        sleep(0.01)
+                        continue
+                    response = self.ser.readline().decode('utf-8', errors='ignore').strip()
+                except Exception as e:
+                    print("Error reading response from serial:", e)
+                    return False
+
+                if not response:
                     continue
-                response = self.ser.readline().decode('utf-8', errors='ignore').strip()
-            except Exception as e:
-                print("Error reading response from serial:", e)
+                if response in expected:
+                    return True
+
+                # PLAYED can arrive asynchronously while waiting for DONE/HOMED/STOPPED.
+                if response == "PLAYED":
+                    continue
+
+                print("Error: Unexpected response from motor controller:", response)
                 return False
-
-            if not response:
-                continue
-            if response in expected:
-                return True
-
-            # PLAYED can arrive asynchronously while waiting for DONE/HOMED/STOPPED.
-            if response == "PLAYED":
-                continue
-
-            print("Error: Unexpected response from motor controller:", response)
-            return False
 
     def go_home(self, stop_event=None):
         if self._should_stop(stop_event):
@@ -162,7 +169,8 @@ class Communication:
             return False
 
         try:
-            self.ser.write("HOME;\n".encode('utf-8'))
+            with self._serial_lock:
+                self.ser.write("HOME;\n".encode('utf-8'))
         except Exception as e:
             print("Error writing HOME to serial:", e)
             return False
@@ -179,7 +187,8 @@ class Communication:
             return False
 
         try:
-            self.ser.write("STOP;\n".encode('utf-8'))
+            with self._serial_lock:
+                self.ser.write("STOP;\n".encode('utf-8'))
         except Exception as e:
             print("Error writing STOP to serial:", e)
             return False
@@ -193,7 +202,8 @@ class Communication:
             return False
 
         try:
-            self.ser.write(f"SERVO|{int(state)};\n".encode('utf-8'))
+            with self._serial_lock:
+                self.ser.write(f"SERVO|{int(state)};\n".encode('utf-8'))
         except Exception as e:
             print("Error writing SERVO to serial:", e)
             return False
@@ -205,20 +215,23 @@ class Communication:
         if self.ser is None:
             return
 
-        try:
-            self.ser.reset_input_buffer()
-        except Exception:
-            # Fallback for drivers/environments where reset_input_buffer can fail.
+        with self._serial_lock:
             try:
-                while self.ser.in_waiting > 0:
-                    self.ser.readline()
+                self.ser.reset_input_buffer()
             except Exception:
-                pass
+                # Fallback for drivers/environments where reset_input_buffer can fail.
+                try:
+                    while self.ser.in_waiting > 0:
+                        self.ser.readline()
+                except Exception:
+                    pass
 
     def wait_for_button_press(self, stop_event=None, timeout_seconds=600):
         """
         Wait for a button press signal from ESP-32. This is used to detect when the user has placed a piece on the board.
         The ESP-32 should send "PLAYED" when a piece is placed.
+        
+        Note: This method periodically releases the serial lock to allow other commands to be sent.
         """
         if self.ser is None:
             print("Error: serial port not available")
@@ -237,15 +250,19 @@ class Communication:
                 return False
 
             try:
-                if self.ser.in_waiting == 0:
-                    sleep(0.01)
-                    continue
-
-                response = self.ser.readline().decode('utf-8', errors='ignore').strip()
-                if not response:
-                    continue
-                if response == "PLAYED":
-                    return True
+                # Acquire lock, check for data briefly, then release to allow other commands
+                with self._serial_lock:
+                    if self.ser.in_waiting == 0:
+                        # No data waiting, release lock and sleep
+                        pass
+                    else:
+                        response = self.ser.readline().decode('utf-8', errors='ignore').strip()
+                        if response:
+                            if response == "PLAYED":
+                                return True
+                            # Ignore other responses while waiting for button press
+                # Sleep between lock attempts to give other operations a chance
+                sleep(0.01)
             except Exception as e:
                 print("Error reading serial in wait_for_button_press:", e)
                 return False
