@@ -1,5 +1,6 @@
 # CNChess - Automated Chess System
 Automated chess board for playing against chess engine. For more information concerning the hardware needed visit the [wiki](https://github.com/LepTho2233127/CNChess/wiki)
+<img width="5712" height="4284" alt="Image (4)" src="https://github.com/user-attachments/assets/b48eb7f4-3568-409d-885b-a294d48fc853" />
 
 ## Get Started for Software Development
 
