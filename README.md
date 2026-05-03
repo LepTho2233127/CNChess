@@ -2,6 +2,8 @@
 Automated chess board for playing against chess engine. For more information concerning the hardware needed visit the [wiki](https://github.com/LepTho2233127/CNChess/wiki)
 <img width="5712" height="4284" alt="Image (4)" src="https://github.com/user-attachments/assets/b48eb7f4-3568-409d-885b-a294d48fc853" />
 
+<img width="320" height="240" alt="IMG_8428 (online-video-cutter com) (2)" src="https://github.com/user-attachments/assets/1b293a02-342d-4a35-92ec-e3df5d5237a5" />
+
 ## Get Started for Software Development
 
 ### 1. Clone project
