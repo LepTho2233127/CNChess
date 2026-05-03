@@ -4,6 +4,7 @@ Automated chess board for playing against chess engine. For more information con
 
 <div align="center">
 <img width="320" height="240" alt="IMG_8428 (online-video-cutter com) (2)" src="https://github.com/user-attachments/assets/1b293a02-342d-4a35-92ec-e3df5d5237a5" />
+</div>
 
 ## Get Started for Software Development
 
